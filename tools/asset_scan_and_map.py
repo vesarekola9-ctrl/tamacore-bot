@@ -32,60 +32,14 @@ def img_meta(path: Path):
 def guess_category(path: Path) -> str:
     name = path.name.lower()
 
-    # 1) Strong heuristic based on PDF pages we know:
-    # - page_02 likely UI & buttons
-    # - page_03 likely cosmetics/effects packs
+    # Strong heuristic for your extracted PDF page renders
     if "page_02" in name or name.startswith("p02_"):
         return "ui"
     if "page_03" in name or name.startswith("p03_"):
-        # This page contains both cosmetics + effects in your design PDF,
-        # so we place it into cosm
-@"
-import json
-import shutil
-from pathlib import Path
-from datetime import datetime
-
-from PIL import Image
-
-DROP = Path("output") / "assets_raw" / "_drop_all"
-OUT_ROOT = Path("output") / "assets_raw"
-
-CATS = {
-    "ui": OUT_ROOT / "ui",
-    "cosmetics": OUT_ROOT / "cosmetics",
-    "effects": OUT_ROOT / "effects",
-    "backgrounds": OUT_ROOT / "backgrounds",
-    "pet": OUT_ROOT / "pet",
-    "_unmapped": OUT_ROOT / "_unmapped",
-}
-
-def ensure_dirs():
-    OUT_ROOT.mkdir(parents=True, exist_ok=True)
-    for p in CATS.values():
-        p.mkdir(parents=True, exist_ok=True)
-
-def img_meta(path: Path):
-    try:
-        with Image.open(path) as im:
-            return {"w": im.size[0], "h": im.size[1], "mode": im.mode}
-    except Exception as e:
-        return {"w": None, "h": None, "mode": None, "error": str(e)}
-
-def guess_category(path: Path) -> str:
-    name = path.name.lower()
-
-    # 1) Strong heuristic based on PDF pages we know:
-    # - page_02 likely UI & buttons
-    # - page_03 likely cosmetics/effects packs
-    if "page_02" in name or name.startswith("p02_"):
-        return "ui"
-    if "page_03" in name or name.startswith("p03_"):
-        # This page contains both cosmetics + effects in your design PDF,
-        # so we place it into cosmetics as "pack" first (later slicing will split).
+        # mixed cosmetics/effects page -> store as cosmetics pack first
         return "cosmetics"
 
-    # 2) Fallback heuristics
+    # Fallback heuristics
     if any(k in name for k in ["button", "btn", "ui", "icon", "hud"]):
         return "ui"
     if any(k in name for k in ["hat", "glasses", "skin", "cosmetic", "clothes"]):
@@ -102,7 +56,6 @@ def guess_category(path: Path) -> str:
 def copy_file(src: Path, dest_dir: Path):
     dest = dest_dir / src.name
     if dest.exists():
-        # avoid overwriting: add suffix
         stem = src.stem
         suf = src.suffix
         i = 2
@@ -118,7 +71,7 @@ def copy_file(src: Path, dest_dir: Path):
 def main():
     ensure_dirs()
     if not DROP.exists():
-        raise SystemExit(f"Puuttuu: {DROP}. Aja ensin make_folders.py (ja extractor).")
+        raise SystemExit(f"Missing drop folder: {DROP} (aja ensin extract + make_folders)")
 
     files = [p for p in DROP.iterdir() if p.is_file() and p.suffix.lower() in [".png", ".jpg", ".jpeg", ".webp"]]
     if not files:
@@ -141,11 +94,7 @@ def main():
             "category": cat,
             "copied_to": str(out_path),
             "meta": meta,
-            "note": (
-                "Pack image; needs slicing later"
-                if cat in ["ui", "cosmetics"] and ("page_0" in f.name.lower() or f.name.lower().startswith("p0"))
-                else ""
-            )
+            "note": "Likely a pack image; slicing later" if ("page_" in f.name.lower() or f.name.lower().startswith("p0")) else ""
         })
         mapping["summary"][cat] += 1
 
@@ -153,10 +102,9 @@ def main():
     out_json.write_text(json.dumps(mapping, indent=2, ensure_ascii=False), encoding="utf-8")
 
     print("[✓] Asset scan complete")
-    print(f"    mapping -> {out_json}")
-    print("    summary:")
     for k, v in mapping["summary"].items():
-        print(f"      {k}: {v}")
+        print(f"  {k}: {v}")
+    print(f"mapping -> {out_json}")
 
 if __name__ == "__main__":
     main()
