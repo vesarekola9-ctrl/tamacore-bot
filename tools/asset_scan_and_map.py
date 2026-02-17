@@ -2,7 +2,6 @@ import json
 import shutil
 from pathlib import Path
 from datetime import datetime
-
 from PIL import Image
 
 DROP = Path("output") / "assets_raw" / "_drop_all"
@@ -32,14 +31,12 @@ def img_meta(path: Path):
 def guess_category(path: Path) -> str:
     name = path.name.lower()
 
-    # Strong heuristic for your extracted PDF page renders
+    # Your PDF page renders:
     if "page_02" in name or name.startswith("p02_"):
         return "ui"
     if "page_03" in name or name.startswith("p03_"):
-        # mixed cosmetics/effects page -> store as cosmetics pack first
-        return "cosmetics"
+        return "cosmetics"  # mixed pack; slicing later
 
-    # Fallback heuristics
     if any(k in name for k in ["button", "btn", "ui", "icon", "hud"]):
         return "ui"
     if any(k in name for k in ["hat", "glasses", "skin", "cosmetic", "clothes"]):
@@ -56,8 +53,7 @@ def guess_category(path: Path) -> str:
 def copy_file(src: Path, dest_dir: Path):
     dest = dest_dir / src.name
     if dest.exists():
-        stem = src.stem
-        suf = src.suffix
+        stem, suf = src.stem, src.suffix
         i = 2
         while True:
             candidate = dest_dir / f"{stem}_{i}{suf}"
@@ -71,7 +67,7 @@ def copy_file(src: Path, dest_dir: Path):
 def main():
     ensure_dirs()
     if not DROP.exists():
-        raise SystemExit(f"Missing drop folder: {DROP} (aja ensin extract + make_folders)")
+        raise SystemExit(f"Missing: {DROP}. Aja ensin extract + make_folders.")
 
     files = [p for p in DROP.iterdir() if p.is_file() and p.suffix.lower() in [".png", ".jpg", ".jpeg", ".webp"]]
     if not files:
@@ -93,8 +89,7 @@ def main():
             "source": str(f),
             "category": cat,
             "copied_to": str(out_path),
-            "meta": meta,
-            "note": "Likely a pack image; slicing later" if ("page_" in f.name.lower() or f.name.lower().startswith("p0")) else ""
+            "meta": meta
         })
         mapping["summary"][cat] += 1
 
