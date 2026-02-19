@@ -1,15 +1,5 @@
-# venv
 .venv/
-venv/
-
-# outputs
+__pycache__/
 output/
-*.log
-
-# inputs can be big/private
-input/*.pdf
-input/**/*.pdf
-
-# OS junk
+input/
 .DS_Store
-Thumbs.db
