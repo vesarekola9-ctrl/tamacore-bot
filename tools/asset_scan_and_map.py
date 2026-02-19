@@ -1,8 +1,12 @@
-import json
-import shutil
 from pathlib import Path
 from datetime import datetime
-from PIL import Image
+import json
+import shutil
+
+try:
+    from PIL import Image
+except Exception:
+    Image = None
 
 DROP = Path("output") / "assets_raw" / "_drop_all"
 OUT_ROOT = Path("output") / "assets_raw"
@@ -18,47 +22,40 @@ CATS = {
 
 def ensure_dirs():
     OUT_ROOT.mkdir(parents=True, exist_ok=True)
-    for p in CATS.values():
-        p.mkdir(parents=True, exist_ok=True)
+    for d in CATS.values():
+        d.mkdir(parents=True, exist_ok=True)
 
 def img_meta(path: Path):
+    if Image is None:
+        return {"w": None, "h": None, "mode": None}
     try:
         with Image.open(path) as im:
             return {"w": im.size[0], "h": im.size[1], "mode": im.mode}
     except Exception as e:
         return {"w": None, "h": None, "mode": None, "error": str(e)}
 
-def guess_category(path: Path) -> str:
-    name = path.name.lower()
-
-    # Your PDF page renders:
-    if "page_02" in name or name.startswith("p02_"):
+def guess_category(name_lower: str) -> str:
+    n = name_lower
+    if any(k in n for k in ["button", "btn", "ui", "icon", "panel", "popup", "badge"]):
         return "ui"
-    if "page_03" in name or name.startswith("p03_"):
-        return "cosmetics"  # mixed pack; slicing later
-
-    if any(k in name for k in ["button", "btn", "ui", "icon", "hud"]):
-        return "ui"
-    if any(k in name for k in ["hat", "glasses", "skin", "cosmetic", "clothes"]):
+    if any(k in n for k in ["hat", "glasses", "skin", "outfit", "cosmetic", "clothes"]):
         return "cosmetics"
-    if any(k in name for k in ["spark", "effect", "splash", "heart", "shine"]):
+    if any(k in n for k in ["effect", "spark", "heart", "splash", "rare", "wow", "burst"]):
         return "effects"
-    if any(k in name for k in ["bg", "background", "room", "scene"]):
+    if any(k in n for k in ["bg", "background", "scene", "room"]):
         return "backgrounds"
-    if any(k in name for k in ["pet", "fluff", "egg", "chonk", "skinny"]):
+    if any(k in n for k in ["pet", "egg", "chonk", "fluff", "tama", "face", "reaction"]):
         return "pet"
-
     return "_unmapped"
 
-def copy_file(src: Path, dest_dir: Path):
+def copy_file(src: Path, dest_dir: Path) -> Path:
     dest = dest_dir / src.name
     if dest.exists():
-        stem, suf = src.stem, src.suffix
         i = 2
         while True:
-            candidate = dest_dir / f"{stem}_{i}{suf}"
-            if not candidate.exists():
-                dest = candidate
+            cand = dest_dir / f"{src.stem}_{i}{src.suffix}"
+            if not cand.exists():
+                dest = cand
                 break
             i += 1
     shutil.copy2(src, dest)
@@ -66,40 +63,38 @@ def copy_file(src: Path, dest_dir: Path):
 
 def main():
     ensure_dirs()
-    if not DROP.exists():
-        raise SystemExit(f"Missing: {DROP}. Aja ensin extract + make_folders.")
 
-    files = [p for p in DROP.iterdir() if p.is_file() and p.suffix.lower() in [".png", ".jpg", ".jpeg", ".webp"]]
+    if not DROP.exists():
+        raise SystemExit(f"_drop_all missing: {DROP}")
+    files = [p for p in DROP.iterdir() if p.is_file()]
     if not files:
         raise SystemExit(f"_drop_all on tyhjä: {DROP}")
 
     mapping = {
         "generated_at": datetime.utcnow().isoformat() + "Z",
-        "drop_folder": str(DROP),
+        "summary": {k: 0 for k in CATS},
         "items": [],
-        "summary": {k: 0 for k in CATS.keys()},
     }
 
     for f in sorted(files):
-        meta = img_meta(f)
-        cat = guess_category(f)
+        cat = guess_category(f.name.lower())
         out_path = copy_file(f, CATS[cat])
+        meta = img_meta(f)
 
-        mapping["items"].append({
-            "source": str(f),
-            "category": cat,
-            "copied_to": str(out_path),
-            "meta": meta
-        })
         mapping["summary"][cat] += 1
+        mapping["items"].append({
+            "filename": f.name,
+            "category": cat,
+            "copied_to": str(out_path).replace("\\", "/"),
+            "meta": meta,
+        })
 
     out_json = OUT_ROOT / "mapping.json"
-    out_json.write_text(json.dumps(mapping, indent=2, ensure_ascii=False), encoding="utf-8")
+    out_json.write_text(json.dumps(mapping, indent=2), encoding="utf-8")
 
     print("[✓] Asset scan complete")
-    for k, v in mapping["summary"].items():
-        print(f"  {k}: {v}")
-    print(f"mapping -> {out_json}")
+    print(mapping["summary"])
+    print("[✓] Wrote:", out_json)
 
 if __name__ == "__main__":
     main()
