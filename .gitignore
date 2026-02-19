@@ -1,5 +1,12 @@
 .venv/
 __pycache__/
 output/
-input/
 .DS_Store
+
+# Älä commitoi isoja pdf:iä oletuksena:
+input/*.pdf
+input/**/*.pdf
+
+# Extra-kuvat voi pitää localina (halutessa voit poistaa nämä):
+input/extra_images/*
+!input/extra_images/.keep
