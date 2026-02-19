@@ -1,22 +1,16 @@
 from pathlib import Path
-import shutil
+
+OUT = Path("output") / "assets_raw"
+DROP = OUT / "_drop_all"
+
+CATS = ["ui", "cosmetics", "effects", "backgrounds", "pet", "_unmapped"]
 
 def main():
-    raw = Path("output") / "assets_raw"
-    for p in ["ui", "cosmetics", "effects", "backgrounds", "pet", "_drop_all"]:
-        (raw / p).mkdir(parents=True, exist_ok=True)
-
-    extracted = Path("output") / "extracted"
-    drop = raw / "_drop_all"
-
-    for folder in ["pages", "embedded"]:
-        src = extracted / folder
-        if not src.exists():
-            continue
-        for f in src.glob("*.*"):
-            shutil.copy2(f, drop / f.name)
-
-    print("[✓] Created output/assets_raw/* and copied files to _drop_all")
+    OUT.mkdir(parents=True, exist_ok=True)
+    DROP.mkdir(parents=True, exist_ok=True)
+    for c in CATS:
+        (OUT / c).mkdir(parents=True, exist_ok=True)
+    print("[✓] Folders ready:", OUT)
 
 if __name__ == "__main__":
     main()
