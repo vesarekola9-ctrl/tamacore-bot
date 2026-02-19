@@ -21,7 +21,6 @@ CATS = {
 }
 
 def ensure_dirs():
-    OUT_ROOT.mkdir(parents=True, exist_ok=True)
     for d in CATS.values():
         d.mkdir(parents=True, exist_ok=True)
 
@@ -36,6 +35,7 @@ def img_meta(path: Path):
 
 def guess_category(name_lower: str) -> str:
     n = name_lower
+
     if any(k in n for k in ["button", "btn", "ui", "icon", "panel", "popup", "badge"]):
         return "ui"
     if any(k in n for k in ["hat", "glasses", "skin", "outfit", "cosmetic", "clothes"]):
@@ -46,6 +46,7 @@ def guess_category(name_lower: str) -> str:
         return "backgrounds"
     if any(k in n for k in ["pet", "egg", "chonk", "fluff", "tama", "face", "reaction"]):
         return "pet"
+
     return "_unmapped"
 
 def copy_file(src: Path, dest_dir: Path) -> Path:
@@ -66,6 +67,7 @@ def main():
 
     if not DROP.exists():
         raise SystemExit(f"_drop_all missing: {DROP}")
+
     files = [p for p in DROP.iterdir() if p.is_file()]
     if not files:
         raise SystemExit(f"_drop_all on tyhjä: {DROP}")
