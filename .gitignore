@@ -2,11 +2,8 @@
 __pycache__/
 output/
 .DS_Store
+Thumbs.db
 
-# Älä commitoi isoja pdf:iä oletuksena:
+# Älä commitoi pdf:iä oletuksena (mutta pidä input-kansio)
 input/*.pdf
 input/**/*.pdf
-
-# Extra-kuvat voi pitää localina (halutessa voit poistaa nämä):
-input/extra_images/*
-!input/extra_images/.keep
