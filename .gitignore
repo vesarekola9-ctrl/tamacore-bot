@@ -1,0 +1,15 @@
+# venv
+.venv/
+venv/
+
+# outputs
+output/
+*.log
+
+# inputs can be big/private
+input/*.pdf
+input/**/*.pdf
+
+# OS junk
+.DS_Store
+Thumbs.db
