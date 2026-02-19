@@ -1,31 +1,41 @@
-# TamaCore Pipeline (PDF -> assets -> mapping.json) for GDevelop
+# TamaCore Bot (Asset pipeline -> GDevelop)
 
-## What this does
-- Extracts images from: input/TamaCore_Game_Design_WITH_IMAGES.pdf
-- Collects everything to: output/assets_raw/_drop_all
-- Classifies assets into folders: ui/cosmetics/effects/backgrounds/pet/_unmapped
-- Generates: output/assets_raw/mapping.json
+Tämä repo tekee:
+1) kansiorakenteen
+2) PDF:stä upotettujen kuvien extraction -> output/assets_raw/_drop_all
+3) automaattisen luokittelun -> ui/cosmetics/effects/backgrounds/pet/_unmapped + mapping.json
+4) texture atlasin (atlas.png + atlas.json) GDevelopiin
 
-## Quick start (NO PowerShell typing)
-1) Put your PDF here:
-   input/TamaCore_Game_Design_WITH_IMAGES.pdf
+## Rakenne
+- input/  (tänne PDF: TamaCore_Game_Design_WITH_IMAGES.pdf)
+- output/assets_raw/_drop_all  (extractatut kuvat)
+- output/assets_raw/{ui,cosmetics,effects,backgrounds,pet,_unmapped}
+- output/atlas/atlas.png + atlas.json
 
-2) Optional: put extra images here:
-   input/extra_images/
+## Ajo (Windows / PowerShell)
+ÄLÄ kirjoita python-koodia suoraan PowerShelliin (import jne).
+Aja aina scriptit näin:
 
-3) Double-click:
-   run.bat
+1) Luo venv ja asenna:
+py -m venv .venv
+.\.venv\Scripts\activate
+py -m pip install -r requirements.txt
 
-## Output
-- output/assets_raw/_drop_all/
-- output/assets_raw/ui/
-- output/assets_raw/cosmetics/
-- output/assets_raw/effects/
-- output/assets_raw/backgrounds/
-- output/assets_raw/pet/
-- output/assets_raw/_unmapped/
+2) Laita PDF:
+input/TamaCore_Game_Design_WITH_IMAGES.pdf
+
+3) Aja pipeline:
+py tools\make_folders.py
+py tools\extract_from_pdf.py
+py tools\asset_scan_and_map.py
+py tools\atlas_pack.py
+
+Valmista:
 - output/assets_raw/mapping.json
+- output/atlas/atlas.png + output/atlas/atlas.json
 
-## Notes
-- Don’t type Python code in terminal.
-- This repo is designed to run with one file: run.bat
+## GDevelop (Spritesheet)
+GDevelopissa:
+- Add resource -> Image -> lisää atlas.png
+- Spritesheet/Atlas JSON -> valitse atlas.json (TexturePacker-tyylinen)
+- Luo sprite-objekteja frame-nimillä (json -> frames -> filename)
