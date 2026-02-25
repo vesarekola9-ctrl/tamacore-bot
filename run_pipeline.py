@@ -13,14 +13,12 @@ def is_frozen() -> bool:
 
 
 def exe_dir() -> Path:
-    # Portable rule: base dir is always the exe folder when frozen.
     if is_frozen():
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent
 
 
 def tools_dir(base: Path) -> Path:
-    # In onefile mode, bundled data is extracted to sys._MEIPASS
     if is_frozen():
         return Path(getattr(sys, "_MEIPASS")) / "tools"
     return base / "tools"
@@ -40,29 +38,25 @@ def log(base: Path, msg: str):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     line = f"[{ts}] {msg}"
     print(line)
+
     lp = log_path(base)
     lp.parent.mkdir(parents=True, exist_ok=True)
-    lp.write_text(lp.read_text(encoding="utf-8", errors="ignore") + line + "\n" if lp.exists() else line + "\n",
-                  encoding="utf-8")
+    prev = ""
+    if lp.exists():
+        prev = lp.read_text(encoding="utf-8", errors="ignore")
+    lp.write_text(prev + line + "\n", encoding="utf-8")
 
 
 def normalize_pdf_name(src: Path) -> str:
-    # Keep stable name so tools expecting a specific filename can work.
-    # If you want, you can later read "any pdf" in extract_from_pdf.py.
+    # Keep stable name for tools that expect this filename.
     return "TamaCore_Game_Design_WITH_IMAGES.pdf"
 
 
 def accept_drag_drop_inputs(base: Path):
-    """
-    Portable UX:
-    - If user drags a PDF onto the EXE, Windows passes the path as argv[1..].
-    - We copy the first PDF to base/input/<normalized name>.
-    """
-    args = [Path(a) for a in sys.argv[1:] if a.strip()]
+    args = [Path(a) for a in sys.argv[1:] if str(a).strip()]
     if not args:
         return
 
-    # Pick first existing PDF
     pdf = None
     for a in args:
         try:
@@ -90,27 +84,17 @@ def run_script(base: Path, script: Path):
         return
 
     log(base, f"> Running: {script.name}")
-    try:
-        runpy.run_path(str(script), run_name="__main__")
-        log(base, f"[ok] {script.name}")
-    except SystemExit as e:
-        code = int(getattr(e, "code", 1) or 0)
-        log(base, f"[fail] {script.name} exited with code {code}")
-        raise
-    except Exception as e:
-        log(base, f"[fail] {script.name} exception: {e}")
-        raise
+    runpy.run_path(str(script), run_name="__main__")
+    log(base, f"[ok] {script.name}")
 
 
 def main():
     base = exe_dir()
 
-    # CRITICAL: make all relative paths resolve next to EXE (portable)
+    # Portable: always resolve relative paths next to EXE
     os.chdir(base)
-
     ensure_dirs(base)
 
-    # drag&drop support (optional)
     accept_drag_drop_inputs(base)
 
     tdir = tools_dir(base)
