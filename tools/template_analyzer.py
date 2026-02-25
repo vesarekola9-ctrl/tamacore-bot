@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 from datetime import datetime
-from collections import Counter, defaultdict
+from collections import Counter
 
 ROOT = Path(".")
 TEMPLATE_DIR = Path("input") / "template_project"
@@ -12,15 +12,7 @@ TEMPLATE_DIR = Path("input") / "template_project"
 OUT_REPORTS = Path("output") / "reports"
 OUT_SCAFFOLD = Path("output") / "scaffold"
 
-# Your pipeline mapping file is created by asset_scan_and_map.py (it writes mapping["items"] + summary)
 MAPPING_JSON = Path("output") / "assets_raw" / "mapping.json"
-
-
-def read_text_safe(p: Path) -> str:
-    try:
-        return p.read_text(encoding="utf-8", errors="ignore")
-    except Exception:
-        return ""
 
 
 def read_json_safe(p: Path):
@@ -31,12 +23,7 @@ def read_json_safe(p: Path):
 
 
 def find_candidate_json_files(base: Path):
-    # find json files that might be gdevelop project files
-    files = []
-    for p in base.rglob("*.json"):
-        if p.is_file():
-            files.append(p)
-    # prefer bigger files first (more likely to contain structure)
+    files = [p for p in base.rglob("*.json") if p.is_file()]
     files.sort(key=lambda x: x.stat().st_size, reverse=True)
     return files
 
@@ -45,12 +32,10 @@ def looks_like_gdevelop_project(obj) -> bool:
     if not isinstance(obj, dict):
         return False
     s = json.dumps(obj, ensure_ascii=False)[:2000].lower()
-    # heuristics only
     return ("gdevelop" in s) or ("gdjs" in s) or ("layouts" in s) or ("objects" in s and "resources" in s)
 
 
-def extract_strings(obj, out: list[str], limit: int = 20000):
-    # collect string values recursively (for naming conventions)
+def extract_strings(obj, out: list[str], limit: int = 25000):
     if len(out) >= limit:
         return
     if isinstance(obj, dict):
@@ -66,7 +51,6 @@ def extract_strings(obj, out: list[str], limit: int = 20000):
 
 
 def infer_naming_conventions(strings: list[str]):
-    # detect patterns: snake_case, kebab-case, CamelCase, prefixes like ui__, cosmetics__, __v001
     stats = {
         "snake_case": 0,
         "kebab_case": 0,
@@ -79,7 +63,6 @@ def infer_naming_conventions(strings: list[str]):
 
     prefixes = Counter()
     suffixes = Counter()
-
     version_re = re.compile(r"__v\d{3}\b", re.IGNORECASE)
 
     for s in strings:
@@ -93,7 +76,6 @@ def infer_naming_conventions(strings: list[str]):
         if version_re.search(s):
             stats["has_version_tag"] += 1
 
-        # casing heuristics
         if re.fullmatch(r"[a-z0-9_]+", s):
             stats["snake_case"] += 1
         if re.fullmatch(r"[a-z0-9\-]+", s):
@@ -101,7 +83,6 @@ def infer_naming_conventions(strings: list[str]):
         if re.fullmatch(r"[A-Z][A-Za-z0-9]+(?:[A-Z][A-Za-z0-9]+)+", s):
             stats["camel_case"] += 1
 
-        # prefix/suffix tokens
         tok = re.split(r"__|_|-", s)
         tok = [t for t in tok if t]
         if len(tok) >= 2:
@@ -129,19 +110,16 @@ def analyze_template_project():
     if not TEMPLATE_DIR.exists():
         return result
 
-    # basic file counts
     ext_counts = Counter()
-    all_files = []
     for p in TEMPLATE_DIR.rglob("*"):
         if p.is_file():
             ext_counts[p.suffix.lower()] += 1
-            all_files.append(p)
     result["file_counts"] = dict(ext_counts)
 
-    # look for candidate jsons
     candidates = find_candidate_json_files(TEMPLATE_DIR)
     selected = None
-    for p in candidates[:40]:
+
+    for p in candidates[:50]:
         obj = read_json_safe(p)
         if obj is None:
             continue
@@ -158,10 +136,8 @@ def analyze_template_project():
         strings: list[str] = []
         extract_strings(obj, strings)
 
-        # naming inference based on strings
         result["naming_inference"] = infer_naming_conventions(strings)
 
-        # scene/layout guesses (heuristic: keys/values containing common scene words)
         scene_like = Counter()
         obj_like = Counter()
         for s in strings:
@@ -182,11 +158,9 @@ def analyze_template_project():
 
 
 def analyze_mapping():
-    # mapping.json format comes from your asset_scan_and_map.py
-    # It writes mapping["items"] and mapping["summary"].
     m = read_json_safe(MAPPING_JSON)
     if not isinstance(m, dict):
-        return {"exists": False}
+        return {"exists": False, "path": str(MAPPING_JSON)}
 
     items = m.get("items", [])
     cats = Counter()
@@ -199,7 +173,6 @@ def analyze_mapping():
         except Exception:
             pass
 
-    # infer cosmetics slots from filenames
     slot = Counter()
     for n in names:
         if any(x in n for x in ["hat", "cap", "beanie"]):
@@ -213,6 +186,7 @@ def analyze_mapping():
 
     return {
         "exists": True,
+        "path": str(MAPPING_JSON),
         "summary": m.get("summary", {}),
         "category_counts": dict(cats),
         "slot_guess_counts": dict(slot),
@@ -239,7 +213,6 @@ def main():
         json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
-    # Minimal conventions file for next sprint wiring
     conventions = {
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "naming": tpl.get("naming_inference", {}),
@@ -247,6 +220,7 @@ def main():
         "object_name_suggestions": tpl.get("object_names_guess", []),
         "assets": mapping,
     }
+
     (OUT_SCAFFOLD / "template_conventions.json").write_text(
         json.dumps(conventions, indent=2, ensure_ascii=False), encoding="utf-8"
     )
