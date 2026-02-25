@@ -24,5 +24,6 @@ python -m PyInstaller ^
 
 echo.
 echo EXE ready: %cd%\dist\TamaCoreBot.exe
+echo Tip: You can copy TamaCoreBot.exe anywhere (Desktop/USB) and it will create input/output next to it.
 echo.
 pause
