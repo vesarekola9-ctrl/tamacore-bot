@@ -22,7 +22,6 @@ def run_script(script: Path):
     if not script.exists():
         print(f"[skip] Missing: {script.name}")
         return
-
     print(f"> Running: {script.name}")
     runpy.run_path(str(script), run_name="__main__")
 
@@ -31,6 +30,7 @@ def main():
     base = get_base_dir()
     tools = get_tools_dir(base)
 
+    # critical: always run next to exe / repo root
     os.chdir(base)
 
     (base / "input").mkdir(exist_ok=True)
@@ -49,7 +49,7 @@ def main():
     for name in pipeline:
         run_script(tools / name)
 
-    print("\nDONE ✅")
+    print("\nDONE ✅  Check output/ folder")
 
 
 if __name__ == "__main__":
