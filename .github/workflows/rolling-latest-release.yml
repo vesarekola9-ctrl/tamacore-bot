@@ -12,11 +12,9 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
@@ -27,33 +25,51 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build EXE (PyInstaller onefile)
+      - name: Build console EXE
         shell: pwsh
         run: |
           if (Test-Path build) { Remove-Item -Recurse -Force build }
-          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
-          if (Test-Path TamaCoreBot.spec) { Remove-Item -Force TamaCoreBot.spec }
+          if (Test-Path dist_console) { Remove-Item -Recurse -Force dist_console }
 
           python -m PyInstaller `
             --clean `
             --onefile `
             --name TamaCoreBot `
+            --distpath dist_console `
             --add-data "tools;tools" `
             run_pipeline.py
 
-          if (!(Test-Path "dist\TamaCoreBot.exe")) {
-            Write-Error "dist\TamaCoreBot.exe not found"
-          }
+          if (!(Test-Path "dist_console\TamaCoreBot.exe")) { throw "Console exe missing" }
 
-      - name: Publish/Update "latest" Release (replace EXE)
+      - name: Build GUI EXE (noconsole)
+        shell: pwsh
+        run: |
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+          if (Test-Path dist_gui) { Remove-Item -Recurse -Force dist_gui }
+
+          python -m PyInstaller `
+            --clean `
+            --onefile `
+            --noconsole `
+            --name TamaCoreBotGUI `
+            --distpath dist_gui `
+            --add-data "tools;tools" `
+            gui_app.py
+
+          if (!(Test-Path "dist_gui\TamaCoreBotGUI.exe")) { throw "GUI exe missing" }
+
+      - name: Publish/Update "latest" Release (replace EXEs)
         uses: ncipollo/release-action@v1
         with:
           tag: latest
           name: TamaCoreBot Latest
           body: |
-            This is the rolling latest build from main.
-            Download TamaCoreBot.exe below.
-          artifacts: dist/TamaCoreBot.exe
+            Rolling latest builds from main.
+            - TamaCoreBotGUI.exe (recommended)
+            - TamaCoreBot.exe (console debug)
+          artifacts: |
+            dist_console/TamaCoreBot.exe
+            dist_gui/TamaCoreBotGUI.exe
           allowUpdates: true
           replacesArtifacts: true
           makeLatest: true
