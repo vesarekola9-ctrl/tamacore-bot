@@ -2,39 +2,118 @@ from __future__ import annotations
 
 import os
 import sys
+import shutil
 import runpy
 from pathlib import Path
+from datetime import datetime
 
 
-def get_base_dir() -> Path:
-    if getattr(sys, "frozen", False):
+def is_frozen() -> bool:
+    return bool(getattr(sys, "frozen", False))
+
+
+def exe_dir() -> Path:
+    # Portable rule: base dir is always the exe folder when frozen.
+    if is_frozen():
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent
 
 
-def get_tools_dir(base: Path) -> Path:
-    if getattr(sys, "frozen", False):
-        return Path(sys._MEIPASS) / "tools"
+def tools_dir(base: Path) -> Path:
+    # In onefile mode, bundled data is extracted to sys._MEIPASS
+    if is_frozen():
+        return Path(getattr(sys, "_MEIPASS")) / "tools"
     return base / "tools"
 
 
-def run_script(script: Path):
-    if not script.exists():
-        print(f"[skip] Missing: {script.name}")
+def ensure_dirs(base: Path):
+    (base / "input").mkdir(parents=True, exist_ok=True)
+    (base / "output").mkdir(parents=True, exist_ok=True)
+    (base / "output" / "reports").mkdir(parents=True, exist_ok=True)
+
+
+def log_path(base: Path) -> Path:
+    return base / "output" / "reports" / "run_log.txt"
+
+
+def log(base: Path, msg: str):
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    line = f"[{ts}] {msg}"
+    print(line)
+    lp = log_path(base)
+    lp.parent.mkdir(parents=True, exist_ok=True)
+    lp.write_text(lp.read_text(encoding="utf-8", errors="ignore") + line + "\n" if lp.exists() else line + "\n",
+                  encoding="utf-8")
+
+
+def normalize_pdf_name(src: Path) -> str:
+    # Keep stable name so tools expecting a specific filename can work.
+    # If you want, you can later read "any pdf" in extract_from_pdf.py.
+    return "TamaCore_Game_Design_WITH_IMAGES.pdf"
+
+
+def accept_drag_drop_inputs(base: Path):
+    """
+    Portable UX:
+    - If user drags a PDF onto the EXE, Windows passes the path as argv[1..].
+    - We copy the first PDF to base/input/<normalized name>.
+    """
+    args = [Path(a) for a in sys.argv[1:] if a.strip()]
+    if not args:
         return
 
-    print(f"> Running: {script.name}")
-    runpy.run_path(str(script), run_name="__main__")
+    # Pick first existing PDF
+    pdf = None
+    for a in args:
+        try:
+            if a.exists() and a.is_file() and a.suffix.lower() == ".pdf":
+                pdf = a
+                break
+        except Exception:
+            pass
+
+    if not pdf:
+        log(base, f"No PDF drag-drop detected in args: {sys.argv[1:]}")
+        return
+
+    dst = base / "input" / normalize_pdf_name(pdf)
+    try:
+        shutil.copy2(pdf, dst)
+        log(base, f"Drag-drop PDF copied -> {dst}")
+    except Exception as e:
+        log(base, f"FAILED to copy drag-drop PDF: {e}")
+
+
+def run_script(base: Path, script: Path):
+    if not script.exists():
+        log(base, f"[skip] Missing tool: {script.name}")
+        return
+
+    log(base, f"> Running: {script.name}")
+    try:
+        runpy.run_path(str(script), run_name="__main__")
+        log(base, f"[ok] {script.name}")
+    except SystemExit as e:
+        code = int(getattr(e, "code", 1) or 0)
+        log(base, f"[fail] {script.name} exited with code {code}")
+        raise
+    except Exception as e:
+        log(base, f"[fail] {script.name} exception: {e}")
+        raise
 
 
 def main():
-    base = get_base_dir()
-    tools = get_tools_dir(base)
+    base = exe_dir()
 
+    # CRITICAL: make all relative paths resolve next to EXE (portable)
     os.chdir(base)
 
-    (base / "input").mkdir(exist_ok=True)
-    (base / "output").mkdir(exist_ok=True)
+    ensure_dirs(base)
+
+    # drag&drop support (optional)
+    accept_drag_drop_inputs(base)
+
+    tdir = tools_dir(base)
 
     pipeline = [
         "make_folders.py",
@@ -46,10 +125,14 @@ def main():
         "game_scaffold_generate.py",
     ]
 
-    for name in pipeline:
-        run_script(tools / name)
+    log(base, f"Base dir: {base}")
+    log(base, f"Tools dir: {tdir}")
+    log(base, f"Frozen: {is_frozen()}")
 
-    print("\nDONE ✅")
+    for name in pipeline:
+        run_script(base, tdir / name)
+
+    log(base, "DONE ✅  Check output/ folder")
 
 
 if __name__ == "__main__":
