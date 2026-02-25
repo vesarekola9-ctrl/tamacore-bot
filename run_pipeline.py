@@ -40,6 +40,7 @@ def main():
         "make_folders.py",
         "extract_from_pdf.py",
         "asset_scan_and_map.py",
+        "template_analyzer.py",
         "atlas_pack.py",
         "gdevelop_pack_generate.py",
         "game_scaffold_generate.py",
