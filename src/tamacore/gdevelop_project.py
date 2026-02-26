@@ -10,7 +10,6 @@ def load_or_create_project(game_json: Path) -> Dict[str, Any]:
     if game_json.exists():
         return read_json(game_json)
 
-    # Best-effort minimal GDevelop 5 style skeleton.
     return {
         "gdVersion": "5",
         "properties": {
@@ -168,10 +167,7 @@ def _ensure_scene_variable(layout: Dict[str, Any], var_name: str, initial_value:
 
 
 def set_events(layout: Dict[str, Any]) -> None:
-    """
-    Best-effort events.
-    If your GDevelop version rejects these event/action IDs, we will fix based on the error logs you paste.
-    """
+    # Best-effort. If your GDevelop rejects these IDs, paste the error and we’ll adapt.
     layout["events"] = [
         {
             "type": "BuiltinCommonInstructions::Standard",
