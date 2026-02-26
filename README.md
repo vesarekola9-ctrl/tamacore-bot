@@ -1,8 +1,8 @@
-# TamaCore Bot (GDevelop Game Producer)
+# TamaCore Bot (GDevelop MVP Producer)
 
-Generates/updates a GDevelop project JSON and copies assets into a game folder.
+This repo generates/updates a minimal GDevelop project JSON and copies assets into a game folder.
 
-## Quick start (Windows PowerShell)
+## Local Quick Start (Windows PowerShell)
 
 ```powershell
 cd C:\Users\vesa_\tamacore-bot
