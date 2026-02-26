@@ -22,7 +22,6 @@ def copy_images_into_game(
     """
     Copies images into game_dir/target_rel_dir.
     Returns mapping: logical_name -> relative posix path.
-    logical_name = filename stem lowercased (player.png -> "player")
     """
     out_dir = game_dir / target_rel_dir
     out_dir.mkdir(parents=True, exist_ok=True)
