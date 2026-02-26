@@ -1,6 +1,1 @@
-pymupdf==1.24.9
 Pillow==10.4.0
-
-pyyaml==6.0.2
-rich==13.9.4
-typer==0.12.5
