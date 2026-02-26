@@ -1,8 +1,9 @@
 # TamaCore Bot (GDevelop Game Producer)
 
-This repo generates/updates a GDevelop project JSON and copies assets into a game repo.
+Generates/updates a GDevelop project JSON and copies assets into a game folder.
 
 ## Quick start (Windows PowerShell)
+
 ```powershell
 cd C:\Users\vesa_\tamacore-bot
 python -m venv .venv
