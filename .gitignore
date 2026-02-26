@@ -6,3 +6,5 @@ dist/
 build/
 .DS_Store
 Thumbs.db
+_ci_game/
+_latest_game/
