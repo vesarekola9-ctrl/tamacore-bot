@@ -3,17 +3,24 @@ from __future__ import annotations
 from pathlib import Path
 
 from .assets_seed import ensure_assets_exist
-from .game_files import copy_images_into_game
-from .gdevelop_project import produce_game
+from .template_ops import ensure_template_exists, copy_template
+from .patch_gdevelop import copy_assets_into_game, patch_project
 
 
-def run_pipeline(assets_dir: Path, game_dir: Path) -> None:
+def run_pipeline(assets_dir: Path, template_dir: Path, game_dir: Path) -> None:
     ensure_assets_exist(assets_dir)
-    game_dir.mkdir(parents=True, exist_ok=True)
+    ensure_template_exists(template_dir)
 
-    image_map = copy_images_into_game(assets_dir=assets_dir, game_dir=game_dir, target_rel_dir="assets/generated")
-    game_json = produce_game(game_dir, image_map)
+    # Copy template to output folder
+    copy_template(template_dir, game_dir)
 
-    print("[OK] Copied images to:", (game_dir / "assets/generated"))
-    print("[OK] Produced/updated GDevelop project:", game_json)
+    # Copy assets into output folder and patch game.json
+    image_map = copy_assets_into_game(assets_dir, game_dir)
+
+    game_json = game_dir / "game.json"
+    patch_project(game_json, image_map)
+
+    print("[OK] Template copied to:", game_dir)
+    print("[OK] Assets copied to:", game_dir / "assets" / "generated")
+    print("[OK] Patched:", game_json)
     print("[NEXT] Open in GDevelop:", game_json)
