@@ -16,16 +16,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install deps (none)
+      - name: Check template exists
+        id: tpl
+        shell: bash
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          if [ -f "templates/gdevelop_template/game.json" ]; then
+            echo "has_template=true" >> $GITHUB_OUTPUT
+            echo "Template OK"
+          else
+            echo "has_template=false" >> $GITHUB_OUTPUT
+            echo "Template missing: commit templates/gdevelop_template/game.json"
+          fi
 
       - name: Build CI game
+        if: steps.tpl.outputs.has_template == 'true'
         run: |
-          python run_pipeline.py --assets-dir assets --game-dir _ci_game
+          python run_pipeline.py --assets-dir assets --template-dir templates/gdevelop_template --game-dir _ci_game
 
       - name: Upload artifact
+        if: steps.tpl.outputs.has_template == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ci-gdevelop-game
