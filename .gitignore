@@ -1,10 +1,15 @@
 .venv/
 __pycache__/
 *.pyc
+
+# generated
+_ci_game/
+_generated_game/
+tamacore-game/
 output/
 dist/
 build/
+
+# OS
 .DS_Store
 Thumbs.db
-_ci_game/
-_latest_game/
