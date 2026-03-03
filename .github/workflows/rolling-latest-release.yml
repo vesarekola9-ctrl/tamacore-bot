@@ -1,8 +1,6 @@
 name: rolling-latest-release
 
 on:
-  push:
-    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -36,40 +34,19 @@ jobs:
             --onefile `
             --name TamaCoreBot `
             --distpath dist_console `
-            --add-data "tools;tools" `
             run_pipeline.py
 
           if (!(Test-Path "dist_console\TamaCoreBot.exe")) { throw "Console exe missing" }
 
-      - name: Build GUI EXE (noconsole)
-        shell: pwsh
-        run: |
-          if (Test-Path build) { Remove-Item -Recurse -Force build }
-          if (Test-Path dist_gui) { Remove-Item -Recurse -Force dist_gui }
-
-          python -m PyInstaller `
-            --clean `
-            --onefile `
-            --noconsole `
-            --name TamaCoreBotGUI `
-            --distpath dist_gui `
-            --add-data "tools;tools" `
-            gui_app.py
-
-          if (!(Test-Path "dist_gui\TamaCoreBotGUI.exe")) { throw "GUI exe missing" }
-
-      - name: Publish/Update "latest" Release (replace EXEs)
+      - name: Publish/Update "latest" Release
         uses: ncipollo/release-action@v1
         with:
           tag: latest
           name: TamaCoreBot Latest
           body: |
-            Rolling latest builds from main.
-            - TamaCoreBotGUI.exe (recommended)
-            - TamaCoreBot.exe (console debug)
+            Rolling latest builds (manual run for now).
           artifacts: |
             dist_console/TamaCoreBot.exe
-            dist_gui/TamaCoreBotGUI.exe
           allowUpdates: true
           replacesArtifacts: true
           makeLatest: true
