@@ -1,8 +1,6 @@
 name: build-exe
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -28,37 +26,19 @@ jobs:
         run: |
           if (Test-Path build) { Remove-Item -Recurse -Force build }
           if (Test-Path dist_console) { Remove-Item -Recurse -Force dist_console }
+
           python -m PyInstaller `
             --clean `
             --onefile `
             --name TamaCoreBot `
             --distpath dist_console `
-            --add-data "tools;tools" `
             run_pipeline.py
 
           if (!(Test-Path "dist_console\TamaCoreBot.exe")) { throw "Console exe missing" }
 
-      - name: Build GUI EXE (noconsole)
-        shell: pwsh
-        run: |
-          if (Test-Path build) { Remove-Item -Recurse -Force build }
-          if (Test-Path dist_gui) { Remove-Item -Recurse -Force dist_gui }
-          python -m PyInstaller `
-            --clean `
-            --onefile `
-            --noconsole `
-            --name TamaCoreBotGUI `
-            --distpath dist_gui `
-            --add-data "tools;tools" `
-            gui_app.py
-
-          if (!(Test-Path "dist_gui\TamaCoreBotGUI.exe")) { throw "GUI exe missing" }
-
-      - name: Upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: TamaCoreBot-Windows-EXE
-          path: |
-            dist_console/TamaCoreBot.exe
-            dist_gui/TamaCoreBotGUI.exe
+          path: dist_console/TamaCoreBot.exe
           if-no-files-found: error
