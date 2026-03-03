@@ -10,11 +10,6 @@ IMG_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 
 
 def copy_assets_into_game(assets_dir: Path, game_dir: Path) -> Dict[str, str]:
-    """
-    Copy images from assets_dir into game_dir/assets/generated.
-    Return mapping: resource_name -> relative path (posix).
-    resource_name is filename stem lowercased.
-    """
     out_dir = game_dir / "assets" / "generated"
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -31,13 +26,6 @@ def copy_assets_into_game(assets_dir: Path, game_dir: Path) -> Dict[str, str]:
 
 
 def patch_project(game_json_path: Path, image_map: Dict[str, str]) -> None:
-    """
-    Patch a REAL GDevelop template game.json:
-      - upsert resources for images (assets/generated/*)
-      - inject TouchJoystick into the correct schema (objectsGroups)
-      - add UI layer if missing
-      - add Player touch-mapper behavior (mobile control)
-    """
     project = read_json(game_json_path)
 
     _upsert_resources(project, image_map)
@@ -45,7 +33,7 @@ def patch_project(game_json_path: Path, image_map: Dict[str, str]) -> None:
     scene = _get_scene(project, preferred_name="Main")
     if scene is not None:
         _ensure_ui_layer(scene)
-        _inject_touch_joystick(scene)
+        _inject_touch_joystick(scene)        # <-- now injects into scene["objects"] + instances
         _ensure_player_touch_mapper(scene)
 
     write_json(game_json_path, project)
@@ -75,7 +63,6 @@ def _upsert_resources(project: Dict[str, Any], image_map: Dict[str, str]) -> Non
         res_list = []
         res_root["resources"] = res_list
 
-    # keep folders structure if template has it
     res_root.setdefault("resourceFolders", [])
     res_root.setdefault("resourcesFolderStructure", {"folderName": "__ROOT"})
 
@@ -115,45 +102,9 @@ def _ensure_ui_layer(scene: Dict[str, Any]) -> None:
         layers.append({"name": "UI", "visibility": True, "effects": []})
 
 
-def _get_or_create_group(scene: Dict[str, Any], group_name: str) -> Dict[str, Any]:
-    groups = scene.get("objectsGroups")
-    if not isinstance(groups, list):
-        groups = []
-        scene["objectsGroups"] = groups
-
-    for g in groups:
-        if isinstance(g, dict) and g.get("name") == group_name:
-            g.setdefault("objects", [])
-            return g
-
-    new_g = {"name": group_name, "objects": []}
-    groups.append(new_g)
-    return new_g
-
-
-def _all_objects_in_scene(scene: Dict[str, Any]) -> List[Dict[str, Any]]:
-    objs: List[Dict[str, Any]] = []
-
-    # some templates still have scene["objects"]
-    direct = scene.get("objects")
-    if isinstance(direct, list):
-        objs.extend([o for o in direct if isinstance(o, dict)])
-
-    groups = scene.get("objectsGroups")
-    if isinstance(groups, list):
-        for g in groups:
-            if not isinstance(g, dict):
-                continue
-            g_objs = g.get("objects")
-            if isinstance(g_objs, list):
-                objs.extend([o for o in g_objs if isinstance(o, dict)])
-
-    return objs
-
-
-def _find_object(scene: Dict[str, Any], name: str) -> Dict[str, Any] | None:
-    for o in _all_objects_in_scene(scene):
-        if o.get("name") == name:
+def _find_object_in_scene_objects(scene_objects: List[Dict[str, Any]], name: str) -> Dict[str, Any] | None:
+    for o in scene_objects:
+        if isinstance(o, dict) and o.get("name") == name:
             return o
     return None
 
@@ -181,15 +132,16 @@ def _ensure_instance(scene: Dict[str, Any], obj_name: str, x: int, y: int, layer
 
 
 def _inject_touch_joystick(scene: Dict[str, Any]) -> None:
-    group = _get_or_create_group(scene, "Injected")
+    """
+    IMPORTANT: put it into scene["objects"] so it shows in GDevelop UI "Scene Objects".
+    """
+    scene_objects = scene.get("objects")
+    if not isinstance(scene_objects, list):
+        scene_objects = []
+        scene["objects"] = scene_objects
 
-    g_objs = group.get("objects")
-    if not isinstance(g_objs, list):
-        g_objs = []
-        group["objects"] = g_objs
-
-    if not any(isinstance(o, dict) and o.get("name") == "TouchJoystick" for o in g_objs):
-        g_objs.append(
+    if _find_object_in_scene_objects(scene_objects, "TouchJoystick") is None:
+        scene_objects.append(
             {
                 "name": "TouchJoystick",
                 "type": "SpriteMultitouchJoystick::SpriteMultitouchJoystick",
@@ -199,17 +151,15 @@ def _inject_touch_joystick(scene: Dict[str, Any]) -> None:
             }
         )
 
-    # bottom-left-ish on UI layer
     _ensure_instance(scene, "TouchJoystick", x=140, y=500, layer="UI", z=999)
 
 
 def _ensure_player_touch_mapper(scene: Dict[str, Any]) -> None:
-    """
-    Adds:
-      - TopDownMovement behavior (if missing)
-      - TopDownMultitouchMapper (if missing)
-    """
-    player = _find_object(scene, "Player")
+    scene_objects = scene.get("objects")
+    if not isinstance(scene_objects, list):
+        return
+
+    player = _find_object_in_scene_objects(scene_objects, "Player")
     if player is None:
         return
 
@@ -237,7 +187,6 @@ def _ensure_player_touch_mapper(scene: Dict[str, Any]) -> None:
             }
         )
 
-    # mapper behavior (uses the SpriteMultitouchJoystick extension you already have)
     if not has("TouchMapper"):
         behaviors.append(
             {
