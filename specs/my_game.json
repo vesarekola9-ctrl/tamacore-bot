@@ -1,11 +1,11 @@
 {
   "name": "TamaCore: Neon Run",
   "packageName": "com.vesa.tamacore.neonrun",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "theme": "neon",
   "difficulty": "normal",
   "seed": 1337,
-  "prompt": "Fast top-down arcade with clean mobile controls, upgrades, and escalating enemies.",
+  "prompt": "Top-down arcade. Collect coins. Avoid enemies. Mobile joystick. Shop upgrades.",
   "provider": "rules-v2",
   "modules": ["collect", "shop", "settings", "mobile_ui"],
   "tuning": {
@@ -14,6 +14,7 @@
     "enemy_speed_per_score": 4,
     "enemy_speed_cap": 260,
     "pickup_spawn_seconds": 2.4,
-    "enemy_spawn_seconds": 3.5
+    "enemy_spawn_seconds": 3.5,
+    "player_base_speed": 240
   }
 }
