@@ -1,0 +1,20 @@
+{
+  "name": "TamaCore: Neon Run",
+  "packageName": "com.vesa.tamacore.neonrun",
+  "version": "0.2.0",
+  "theme": "neon",
+  "difficulty": "normal",
+  "seed": 1337,
+  "modules": ["collect", "dodge", "shop", "settings", "mobile_ui"],
+  "tuning": {
+    "enemy_base_speed": 60,
+    "enemy_speed_per_score": 4,
+    "enemy_speed_cap": 240,
+    "unlock_enemy2_score": 10,
+    "unlock_enemy3_score": 20,
+    "hp_start": 3,
+    "stamina_start": 100,
+    "stamina_drain_per_sec": 60,
+    "stamina_regen_per_sec": 30
+  }
+}
