@@ -1,91 +1,23 @@
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .utils import is_image_file, read_json, write_json
 
-
-def _find_scene(project: Dict[str, Any], scene_name: str = "Main") -> Dict[str, Any] | None:
-    layouts = project.get("layouts")
-    if not isinstance(layouts, list) or not layouts:
-        return None
-    for layout in layouts:
-        if isinstance(layout, dict) and layout.get("name") == scene_name:
-            return layout
-    # fallback: first layout if Main not found
-    first = layouts[0]
-    return first if isinstance(first, dict) else None
+Json = Dict[str, Any]
 
 
-def _ensure_layer(scene: Dict[str, Any], layer_name: str) -> None:
-    layers = scene.setdefault("layers", [])
-    if not isinstance(layers, list):
-        scene["layers"] = []
-        layers = scene["layers"]
-
-    if any(isinstance(l, dict) and l.get("name") == layer_name for l in layers):
-        return
-
-    layers.append(
-        {
-            "name": layer_name,
-            "visibility": True,
-            "effects": [],
-        }
-    )
-
-
-def _ensure_object(scene: Dict[str, Any], obj: Dict[str, Any]) -> None:
-    objects = scene.setdefault("objects", [])
-    if not isinstance(objects, list):
-        scene["objects"] = []
-        objects = scene["objects"]
-
-    name = obj.get("name")
-    if name and any(isinstance(o, dict) and o.get("name") == name for o in objects):
-        return
-
-    objects.append(obj)
-
-
-def _ensure_instance(scene: Dict[str, Any], inst: Dict[str, Any]) -> None:
-    instances = scene.setdefault("instances", [])
-    if not isinstance(instances, list):
-        scene["instances"] = []
-        instances = scene["instances"]
-
-    want = inst.get("objectName") or inst.get("name")
-    if want and any(
-        isinstance(i, dict) and ((i.get("objectName") == want) or (i.get("name") == want))
-        for i in instances
-    ):
-        return
-
-    instances.append(inst)
-
-
-def _ensure_global_variable(project: Dict[str, Any], name: str, vtype: str, value: str) -> None:
-    vars_ = project.setdefault("variables", [])
-    if not isinstance(vars_, list):
-        project["variables"] = []
-        vars_ = project["variables"]
-
-    for v in vars_:
-        if isinstance(v, dict) and v.get("name") == name:
-            v["type"] = vtype
-            v["value"] = value
-            v.setdefault("children", [])
-            return
-
-    vars_.append({"name": name, "type": vtype, "value": value, "children": []})
-
+# ----------------------------
+# Public API (pipeline uses these)
+# ----------------------------
 
 def copy_assets_into_game(assets_dir: Path, game_dir: Path) -> Dict[str, str]:
     """
-    Copy images from assets_dir into game_dir/assets/generated.
-    Returns: resourceName (stem) -> relativePathInGame
+    Copies images from repo assets/ into game/assets/generated/.
+    Returns map: resourceName -> relative path in game folder.
     """
     out_dir = game_dir / "assets" / "generated"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -97,229 +29,282 @@ def copy_assets_into_game(assets_dir: Path, game_dir: Path) -> Dict[str, str]:
     for p in sorted(assets_dir.rglob("*")):
         if not is_image_file(p):
             continue
-
-        name = p.stem
         dst = out_dir / p.name
         shutil.copy2(p, dst)
 
-        image_map[name] = str(Path("assets") / "generated" / p.name).replace("\\", "/")
+        # resource name = file stem (without extension)
+        image_map[p.stem] = str(Path("assets") / "generated" / p.name).replace("\\", "/")
 
     return image_map
 
 
-def _patch_resources(project: Dict[str, Any], image_map: Dict[str, str]) -> None:
-    resources_block = project.setdefault("resources", {})
-    if not isinstance(resources_block, dict):
-        project["resources"] = {}
-        resources_block = project["resources"]
+def patch_project(game_json_path: Path, image_map: Optional[Dict[str, str]] = None, scene_name: str = "Main") -> None:
+    """
+    Patch game.json in-place:
+    - register resources for generated assets
+    - add v3.2.1 shop (objects + instances + events) to the FIRST layout (or scene_name if found)
+    - ensure UI layer exists
+    - ensure globals Coins/Speed/ShopOpen exist
+    """
+    project = read_json(game_json_path)
+    if not isinstance(project, dict):
+        raise ValueError("game.json is not a JSON object")
 
-    inner = resources_block.setdefault("resources", [])
+    if image_map:
+        _patch_resources(project, image_map)
+
+    # globals (project-level)
+    _ensure_global_var(project, "Coins", 250)
+    _ensure_global_var(project, "Speed", 200)
+    _ensure_global_var(project, "ShopOpen", 0)
+
+    layout = _find_layout(project, scene_name)
+    if layout is None:
+        write_json(game_json_path, project)
+        return
+
+    _ensure_ui_layer(layout)
+
+    # v3.2.1 shop objects must go INSIDE layout["objects"] (your template uses layout-local objects)
+    _ensure_layout_object(layout, _obj_text("ShopButton", "SHOP", 36))
+    _ensure_layout_object(layout, _obj_panel("ShopPanel", w=520, h=420))
+    _ensure_layout_object(layout, _obj_text("ShopItem", "BUY: SPEED +50 (100c)", 28))
+
+    # instances (safe: include both name + objectName so it works across schemas)
+    _ensure_instance(layout, "ShopButton", x=820, y=24, layer="UI", z=2000)
+    _ensure_instance(layout, "ShopPanel",  x=450, y=110, layer="UI", z=2100)
+    _ensure_instance(layout, "ShopItem",   x=490, y=200, layer="UI", z=2200)
+
+    _ensure_shop_events(layout)
+
+    write_json(game_json_path, project)
+
+
+# ----------------------------
+# Core JSON ops
+# ----------------------------
+
+def _find_layout(project: Json, scene_name: str) -> Optional[Json]:
+    layouts = project.get("layouts")
+    if not isinstance(layouts, list) or not layouts:
+        return None
+
+    for l in layouts:
+        if isinstance(l, dict) and l.get("name") == scene_name:
+            return l
+
+    first = layouts[0]
+    return first if isinstance(first, dict) else None
+
+
+def _ensure_ui_layer(layout: Json) -> None:
+    layers = layout.get("layers")
+    if not isinstance(layers, list):
+        layers = []
+        layout["layers"] = layers
+
+    for ly in layers:
+        if isinstance(ly, dict) and ly.get("name") == "UI":
+            # ensure follows base camera so it behaves like UI
+            ly.setdefault("followBaseLayerCamera", True)
+            return
+
+    layers.append(
+        {
+            "name": "UI",
+            "visibility": True,
+            "effects": [],
+            "isLightingLayer": False,
+            "followBaseLayerCamera": True,
+        }
+    )
+
+
+def _ensure_global_var(project: Json, name: str, number_value: float) -> None:
+    vars_ = project.get("variables")
+    if not isinstance(vars_, list):
+        vars_ = []
+        project["variables"] = vars_
+
+    for v in vars_:
+        if isinstance(v, dict) and v.get("name") == name:
+            # keep existing, but ensure structure
+            v.setdefault("type", "number")
+            v.setdefault("children", [])
+            if "value" not in v:
+                v["value"] = number_value
+            return
+
+    vars_.append({"name": name, "type": "number", "value": number_value, "children": []})
+
+
+def _patch_resources(project: Json, image_map: Dict[str, str]) -> None:
+    res = project.get("resources")
+    if not isinstance(res, dict):
+        res = {}
+        project["resources"] = res
+
+    inner = res.get("resources")
     if not isinstance(inner, list):
-        resources_block["resources"] = []
-        inner = resources_block["resources"]
+        inner = []
+        res["resources"] = inner
 
-    existing_by_name: Dict[str, Dict[str, Any]] = {}
+    by_name: Dict[str, Json] = {}
     for r in inner:
         if isinstance(r, dict) and isinstance(r.get("name"), str):
-            existing_by_name[r["name"]] = r
+            by_name[r["name"]] = r
 
     for name, relpath in image_map.items():
-        if name in existing_by_name:
-            existing_by_name[name]["file"] = relpath
-            existing_by_name[name]["kind"] = "image"
+        if name in by_name:
+            by_name[name]["kind"] = "image"
+            by_name[name]["file"] = relpath
+            by_name[name]["userAdded"] = True
+        else:
+            inner.append(
+                {
+                    "name": name,
+                    "kind": "image",
+                    "file": relpath,
+                    "metadata": "",
+                    "userAdded": True,
+                }
+            )
+
+
+def _ensure_layout_object(layout: Json, obj_def: Json) -> None:
+    objects = layout.get("objects")
+    if not isinstance(objects, list):
+        objects = []
+        layout["objects"] = objects
+
+    name = obj_def.get("name")
+    if not name:
+        return
+
+    for o in objects:
+        if isinstance(o, dict) and o.get("name") == name:
+            return
+
+    objects.append(obj_def)
+
+
+def _ensure_instance(layout: Json, object_name: str, x: float, y: float, layer: str, z: int) -> None:
+    inst = layout.get("instances")
+    if not isinstance(inst, list):
+        inst = []
+        layout["instances"] = inst
+
+    for it in inst:
+        if not isinstance(it, dict):
             continue
+        if it.get("name") == object_name or it.get("objectName") == object_name:
+            # ensure on UI layer + z
+            it["layer"] = layer
+            it["zOrder"] = max(int(it.get("zOrder", 0) or 0), z)
+            return
 
-        inner.append(
-            {
-                "name": name,
-                "kind": "image",
-                "file": relpath,
-                "metadata": "",
-                "userAdded": True,
-            }
-        )
-
-
-def _inject_touch_joystick(scene: Dict[str, Any]) -> None:
-    """
-    Ensure TouchJoystick object + instance exists.
-    Requires SpriteMultitouchJoystick extension to be present in template.
-    """
-    _ensure_layer(scene, "UI")
-
-    _ensure_object(
-        scene,
+    inst.append(
         {
-            "name": "TouchJoystick",
-            "type": "SpriteMultitouchJoystick::SpriteMultitouchJoystick",
-            "updateIfNotVisible": True,
-            "behaviors": [],
-            "effects": [],
-        },
-    )
-
-    _ensure_instance(
-        scene,
-        {
-            "objectName": "TouchJoystick",
-            "name": "TouchJoystick",
-            "x": 140,
-            "y": 500,
+            "name": object_name,
+            "objectName": object_name,
+            "layer": layer,
+            "x": x,
+            "y": y,
             "angle": 0,
-            "layer": "UI",
-            "zOrder": 999,
-        },
+            "zOrder": z,
+            "locked": False,
+            "persistentUuid": "",
+            "customSize": False,
+            "width": 0,
+            "height": 0,
+        }
     )
 
 
-def _inject_shop_ui(scene: Dict[str, Any]) -> None:
-    """
-    Create basic Shop button + panel as Text objects.
-    v3.2.1 events + vars are injected separately.
-    """
-    _ensure_layer(scene, "UI")
+# ----------------------------
+# Object defs (template-safe)
+# ----------------------------
 
-    # Button
-    _ensure_object(
-        scene,
-        {
-            "name": "ShopButton",
-            "type": "Text",
-            "string": "SHOP",
-            "fontSize": 28,
+def _obj_text(name: str, text: str, font_size: int) -> Json:
+    # Use canonical TextObject::Text format (works in exported JSON)
+    return {
+        "name": name,
+        "type": "TextObject::Text",
+        "assetStoreId": "",
+        "tags": "",
+        "variables": [],
+        "behaviors": [],
+        "content": {
+            "font": "",
+            "size": font_size,
             "bold": True,
             "italic": False,
             "underlined": False,
-            "smoothed": True,
-            "font": "",
-            "color": {"r": 245, "g": 245, "b": 250},
-            "behaviors": [],
-            "effects": [],
+            "color": "255;255;255",
+            "string": text,
+            "alignment": "center",
+            "verticalAlignment": "center",
+            "wrapping": False,
         },
-    )
-
-    _ensure_instance(
-        scene,
-        {
-            "objectName": "ShopButton",
-            "name": "ShopButton",
-            "x": 860,
-            "y": 20,
-            "angle": 0,
-            "layer": "UI",
-            "zOrder": 1000,
-        },
-    )
-
-    # Panel
-    _ensure_object(
-        scene,
-        {
-            "name": "ShopPanel",
-            "type": "Text",
-            "string": "SHOP\\n\\nSPEED +50 (100 coins)",
-            "fontSize": 24,
-            "bold": True,
-            "italic": False,
-            "underlined": False,
-            "smoothed": True,
-            "font": "",
-            "color": {"r": 245, "g": 245, "b": 250},
-            "behaviors": [],
-            "effects": [],
-        },
-    )
-
-    _ensure_instance(
-        scene,
-        {
-            "objectName": "ShopPanel",
-            "name": "ShopPanel",
-            "x": 520,
-            "y": 120,
-            "angle": 0,
-            "layer": "UI",
-            "zOrder": 1100,
-        },
-    )
-
-    # Clickable "ShopItem" line
-    _ensure_object(
-        scene,
-        {
-            "name": "ShopItem",
-            "type": "Text",
-            "string": "BUY: SPEED +50 (100c)",
-            "fontSize": 22,
-            "bold": True,
-            "italic": False,
-            "underlined": False,
-            "smoothed": True,
-            "font": "",
-            "color": {"r": 245, "g": 245, "b": 250},
-            "behaviors": [],
-            "effects": [],
-        },
-    )
-
-    _ensure_instance(
-        scene,
-        {
-            "objectName": "ShopItem",
-            "name": "ShopItem",
-            "x": 560,
-            "y": 220,
-            "angle": 0,
-            "layer": "UI",
-            "zOrder": 1110,
-        },
-    )
+        "effects": [],
+    }
 
 
-def _has_shop_marker(events: List[Any]) -> bool:
+def _obj_panel(name: str, w: int, h: int) -> Json:
+    # PanelSprite is present in many templates; even if not, it won't delete anything.
+    return {
+        "name": name,
+        "type": "PanelSpriteObject::PanelSprite",
+        "assetStoreId": "",
+        "tags": "",
+        "variables": [],
+        "behaviors": [],
+        "content": {"width": w, "height": h},
+        "effects": [],
+    }
+
+
+# ----------------------------
+# Events (v3.2.1)
+# ----------------------------
+
+def _ensure_shop_events(layout: Json) -> None:
+    events = layout.get("events")
+    if not isinstance(events, list):
+        events = []
+        layout["events"] = events
+
     marker = "TAMACORE_AUTOGEN_SHOP_V3_2_1"
     for e in events:
         if isinstance(e, dict) and e.get("type") == "BuiltinCommonInstructions::Comment":
             if marker in str(e.get("comment", "")):
-                return True
-    return False
-
-
-def _ensure_shop_events(scene: Dict[str, Any]) -> None:
-    """
-    Adds:
-    - On scene start: hide panel + item, ShopOpen=0
-    - Toggle on/off by clicking ShopButton
-    - Purchase by clicking ShopItem if Coins >= 100 (Coins -= 100, Speed += 50)
-    Uses the same event JSON style already present in repo (type + parameters).
-    """
-    events = scene.setdefault("events", [])
-    if not isinstance(events, list):
-        scene["events"] = []
-        events = scene["events"]
-
-    if _has_shop_marker(events):
-        return
+                return
 
     events.append(
         {
             "type": "BuiltinCommonInstructions::Comment",
-            "comment": "TAMACORE_AUTOGEN_SHOP_V3_2_1",
+            "comment": marker,
             "comment2": "",
         }
     )
 
-    # Init (Once)
+    # Init: hide panel+item and set ShopOpen=0 once at start
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [{"type": "BuiltinCommonInstructions::Once"}],
+            "conditions": [
+                _cond("BuiltinCommonInstructions::AtTheBeginningOfTheScene", [])
+            ],
             "actions": [
-                {"type": "BuiltinCommonInstructions::SetNumberVariable", "parameters": ["ShopOpen", "=", "0"]},
-                {"type": "BuiltinCommonInstructions::Hide", "parameters": ["ShopPanel"]},
-                {"type": "BuiltinCommonInstructions::Hide", "parameters": ["ShopItem"]},
+                _act("BuiltinCommonInstructions::Hide", ["ShopPanel"]),
+                _act("BuiltinCommonInstructions::Hide", ["ShopItem"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["ShopOpen", "0"]),
             ],
             "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Shop Init",
         }
     )
 
@@ -328,16 +313,20 @@ def _ensure_shop_events(scene: Dict[str, Any]) -> None:
         {
             "type": "BuiltinCommonInstructions::Standard",
             "conditions": [
-                {"type": "BuiltinCommonInstructions::CursorOnObject", "parameters": ["ShopButton", "", ""]},
-                {"type": "BuiltinCommonInstructions::MouseButtonReleased", "parameters": ["Left"]},
-                {"type": "BuiltinCommonInstructions::CompareNumbers", "parameters": ["Variable(ShopOpen)", "=", "0"]},
+                _cond("BuiltinCommonInstructions::CursorOnObject", ["ShopButton", "", ""]),
+                _cond("BuiltinCommonInstructions::MouseButtonReleased", ["Left"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(ShopOpen)", "=", "0"]),
             ],
             "actions": [
-                {"type": "BuiltinCommonInstructions::Show", "parameters": ["ShopPanel"]},
-                {"type": "BuiltinCommonInstructions::Show", "parameters": ["ShopItem"]},
-                {"type": "BuiltinCommonInstructions::SetNumberVariable", "parameters": ["ShopOpen", "=", "1"]},
+                _act("BuiltinCommonInstructions::Show", ["ShopPanel"]),
+                _act("BuiltinCommonInstructions::Show", ["ShopItem"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["ShopOpen", "1"]),
             ],
             "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Shop Toggle ON",
         }
     )
 
@@ -346,68 +335,61 @@ def _ensure_shop_events(scene: Dict[str, Any]) -> None:
         {
             "type": "BuiltinCommonInstructions::Standard",
             "conditions": [
-                {"type": "BuiltinCommonInstructions::CursorOnObject", "parameters": ["ShopButton", "", ""]},
-                {"type": "BuiltinCommonInstructions::MouseButtonReleased", "parameters": ["Left"]},
-                {"type": "BuiltinCommonInstructions::CompareNumbers", "parameters": ["Variable(ShopOpen)", "=", "1"]},
+                _cond("BuiltinCommonInstructions::CursorOnObject", ["ShopButton", "", ""]),
+                _cond("BuiltinCommonInstructions::MouseButtonReleased", ["Left"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(ShopOpen)", "=", "1"]),
             ],
             "actions": [
-                {"type": "BuiltinCommonInstructions::Hide", "parameters": ["ShopPanel"]},
-                {"type": "BuiltinCommonInstructions::Hide", "parameters": ["ShopItem"]},
-                {"type": "BuiltinCommonInstructions::SetNumberVariable", "parameters": ["ShopOpen", "=", "0"]},
+                _act("BuiltinCommonInstructions::Hide", ["ShopPanel"]),
+                _act("BuiltinCommonInstructions::Hide", ["ShopItem"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["ShopOpen", "0"]),
             ],
             "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Shop Toggle OFF",
         }
     )
 
-    # Purchase
+    # Purchase: Speed +50 for 100 coins
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
             "conditions": [
-                {"type": "BuiltinCommonInstructions::CursorOnObject", "parameters": ["ShopItem", "", ""]},
-                {"type": "BuiltinCommonInstructions::MouseButtonReleased", "parameters": ["Left"]},
-                {"type": "BuiltinCommonInstructions::CompareNumbers", "parameters": ["Variable(Coins)", ">=", "100"]},
+                _cond("BuiltinCommonInstructions::CursorOnObject", ["ShopItem", "", ""]),
+                _cond("BuiltinCommonInstructions::MouseButtonReleased", ["Left"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(Coins)", ">=", "100"]),
             ],
             "actions": [
-                {
-                    "type": "BuiltinCommonInstructions::SetNumberVariable",
-                    "parameters": ["Coins", "=", "Variable(Coins) - 100"],
-                },
-                {
-                    "type": "BuiltinCommonInstructions::SetNumberVariable",
-                    "parameters": ["Speed", "=", "Variable(Speed) + 50"],
-                },
+                _act("BuiltinCommonInstructions::SubFromNumberVariable", ["Coins", "100"]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["Speed", "50"]),
             ],
             "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Buy Speed",
         }
     )
 
 
-def patch_project(game_json: Path, image_map: Dict[str, str], scene_name: str = "Main") -> None:
-    """
-    Patch a GDevelop game.json in-place:
-    - update resources for generated assets
-    - ensure UI layer exists
-    - inject TouchJoystick + basic shop UI objects
-    - v3.2.1: add Coins/Speed/ShopOpen globals + toggle/purchase events
-    """
-    project = read_json(game_json)
-    if not isinstance(project, dict):
-        raise ValueError(f"Invalid game.json (expected object): {game_json}")
+def _cond(instruction: str, parameters: List[str]) -> Json:
+    return {
+        "type": "BuiltinCommonInstructions::Standard",
+        "inverted": False,
+        "parameters": parameters,
+        "subInstructions": [],
+        "instructionType": "condition",
+        "instruction": instruction,
+    }
 
-    if image_map:
-        _patch_resources(project, image_map)
 
-    # Globals for shop / upgrades (v3.2.1)
-    _ensure_global_variable(project, "Coins", "number", "250")
-    _ensure_global_variable(project, "Speed", "number", "200")
-    _ensure_global_variable(project, "ShopOpen", "number", "0")
-
-    scene = _find_scene(project, scene_name=scene_name)
-    if scene is not None:
-        _ensure_layer(scene, "UI")
-        _inject_touch_joystick(scene)
-        _inject_shop_ui(scene)
-        _ensure_shop_events(scene)
-
-    write_json(game_json, project)
+def _act(instruction: str, parameters: List[str]) -> Json:
+    return {
+        "type": "BuiltinCommonInstructions::Standard",
+        "parameters": parameters,
+        "subInstructions": [],
+        "instructionType": "action",
+        "instruction": instruction,
+    }
