@@ -34,6 +34,7 @@ jobs:
             --onefile `
             --name TamaCoreBot `
             --distpath dist_console `
+            --add-data "templates;templates" `
             run_pipeline.py
 
           if (!(Test-Path "dist_console\TamaCoreBot.exe")) { throw "Console exe missing" }
