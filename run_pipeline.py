@@ -7,12 +7,12 @@ from src.tamacore.pipeline import run_pipeline
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="TamaCore Bot - generate a GDevelop game project")
-    parser.add_argument("--assets-dir", default="assets", help="Source assets folder (images). Default: assets/")
-    parser.add_argument("--template-dir", default="templates/gdevelop_template", help="GDevelop template project folder")
-    parser.add_argument("--game-dir", required=True, help="Output game folder (will be created/overwritten)")
+    p = argparse.ArgumentParser(description="TamaCore pipeline (template + assets + patch)")
+    p.add_argument("--assets-dir", default="assets", help="Seed assets folder (default: assets)")
+    p.add_argument("--template-dir", default="templates/gdevelop_template", help="Template dir")
+    p.add_argument("--game-dir", default="../tamacore-game", help="Output game folder")
 
-    args = parser.parse_args()
+    args = p.parse_args()
 
     run_pipeline(
         assets_dir=Path(args.assets_dir),
