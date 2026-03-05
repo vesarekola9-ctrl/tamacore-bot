@@ -11,7 +11,6 @@ def read_json(path: Path) -> Dict[str, Any]:
 
 
 def write_json(path: Path, data: Dict[str, Any]) -> None:
-    # pretty + stable diffs
     with path.open("w", encoding="utf-8", newline="\n") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.write("\n")
