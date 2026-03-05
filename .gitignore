@@ -1,16 +1,98 @@
+# -----------------------------
 # Python
-.venv/
+# -----------------------------
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.pyc.*
+*.pkl
+*.log
 
-# Build artifacts
-dist/
-dist_console/
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python build
 build/
-*.spec
+dist/
+*.egg-info/
+pip-wheel-metadata/
 
-# Local outputs
-tamacore-game/
+# -----------------------------
+# Local generated content
+# -----------------------------
+assets/
 output/
-assets/generated/
-assets/_drop_all/
+dist_console/
+generated/
+tmp/
+temp/
+
+# Game builds
+tamacore-game/
+*.zip
+
+# -----------------------------
+# Node / Cordova / Android
+# -----------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+platforms/
+plugins/
+
+# Android build cache
+.gradle/
+local.properties
+*.keystore
+*.jks
+
+# Android output
+app/build/
+*.apk
+*.aab
+
+# -----------------------------
+# IDE / Editors
+# -----------------------------
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# -----------------------------
+# OS files
+# -----------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -----------------------------
+# Temporary files
+# -----------------------------
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# -----------------------------
+# Secrets
+# -----------------------------
+.env
+.env.*
+secrets.json
+play-store-key.json
+
+# -----------------------------
+# Logs
+# -----------------------------
+logs/
+*.log
