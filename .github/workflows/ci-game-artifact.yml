@@ -1,0 +1,37 @@
+name: ci-game-artifact
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build_game_zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pipeline
+        run: |
+          python run_pipeline.py --game-dir tamacore-game
+
+      - name: Zip game
+        run: |
+          cd tamacore-game
+          zip -r ../tamacore-game.zip .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tamacore-game
+          path: tamacore-game.zip
+          if-no-files-found: error
