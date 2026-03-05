@@ -9,8 +9,9 @@ def ensure_template_exists(template_dir: Path) -> None:
     if not game_json.exists():
         raise FileNotFoundError(
             f"Template missing: {game_json}\n"
-            "Fix: In GDevelop → New project → Save as into templates/gdevelop_template\n"
-            "Make sure templates/gdevelop_template/game.json exists and commit it."
+            "Fix:\n"
+            "  GDevelop -> New project -> Empty -> Save As into templates/gdevelop_template\n"
+            "  Ensure templates/gdevelop_template/game.json exists and commit it."
         )
 
 
