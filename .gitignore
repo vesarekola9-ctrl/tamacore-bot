@@ -1,36 +1,110 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyd
-*.pyo
-*.so
-*.egg-info/
-dist/
-build/
-*.spec
+# =========================
+# TamaCore Bot - .gitignore
+# =========================
 
-# Virtualenv
-.venv/
-venv/
-
-# OS / editor
+# ---- OS / Editor ----
 .DS_Store
 Thumbs.db
+Desktop.ini
+
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# Logs
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.build/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---- Logs ----
 *.log
 
-# Generated game output (your local tamacore-game)
+# ---- Node (if ever used) ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- GDevelop / Game output (generated) ----
+# The game project output folder is separate repo (tamacore-game),
+# but ignore any accidental local copies inside this repo.
 tamacore-game/
-../tamacore-game/
+**/tamacore-game/
+
+# Generated assets (local)
 output/
-
-# Local assets drops (keep repo clean)
+out/
+generated/
+assets/generated/
+assets/_generated/
 assets/_drop_all/
-assets/_tmp/
-assets/_cache/
+output/assets_raw/
+output/atlas/
 
-# PyInstaller output folders
+# Factory generated manifests (should live in game output, not bot repo)
+FACTORY_*.json
+**/FACTORY_*.json
+
+# Levels & shop (generated into game output)
+levels/
+**/levels/
+shop.json
+**/shop.json
+
+# ---- PyInstaller ----
+*.spec
 dist_console/
+dist_gui/
+*.exe
+
+# ---- Secrets / Keys ----
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*keystore*
+secrets.json
+**/*service_account*.json
+
+# ---- Archives ----
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.rar
+
+# ---- Temporary / downloads ----
+tmp/
+temp/
+*.tmp
+*.bak
+
+# ---- Windows ----
+$RECYCLE.BIN/
+*.lnk
