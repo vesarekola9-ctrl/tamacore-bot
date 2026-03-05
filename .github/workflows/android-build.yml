@@ -1,0 +1,43 @@
+name: android-build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-build.yml"
+
+jobs:
+  build_aab:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Cordova
+        run: npm i -g cordova
+
+      - name: Build AAB
+        working-directory: mobile/platforms/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew bundleRelease
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tamacore-aab
+          path: mobile/platforms/android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
