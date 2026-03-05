@@ -1,1 +1,67 @@
-assets/packs/demo_pack/pack.json
+{
+  "name": "demo_pack",
+  "version": "1.1.0",
+  "scene": "Main",
+
+  "display": {
+    "mode": "landscape",
+    "virtualWidth": 960,
+    "virtualHeight": 540
+  },
+
+  "world": {
+    "bounds": { "xMin": 0, "yMin": 0, "xMax": 2000, "yMax": 1200 }
+  },
+
+  "camera": {
+    "followObject": "Player",
+    "lerp": 0.08
+  },
+
+  "ui": {
+    "layer": "UI",
+    "hud": {
+      "objectName": "HUD",
+      "anchor": "top-left",
+      "marginX": 20,
+      "marginY": 20
+    },
+    "joystick": {
+      "objectName": "TouchJoystick",
+      "anchor": "bottom-left",
+      "marginX": 140,
+      "marginY": 140
+    }
+  },
+
+  "spawns": {
+    "coin": {
+      "objectName": "Coin",
+      "count": 1,
+      "respawnOnCollect": true,
+      "minDistanceFromPlayer": 250
+    },
+    "enemy": {
+      "objectName": "Enemy",
+      "count": 1,
+      "enabled": true,
+      "minDistanceFromPlayer": 350
+    }
+  },
+
+  "levels": {
+    "mode": "procedural",
+    "seed": 1337,
+    "count": 1
+  },
+
+  "shop": {
+    "currencyVariable": "Coins",
+    "upgrades": [
+      { "id": "speed_1", "name": "Speed +20", "cost": 10, "effect": { "playerMaxSpeedAdd": 20 } },
+      { "id": "speed_2", "name": "Speed +40", "cost": 25, "effect": { "playerMaxSpeedAdd": 40 } }
+    ]
+  },
+
+  "notes": "Naming: <object>_<anim>_<frame>.png or single <name>.png (bg.png, player.png...)"
+}
