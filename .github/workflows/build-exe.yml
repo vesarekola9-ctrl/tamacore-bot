@@ -27,11 +27,13 @@ jobs:
           if (Test-Path build) { Remove-Item -Recurse -Force build }
           if (Test-Path dist_console) { Remove-Item -Recurse -Force dist_console }
 
+          # Include templates folder inside the EXE build
           python -m PyInstaller `
             --clean `
             --onefile `
             --name TamaCoreBot `
             --distpath dist_console `
+            --add-data "templates;templates" `
             run_pipeline.py
 
           if (!(Test-Path "dist_console\TamaCoreBot.exe")) { throw "Console exe missing" }
