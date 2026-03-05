@@ -13,12 +13,11 @@ def apply_shop_v321(project: Json, scene_name: str = "Main") -> bool:
 
     _ensure_ui_layer(layout)
 
-    # project globals
     changed |= _ensure_global(project, "Coins", 250)
     changed |= _ensure_global(project, "Speed", 200)
     changed |= _ensure_global(project, "ShopOpen", 0)
 
-    # IMPORTANT: your template uses layout-local objects
+    # your template uses layout-local objects
     changed |= _ensure_layout_object(layout, _obj_text("ShopButton", "SHOP", 36))
     changed |= _ensure_layout_object(layout, _obj_panel("ShopPanel", 520, 420))
     changed |= _ensure_layout_object(layout, _obj_text("ShopItem", "BUY: SPEED +50 (100c)", 28))
@@ -31,8 +30,6 @@ def apply_shop_v321(project: Json, scene_name: str = "Main") -> bool:
 
     return changed
 
-
-# ---------------- helpers ----------------
 
 def _find_layout(project: Json, scene_name: str) -> Optional[Json]:
     layouts = project.get("layouts")
@@ -87,9 +84,9 @@ def _ensure_instance(layout: Json, name: str, x: float, y: float, layer: str, z:
     if not isinstance(inst, list):
         inst = []
         layout["instances"] = inst
+
     for i in inst:
         if isinstance(i, dict) and (i.get("name") == name or i.get("objectName") == name):
-            # ensure UI
             changed = False
             if i.get("layer") != layer:
                 i["layer"] = layer
@@ -153,8 +150,6 @@ def _obj_panel(name: str, w: int, h: int) -> Json:
     }
 
 
-# -------- events: IMPORTANT: use "instruction" field (NOT type=instruction) --------
-
 def _ensure_shop_events(layout: Json) -> bool:
     events = layout.get("events")
     if not isinstance(events, list):
@@ -169,58 +164,41 @@ def _ensure_shop_events(layout: Json) -> bool:
 
     events.append({"type": "BuiltinCommonInstructions::Comment", "comment": marker, "comment2": ""})
 
-    # Init
+    # NOTE: IMPORTANT schema: instruction lives in field "instruction"
     events.append(_std(
         cond=[_c("AtTheBeginningOfTheScene", [])],
-        act=[
-            _a("Hide", ["ShopPanel"]),
-            _a("Hide", ["ShopItem"]),
-            _a("SetNumberVariable", ["ShopOpen", "=", "0"]),
-        ],
+        act=[_a("Hide", ["ShopPanel"]),
+             _a("Hide", ["ShopItem"]),
+             _a("SetNumberVariable", ["ShopOpen", "=", "0"])],
         name="Shop Init",
     ))
 
-    # Toggle ON
     events.append(_std(
-        cond=[
-            _c("CursorOnObject", ["ShopButton", "", ""]),
-            _c("MouseButtonReleased", ["Left"]),
-            _c("CompareNumbers", ["Variable(ShopOpen)", "=", "0"]),
-        ],
-        act=[
-            _a("Show", ["ShopPanel"]),
-            _a("Show", ["ShopItem"]),
-            _a("SetNumberVariable", ["ShopOpen", "=", "1"]),
-        ],
+        cond=[_c("CursorOnObject", ["ShopButton", "", ""]),
+              _c("MouseButtonReleased", ["Left"]),
+              _c("CompareNumbers", ["Variable(ShopOpen)", "=", "0"])],
+        act=[_a("Show", ["ShopPanel"]),
+             _a("Show", ["ShopItem"]),
+             _a("SetNumberVariable", ["ShopOpen", "=", "1"])],
         name="Shop ON",
     ))
 
-    # Toggle OFF
     events.append(_std(
-        cond=[
-            _c("CursorOnObject", ["ShopButton", "", ""]),
-            _c("MouseButtonReleased", ["Left"]),
-            _c("CompareNumbers", ["Variable(ShopOpen)", "=", "1"]),
-        ],
-        act=[
-            _a("Hide", ["ShopPanel"]),
-            _a("Hide", ["ShopItem"]),
-            _a("SetNumberVariable", ["ShopOpen", "=", "0"]),
-        ],
+        cond=[_c("CursorOnObject", ["ShopButton", "", ""]),
+              _c("MouseButtonReleased", ["Left"]),
+              _c("CompareNumbers", ["Variable(ShopOpen)", "=", "1"])],
+        act=[_a("Hide", ["ShopPanel"]),
+             _a("Hide", ["ShopItem"]),
+             _a("SetNumberVariable", ["ShopOpen", "=", "0"])],
         name="Shop OFF",
     ))
 
-    # Purchase
     events.append(_std(
-        cond=[
-            _c("CursorOnObject", ["ShopItem", "", ""]),
-            _c("MouseButtonReleased", ["Left"]),
-            _c("CompareNumbers", ["Variable(Coins)", ">=", "100"]),
-        ],
-        act=[
-            _a("SubFromNumberVariable", ["Coins", "100"]),
-            _a("AddToNumberVariable", ["Speed", "50"]),
-        ],
+        cond=[_c("CursorOnObject", ["ShopItem", "", ""]),
+              _c("MouseButtonReleased", ["Left"]),
+              _c("CompareNumbers", ["Variable(Coins)", ">=", "100"])],
+        act=[_a("SubFromNumberVariable", ["Coins", "100"]),
+             _a("AddToNumberVariable", ["Speed", "50"])],
         name="Buy Speed",
     ))
 
