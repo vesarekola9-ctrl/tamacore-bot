@@ -10,14 +10,12 @@ def apply_shop_v321(project: Json, scene_name: str = "Main") -> bool:
         return False
 
     changed = False
-
     _ensure_ui_layer(layout)
 
     changed |= _ensure_global(project, "Coins", 250)
     changed |= _ensure_global(project, "Speed", 200)
     changed |= _ensure_global(project, "ShopOpen", 0)
 
-    # your template uses layout-local objects
     changed |= _ensure_layout_object(layout, _obj_text("ShopButton", "SHOP", 36))
     changed |= _ensure_layout_object(layout, _obj_panel("ShopPanel", 520, 420))
     changed |= _ensure_layout_object(layout, _obj_text("ShopItem", "BUY: SPEED +50 (100c)", 28))
@@ -27,9 +25,10 @@ def apply_shop_v321(project: Json, scene_name: str = "Main") -> bool:
     changed |= _ensure_instance(layout, "ShopItem", 490, 200, "UI", 2200)
 
     changed |= _ensure_shop_events(layout)
-
     return changed
 
+
+# ---------------- helpers ----------------
 
 def _find_layout(project: Json, scene_name: str) -> Optional[Json]:
     layouts = project.get("layouts")
@@ -150,6 +149,29 @@ def _obj_panel(name: str, w: int, h: int) -> Json:
     }
 
 
+# ---------------- events (auto-detect schema) ----------------
+
+def _detect_instruction_style(layout: Json) -> str:
+    """
+    Returns:
+      - "instruction_field" if conditions/actions have key "instruction"
+      - "type_is_instruction" otherwise (older exports)
+    """
+    events = layout.get("events")
+    if not isinstance(events, list):
+        return "instruction_field"
+    for e in events:
+        if not isinstance(e, dict):
+            continue
+        for k in ("conditions", "actions"):
+            arr = e.get(k)
+            if isinstance(arr, list) and arr:
+                item = arr[0]
+                if isinstance(item, dict) and "instruction" in item:
+                    return "instruction_field"
+    return "type_is_instruction"
+
+
 def _ensure_shop_events(layout: Json) -> bool:
     events = layout.get("events")
     if not isinstance(events, list):
@@ -162,43 +184,50 @@ def _ensure_shop_events(layout: Json) -> bool:
             if marker in str(e.get("comment", "")):
                 return False
 
+    style = _detect_instruction_style(layout)
+
+    def C(name: str, params: List[str]) -> Json:
+        return _cond(style, name, params)
+
+    def A(name: str, params: List[str]) -> Json:
+        return _act(style, name, params)
+
     events.append({"type": "BuiltinCommonInstructions::Comment", "comment": marker, "comment2": ""})
 
-    # NOTE: IMPORTANT schema: instruction lives in field "instruction"
     events.append(_std(
-        cond=[_c("AtTheBeginningOfTheScene", [])],
-        act=[_a("Hide", ["ShopPanel"]),
-             _a("Hide", ["ShopItem"]),
-             _a("SetNumberVariable", ["ShopOpen", "=", "0"])],
+        cond=[C("AtTheBeginningOfTheScene", [])],
+        act=[A("Hide", ["ShopPanel"]),
+             A("Hide", ["ShopItem"]),
+             A("SetNumberVariable", ["ShopOpen", "=", "0"])],
         name="Shop Init",
     ))
 
     events.append(_std(
-        cond=[_c("CursorOnObject", ["ShopButton", "", ""]),
-              _c("MouseButtonReleased", ["Left"]),
-              _c("CompareNumbers", ["Variable(ShopOpen)", "=", "0"])],
-        act=[_a("Show", ["ShopPanel"]),
-             _a("Show", ["ShopItem"]),
-             _a("SetNumberVariable", ["ShopOpen", "=", "1"])],
+        cond=[C("CursorOnObject", ["ShopButton", "", ""]),
+              C("MouseButtonReleased", ["Left"]),
+              C("CompareNumbers", ["Variable(ShopOpen)", "=", "0"])],
+        act=[A("Show", ["ShopPanel"]),
+             A("Show", ["ShopItem"]),
+             A("SetNumberVariable", ["ShopOpen", "=", "1"])],
         name="Shop ON",
     ))
 
     events.append(_std(
-        cond=[_c("CursorOnObject", ["ShopButton", "", ""]),
-              _c("MouseButtonReleased", ["Left"]),
-              _c("CompareNumbers", ["Variable(ShopOpen)", "=", "1"])],
-        act=[_a("Hide", ["ShopPanel"]),
-             _a("Hide", ["ShopItem"]),
-             _a("SetNumberVariable", ["ShopOpen", "=", "0"])],
+        cond=[C("CursorOnObject", ["ShopButton", "", ""]),
+              C("MouseButtonReleased", ["Left"]),
+              C("CompareNumbers", ["Variable(ShopOpen)", "=", "1"])],
+        act=[A("Hide", ["ShopPanel"]),
+             A("Hide", ["ShopItem"]),
+             A("SetNumberVariable", ["ShopOpen", "=", "0"])],
         name="Shop OFF",
     ))
 
     events.append(_std(
-        cond=[_c("CursorOnObject", ["ShopItem", "", ""]),
-              _c("MouseButtonReleased", ["Left"]),
-              _c("CompareNumbers", ["Variable(Coins)", ">=", "100"])],
-        act=[_a("SubFromNumberVariable", ["Coins", "100"]),
-             _a("AddToNumberVariable", ["Speed", "50"])],
+        cond=[C("CursorOnObject", ["ShopItem", "", ""]),
+              C("MouseButtonReleased", ["Left"]),
+              C("CompareNumbers", ["Variable(Coins)", ">=", "100"])],
+        act=[A("SubFromNumberVariable", ["Coins", "100"]),
+             A("AddToNumberVariable", ["Speed", "50"])],
         name="Buy Speed",
     ))
 
@@ -218,22 +247,36 @@ def _std(cond: List[Json], act: List[Json], name: str) -> Json:
     }
 
 
-def _c(instruction: str, params: List[str]) -> Json:
+def _cond(style: str, instruction: str, params: List[str]) -> Json:
+    if style == "instruction_field":
+        return {
+            "type": "BuiltinCommonInstructions::Standard",
+            "inverted": False,
+            "parameters": params,
+            "subInstructions": [],
+            "instructionType": "condition",
+            "instruction": instruction,
+        }
+    # old style: instruction stored in "type"
     return {
-        "type": "BuiltinCommonInstructions::Standard",
+        "type": f"BuiltinCommonInstructions::{instruction}",
         "inverted": False,
         "parameters": params,
         "subInstructions": [],
-        "instructionType": "condition",
-        "instruction": instruction,
     }
 
 
-def _a(instruction: str, params: List[str]) -> Json:
+def _act(style: str, instruction: str, params: List[str]) -> Json:
+    if style == "instruction_field":
+        return {
+            "type": "BuiltinCommonInstructions::Standard",
+            "parameters": params,
+            "subInstructions": [],
+            "instructionType": "action",
+            "instruction": instruction,
+        }
     return {
-        "type": "BuiltinCommonInstructions::Standard",
+        "type": f"BuiltinCommonInstructions::{instruction}",
         "parameters": params,
         "subInstructions": [],
-        "instructionType": "action",
-        "instruction": instruction,
     }
