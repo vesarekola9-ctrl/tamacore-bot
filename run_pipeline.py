@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 
@@ -5,11 +7,12 @@ from src.tamacore.pipeline import run_pipeline
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--assets-dir", default="assets", help="Input assets folder (png/jpg/webp)")
-    ap.add_argument("--template-dir", default="templates/gdevelop_template", help="GDevelop template project folder")
-    ap.add_argument("--game-dir", required=True, help="Output game folder (will be created/overwritten)")
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description="TamaCore Bot - generate a GDevelop game project")
+    parser.add_argument("--assets-dir", default="assets", help="Source assets folder (images). Default: assets/")
+    parser.add_argument("--template-dir", default="templates/gdevelop_template", help="GDevelop template project folder")
+    parser.add_argument("--game-dir", required=True, help="Output game folder (will be created/overwritten)")
+
+    args = parser.parse_args()
 
     run_pipeline(
         assets_dir=Path(args.assets_dir),
