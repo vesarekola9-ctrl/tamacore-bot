@@ -3,17 +3,26 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict
 
-from ..template_ops import ensure_template_exists, copy_template
 from ..utils import write_json, read_json
+from ..template_ops import ensure_template_exists, copy_template
 from ..patch_gdevelop import factory_apply_catalog
 from ..factory_v3.catalog import build_catalog
+
 from .schema import load_pack_cfg
 from .levels import generate_levels
 from .shop import write_shop
 from .patch_rules import apply_v3_1_rules
 
+from .v3_2_patch import apply_v3_2_runtime
 
-def run_factory_v3_1(pack_dir: Path, template_dir: Path, game_dir: Path, with_demo_layout: bool = True) -> None:
+
+def run_factory_v3_1(
+    pack_dir: Path,
+    template_dir: Path,
+    game_dir: Path,
+    with_demo_layout: bool = True,
+    enable_v3_2: bool = False,
+) -> None:
     cfg = load_pack_cfg(pack_dir)
 
     ensure_template_exists(template_dir)
@@ -22,7 +31,7 @@ def run_factory_v3_1(pack_dir: Path, template_dir: Path, game_dir: Path, with_de
     # Build catalog (copies images into game/assets/generated)
     catalog = build_catalog(pack_dir=pack_dir, game_dir=game_dir)
 
-    # Patch objects/resources + joystick + base score loop
+    # Patch objects/resources + base content
     game_json = game_dir / "game.json"
     factory_apply_catalog(
         game_json_path=game_json,
@@ -42,22 +51,36 @@ def run_factory_v3_1(pack_dir: Path, template_dir: Path, game_dir: Path, with_de
         scene = _find_scene(project, cfg.scene)
         if isinstance(scene, dict):
             apply_v3_1_rules(project, scene, cfg)
+
+            # V3.2 runtime extras: inject level areas + shop upgrade effects events
+            if enable_v3_2:
+                apply_v3_2_runtime(project, scene, cfg, game_dir)
+
             write_json(game_json, project)
 
     # Write manifest for debugging / future automation
     write_json(
         game_dir / "FACTORY_MANIFEST.json",
         {
-            "factory": "v3.1",
+            "factory": "v3.1" if not enable_v3_2 else "v3.2",
             "pack": {"name": cfg.name, "version": cfg.version, "scene": cfg.scene},
-            "display": {"mode": cfg.display.mode, "virtualWidth": cfg.display.virtualWidth, "virtualHeight": cfg.display.virtualHeight},
-            "worldBounds": {"xMin": cfg.worldBounds.xMin, "yMin": cfg.worldBounds.yMin, "xMax": cfg.worldBounds.xMax, "yMax": cfg.worldBounds.yMax},
+            "display": {
+                "mode": cfg.display.mode,
+                "virtualWidth": cfg.display.virtualWidth,
+                "virtualHeight": cfg.display.virtualHeight,
+            },
+            "worldBounds": {
+                "xMin": cfg.worldBounds.xMin,
+                "yMin": cfg.worldBounds.yMin,
+                "xMax": cfg.worldBounds.xMax,
+                "yMax": cfg.worldBounds.yMax,
+            },
             "levels": [l["id"] for l in levels],
             "shopUpgrades": [u["id"] for u in shop.get("upgrades", [])] if isinstance(shop, dict) else [],
         },
     )
 
-    print("[OK] V3.1 Factory generated:", game_dir)
+    print("[OK] Factory generated:", game_dir)
     print("[OK] Wrote levels:", game_dir / "levels")
     print("[OK] Wrote shop:", game_dir / "shop.json")
     print("[NEXT] Open in GDevelop:", game_json)
