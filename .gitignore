@@ -1,15 +1,16 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
 
-# generated
-_ci_game/
-_generated_game/
+# Build artifacts
+dist/
+dist_console/
+build/
+*.spec
+
+# Local game output
 tamacore-game/
 output/
-dist/
-build/
-
-# OS
-.DS_Store
-Thumbs.db
+assets/generated/
+assets/_drop_all/
