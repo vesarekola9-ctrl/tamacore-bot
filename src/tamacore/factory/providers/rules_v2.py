@@ -7,11 +7,6 @@ from .base import Design
 
 
 class RulesV2Provider:
-    """
-    Deterministic "AI-like" designer without any API keys.
-    Uses theme+difficulty+seed+prompt to generate a coherent design.
-    """
-
     name = "rules-v2"
 
     def generate(self, spec: Dict[str, Any]) -> Design:
@@ -21,36 +16,31 @@ class RulesV2Provider:
         theme = str(spec.get("theme", "neon")).strip() or "neon"
         difficulty = str(spec.get("difficulty", "normal")).strip() or "normal"
         prompt = str(spec.get("prompt", "")).strip()
+        title = str(spec.get("name", "TamaCore")).strip() or "TamaCore"
 
-        # Genre choose
         genres = ["topdown-collect", "survival", "runner-lite"]
         genre = rnd.choice(genres)
 
-        title = str(spec.get("name", "TamaCore")).strip()
-        if ":" not in title:
-            title = f"{title}: {theme.title()}"
-
-        tagline_pool = [
-            "Collect. Upgrade. Survive the spike.",
-            "One more run. One more upgrade.",
-            "Fast hands. Faster upgrades.",
-            "Neon chaos. Clean control.",
-        ]
-        tagline = rnd.choice(tagline_pool)
+        tagline = rnd.choice(
+            [
+                "Collect. Upgrade. Survive the spike.",
+                "One more run. One more upgrade.",
+                "Fast hands. Faster upgrades.",
+                "Neon chaos. Clean control."
+            ]
+        )
 
         loop = self._make_loop(genre, theme, prompt)
-        difficulty_curve = self._make_curve(difficulty)
+        curve = self._make_curve(difficulty)
 
         modules = list(spec.get("modules") or [])
-        # ensure some defaults
         for m in ["collect", "shop", "settings", "mobile_ui"]:
             if m not in modules:
                 modules.append(m)
 
         tuning = self._make_tuning(rnd, difficulty, genre)
-
-        enemies = self._make_enemies(rnd, difficulty, theme, genre, tuning)
-        shop_items = self._make_shop(rnd, theme, difficulty)
+        enemies = self._make_enemies(rnd, difficulty, theme, genre)
+        shop_items = self._make_shop(rnd, difficulty)
 
         ui = {
             "hud_score": "Score",
@@ -64,19 +54,17 @@ class RulesV2Provider:
             "tap_to_retry": "Tap to retry",
         }
 
-        meta = {
-            "provider": self.name,
-            "theme": theme,
-            "difficulty": difficulty,
-            "prompt": prompt,
-        }
+        meta = {"provider": self.name, "theme": theme, "difficulty": difficulty, "prompt": prompt}
+
+        if ":" not in title:
+            title = f"{title}: {theme.title()}"
 
         return Design(
             title=title,
             tagline=tagline,
             genre=genre,
             loop=loop,
-            difficulty_curve=difficulty_curve,
+            difficulty_curve=curve,
             shop_items=shop_items,
             enemies=enemies,
             ui=ui,
@@ -89,110 +77,59 @@ class RulesV2Provider:
         base = {
             "topdown-collect": "Move freely, collect coins, avoid hazards, scale difficulty and buy upgrades.",
             "survival": "Stay alive as waves speed up; collect drops and upgrade between spikes.",
-            "runner-lite": "Keep moving, dodge lanes/edges, collect boosts, survive as speed increases.",
+            "runner-lite": "Keep moving, dodge, collect boosts, survive as speed increases.",
         }.get(genre, "Collect and survive with upgrades.")
-        if prompt:
-            return f"{base} Prompt: {prompt}"
-        return f"{base} Theme: {theme}."
+        return f"{base} Theme: {theme}. " + (f"Prompt: {prompt}" if prompt else "")
 
     def _make_curve(self, difficulty: str) -> str:
         if difficulty == "easy":
-            return "Slow ramp, generous pickups, mild enemy speed."
+            return "Slow ramp, generous pickups, mild speed."
         if difficulty == "hard":
-            return "Fast ramp, higher enemy speed, tighter upgrades needed."
-        return "Medium ramp, steady speed increase, upgrades matter."
+            return "Fast ramp, higher speed, upgrades required."
+        return "Medium ramp, steady increase, upgrades matter."
 
     def _make_tuning(self, rnd: random.Random, difficulty: str, genre: str) -> Dict[str, float]:
-        # Base tuning
-        hp_start = 5 if difficulty == "easy" else 3 if difficulty == "normal" else 2
-        enemy_base_speed = 50 if difficulty == "easy" else 70 if difficulty == "normal" else 95
-        speed_per_score = 2.5 if difficulty == "easy" else 4.0 if difficulty == "normal" else 6.0
+        hp = 5 if difficulty == "easy" else 3 if difficulty == "normal" else 2
+        base_speed = 55 if difficulty == "easy" else 70 if difficulty == "normal" else 95
+        per_score = 2.5 if difficulty == "easy" else 4.0 if difficulty == "normal" else 6.0
 
-        # Genre modifiers
         if genre == "runner-lite":
-            enemy_base_speed += 20
-            speed_per_score += 1.0
+            base_speed += 20
+            per_score += 1.0
         if genre == "survival":
-            hp_start += 1
+            hp += 1
 
         return {
-            "hp_start": float(hp_start),
-            "enemy_base_speed": float(enemy_base_speed),
-            "enemy_speed_per_score": float(speed_per_score),
+            "hp_start": float(hp),
+            "player_base_speed": float(240 if difficulty != "hard" else 260),
+            "enemy_base_speed": float(base_speed),
+            "enemy_speed_per_score": float(per_score),
             "enemy_speed_cap": float(260 if difficulty != "hard" else 320),
-            "coin_value": 1.0,
-            "shop_refresh_cost": 5.0,
             "pickup_spawn_seconds": float(1.8 if difficulty == "hard" else 2.4),
             "enemy_spawn_seconds": float(2.8 if difficulty == "hard" else 3.5),
-            "dash_cooldown": float(2.0 if genre != "survival" else 3.0),
         }
 
-    def _make_enemies(
-        self,
-        rnd: random.Random,
-        difficulty: str,
-        theme: str,
-        genre: str,
-        tuning: Dict[str, float],
-    ) -> List[Dict[str, Any]]:
-        # Template interprets these later (v3: inject events)
-        # For now we store "type" + "speed_mult" + "unlock_score".
-        enemies: List[Dict[str, Any]] = []
-
+    def _make_enemies(self, rnd: random.Random, difficulty: str, theme: str, genre: str) -> List[Dict[str, Any]]:
+        enemies: List[Dict[str, Any]] = [
+            {"id": "enemy_basic", "label": "Chaser", "type": "chase_player", "speed_mult": 1.0, "damage": 1, "unlock_score": 0}
+        ]
         enemies.append(
-            {
-                "id": "enemy_basic",
-                "label": "Chaser",
-                "type": "chase_player",
-                "speed_mult": 1.0,
-                "damage": 1,
-                "unlock_score": 0,
-                "theme": theme,
-            }
+            {"id": "enemy_fast", "label": "Sprinter", "type": "chase_player", "speed_mult": 1.35 if difficulty != "easy" else 1.2, "damage": 1, "unlock_score": 10}
         )
-
-        enemies.append(
-            {
-                "id": "enemy_fast",
-                "label": "Sprinter",
-                "type": "chase_player",
-                "speed_mult": 1.35 if difficulty != "easy" else 1.2,
-                "damage": 1,
-                "unlock_score": 10,
-                "theme": theme,
-            }
-        )
-
         if genre != "runner-lite":
             enemies.append(
-                {
-                    "id": "enemy_zigzag",
-                    "label": "ZigZag",
-                    "type": "zigzag_chase",
-                    "speed_mult": 1.15,
-                    "damage": 1,
-                    "unlock_score": 20 if difficulty != "easy" else 25,
-                    "theme": theme,
-                }
+                {"id": "enemy_zigzag", "label": "ZigZag", "type": "zigzag_chase", "speed_mult": 1.15, "damage": 1, "unlock_score": 20 if difficulty != "easy" else 25}
             )
-
         if difficulty == "hard":
             enemies.append(
-                {
-                    "id": "enemy_heavy",
-                    "label": "Bruiser",
-                    "type": "slow_heavy",
-                    "speed_mult": 0.9,
-                    "damage": 2,
-                    "unlock_score": 30,
-                    "theme": theme,
-                }
+                {"id": "enemy_heavy", "label": "Bruiser", "type": "slow_heavy", "speed_mult": 0.9, "damage": 2, "unlock_score": 30}
             )
-
+        # add theme tag
+        for e in enemies:
+            e["theme"] = theme
         return enemies
 
-    def _make_shop(self, rnd: random.Random, theme: str, difficulty: str) -> List[Dict[str, Any]]:
-        # Store upgrade definitions; template can implement later.
+    def _make_shop(self, rnd: random.Random, difficulty: str) -> List[Dict[str, Any]]:
         items = [
             {"id": "hp_up", "label": "+1 Max HP", "cost": 10, "effect": {"max_hp": 1}},
             {"id": "speed_up", "label": "+Move Speed", "cost": 12, "effect": {"move_speed": 20}},
