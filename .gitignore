@@ -1,38 +1,58 @@
 # ================================
-# TamaCore Bot - Full .gitignore
+
+# TamaCore AI Game Factory
+
+# FULL .gitignore
+
 # ================================
 
 # ----------------
-# Python
-# ----------------
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.pyc.*
-*.pkl
 
-# Virtual environments
-.venv/
-venv/
-env/
-ENV/
+# Python cache
+
+# ----------------
+
+**pycache**/
+*.py[cod]
+*$py.class
+
+# ----------------
 
 # Python build
+
+# ----------------
+
 build/
 dist/
 *.egg-info/
 pip-wheel-metadata/
 
 # ----------------
-# Logs
+
+# Virtual env
+
 # ----------------
+
+.venv/
+venv/
+env/
+ENV/
+
+# ----------------
+
+# Logs
+
+# ----------------
+
 *.log
 logs/
 
 # ----------------
-# Temporary files
+
+# Temp files
+
 # ----------------
+
 *.tmp
 *.temp
 *.bak
@@ -40,46 +60,67 @@ logs/
 *.swo
 
 # ----------------
-# Local generated content
+
+# Generated game output
+
 # ----------------
+
+tamacore-game/
 output/
 generated/
-dist_console/
-tmp/
-temp/
-
-# TamaCore factory generated game
-tamacore-game/
 .factory_assets/
 
-# build zip files
+# ----------------
+
+# Factory builds
+
+# ----------------
+
+dist_console/
+dist_mobile/
+dist_android/
+
+# ----------------
+
+# Zip / builds
+
+# ----------------
+
 *.zip
-
-# ----------------
-# Node / Cordova / Android
-# ----------------
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-platforms/
-plugins/
-
-# Android build cache
-.gradle/
-local.properties
-*.keystore
-*.jks
-
-# Android output
-app/build/
 *.apk
 *.aab
 
 # ----------------
-# IDE / Editors
+
+# Android / Gradle
+
 # ----------------
+
+.gradle/
+local.properties
+*.keystore
+*.jks
+app/build/
+
+# ----------------
+
+# Node / Cordova
+
+# ----------------
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+platforms/
+plugins/
+
+# ----------------
+
+# IDE files
+
+# ----------------
+
 .vscode/
 .idea/
 *.suo
@@ -88,16 +129,23 @@ app/build/
 *.sln
 
 # ----------------
-# OS files
+
+# OS junk
+
 # ----------------
+
 .DS_Store
 Thumbs.db
 desktop.ini
 
 # ----------------
-# Secrets
+
+# Secrets / API keys
+
 # ----------------
+
 .env
 .env.*
 secrets.json
-play-store-key.json
+openai_key.txt
+playstore-key.json
