@@ -9,7 +9,7 @@ dist_console/
 build/
 *.spec
 
-# Local game output
+# Local outputs
 tamacore-game/
 output/
 assets/generated/
