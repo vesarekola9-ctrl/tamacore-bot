@@ -1,3 +1,4 @@
+@'
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
@@ -27,8 +28,6 @@ def apply_shop_v321(project: Json, scene_name: str = "Main") -> bool:
     changed |= _ensure_shop_events(layout)
     return changed
 
-
-# ---------------- helpers ----------------
 
 def _find_layout(project: Json, scene_name: str) -> Optional[Json]:
     layouts = project.get("layouts")
@@ -149,14 +148,7 @@ def _obj_panel(name: str, w: int, h: int) -> Json:
     }
 
 
-# ---------------- events (auto-detect schema) ----------------
-
 def _detect_instruction_style(layout: Json) -> str:
-    """
-    Returns:
-      - "instruction_field" if conditions/actions have key "instruction"
-      - "type_is_instruction" otherwise (older exports)
-    """
     events = layout.get("events")
     if not isinstance(events, list):
         return "instruction_field"
@@ -257,7 +249,6 @@ def _cond(style: str, instruction: str, params: List[str]) -> Json:
             "instructionType": "condition",
             "instruction": instruction,
         }
-    # old style: instruction stored in "type"
     return {
         "type": f"BuiltinCommonInstructions::{instruction}",
         "inverted": False,
@@ -280,3 +271,4 @@ def _act(style: str, instruction: str, params: List[str]) -> Json:
         "parameters": params,
         "subInstructions": [],
     }
+'@ | Set-Content -Encoding UTF8 .\src\tamacore\patches\shop_v321.py
