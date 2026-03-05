@@ -72,7 +72,8 @@
         "metadata": "",
         "name": "bg",
         "smoothed": true,
-        "userAdded": true
+        "userAdded": true,
+        "alwaysLoaded": false
       },
       {
         "file": "assets/generated/coin.png",
@@ -80,7 +81,8 @@
         "metadata": "",
         "name": "coin",
         "smoothed": true,
-        "userAdded": true
+        "userAdded": true,
+        "alwaysLoaded": false
       },
       {
         "file": "assets/generated/player.png",
@@ -88,9 +90,14 @@
         "metadata": "",
         "name": "player",
         "smoothed": true,
-        "userAdded": true
+        "userAdded": true,
+        "alwaysLoaded": false
       }
-    ]
+    ],
+    "resourceFolders": [],
+    "resourcesFolderStructure": {
+      "folderName": "__ROOT"
+    }
   },
   "objects": [],
   "objectsFolderStructure": {
@@ -189,6 +196,15 @@
           "numberProperties": [],
           "stringProperties": [],
           "initialVariables": []
+        },
+        {
+          "objectName": "TouchJoystick",
+          "name": "TouchJoystick",
+          "x": 140,
+          "y": 500,
+          "angle": 0,
+          "layer": "UI",
+          "zOrder": 999
         }
       ],
       "objects": [
@@ -200,7 +216,28 @@
           "updateIfNotVisible": true,
           "variables": [],
           "effects": [],
-          "behaviors": [],
+          "behaviors": [
+            {
+              "name": "TopDownMovement",
+              "type": "TopDownMovementBehavior::TopDownMovementBehavior",
+              "allowDiagonals": true,
+              "acceleration": 700,
+              "deceleration": 900,
+              "maxSpeed": 240,
+              "angularMaxSpeed": 0,
+              "rotateObject": false,
+              "ignoreDefaultControls": false,
+              "defaultControls": true
+            },
+            {
+              "name": "TouchMapper",
+              "type": "SpriteMultitouchJoystick::TopDownMultitouchMapper",
+              "ControllerIdentifier": 1,
+              "JoystickIdentifier": "Primary",
+              "StickMode": "Analog",
+              "TopDownMovement": "TopDownMovement"
+            }
+          ],
           "animations": [
             {
               "name": "",
@@ -357,6 +394,13 @@
             "lineHeight": 0,
             "color": "245;245;250"
           }
+        },
+        {
+          "name": "TouchJoystick",
+          "type": "SpriteMultitouchJoystick::SpriteMultitouchJoystick",
+          "updateIfNotVisible": true,
+          "behaviors": [],
+          "effects": []
         }
       ],
       "objectsFolderStructure": {
@@ -394,6 +438,11 @@
           "renderingType": "",
           "visibility": true,
           "cameras": [],
+          "effects": []
+        },
+        {
+          "name": "UI",
+          "visibility": true,
           "effects": []
         }
       ],
