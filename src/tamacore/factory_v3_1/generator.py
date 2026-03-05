@@ -12,8 +12,8 @@ from .schema import load_pack_cfg
 from .levels import generate_levels
 from .shop import write_shop
 from .patch_rules import apply_v3_1_rules
-
 from .v3_2_patch import apply_v3_2_runtime
+from .character_builder import apply_character_animations
 
 
 def run_factory_v3_1(
@@ -28,10 +28,10 @@ def run_factory_v3_1(
     ensure_template_exists(template_dir)
     copy_template(template_dir, game_dir)
 
-    # Build catalog (copies images into game/assets/generated)
+    # Copies images into game/assets/generated and builds a catalog
     catalog = build_catalog(pack_dir=pack_dir, game_dir=game_dir)
 
-    # Patch objects/resources + base content
+    # Applies resources/objects/instances based on catalog
     game_json = game_dir / "game.json"
     factory_apply_catalog(
         game_json_path=game_json,
@@ -41,24 +41,26 @@ def run_factory_v3_1(
         with_demo_layout=with_demo_layout,
     )
 
-    # Generate levels + shop outputs into game_dir
+    # Generate data outputs
     levels = generate_levels(cfg, game_dir)
     shop = write_shop(cfg, game_dir)
 
-    # Apply v3.1 rules into events (camera follow, UI anchor, spawns, coins/hp)
+    # Apply rules + character anims + optional v3.2 runtime
     project = read_json(game_json)
     if isinstance(project, dict):
         scene = _find_scene(project, cfg.scene)
         if isinstance(scene, dict):
             apply_v3_1_rules(project, scene, cfg)
 
-            # V3.2 runtime extras: inject level areas + shop upgrade effects events
+            # ✅ NEW: build "real" TamaCore player animations from assets/generated
+            apply_character_animations(project, scene, game_dir)
+
             if enable_v3_2:
                 apply_v3_2_runtime(project, scene, cfg, game_dir)
 
             write_json(game_json, project)
 
-    # Write manifest for debugging / future automation
+    # Manifest for debugging / future automation
     write_json(
         game_dir / "FACTORY_MANIFEST.json",
         {
@@ -81,8 +83,6 @@ def run_factory_v3_1(
     )
 
     print("[OK] Factory generated:", game_dir)
-    print("[OK] Wrote levels:", game_dir / "levels")
-    print("[OK] Wrote shop:", game_dir / "shop.json")
     print("[NEXT] Open in GDevelop:", game_json)
 
 
@@ -93,4 +93,5 @@ def _find_scene(project: Dict[str, Any], name: str) -> Dict[str, Any] | None:
     for l in layouts:
         if isinstance(l, dict) and l.get("name") == name:
             return l
-    return layouts[0] if isinstance(layouts[0], dict) else None
+    first = layouts[0]
+    return first if isinstance(first, dict) else None
