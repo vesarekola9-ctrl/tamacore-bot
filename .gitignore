@@ -1,13 +1,16 @@
-# -----------------------------
+# ================================
+# TamaCore Bot - Full .gitignore
+# ================================
+
+# ----------------
 # Python
-# -----------------------------
+# ----------------
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.pyc.*
 *.pkl
-*.log
 
 # Virtual environments
 .venv/
@@ -21,23 +24,40 @@ dist/
 *.egg-info/
 pip-wheel-metadata/
 
-# -----------------------------
+# ----------------
+# Logs
+# ----------------
+*.log
+logs/
+
+# ----------------
+# Temporary files
+# ----------------
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# ----------------
 # Local generated content
-# -----------------------------
-assets/
+# ----------------
 output/
-dist_console/
 generated/
+dist_console/
 tmp/
 temp/
 
-# Game builds
+# TamaCore factory generated game
 tamacore-game/
+.factory_assets/
+
+# build zip files
 *.zip
 
-# -----------------------------
+# ----------------
 # Node / Cordova / Android
-# -----------------------------
+# ----------------
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -57,9 +77,9 @@ app/build/
 *.apk
 *.aab
 
-# -----------------------------
+# ----------------
 # IDE / Editors
-# -----------------------------
+# ----------------
 .vscode/
 .idea/
 *.suo
@@ -67,32 +87,17 @@ app/build/
 *.njsproj
 *.sln
 
-# -----------------------------
+# ----------------
 # OS files
-# -----------------------------
+# ----------------
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# -----------------------------
-# Temporary files
-# -----------------------------
-*.tmp
-*.temp
-*.bak
-*.swp
-*.swo
-
-# -----------------------------
+# ----------------
 # Secrets
-# -----------------------------
+# ----------------
 .env
 .env.*
 secrets.json
 play-store-key.json
-
-# -----------------------------
-# Logs
-# -----------------------------
-logs/
-*.log
