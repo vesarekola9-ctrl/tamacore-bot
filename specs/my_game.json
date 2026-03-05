@@ -5,16 +5,15 @@
   "theme": "neon",
   "difficulty": "normal",
   "seed": 1337,
-  "modules": ["collect", "dodge", "shop", "settings", "mobile_ui"],
+  "prompt": "Fast top-down arcade with clean mobile controls, upgrades, and escalating enemies.",
+  "provider": "rules-v2",
+  "modules": ["collect", "shop", "settings", "mobile_ui"],
   "tuning": {
-    "enemy_base_speed": 60,
-    "enemy_speed_per_score": 4,
-    "enemy_speed_cap": 240,
-    "unlock_enemy2_score": 10,
-    "unlock_enemy3_score": 20,
     "hp_start": 3,
-    "stamina_start": 100,
-    "stamina_drain_per_sec": 60,
-    "stamina_regen_per_sec": 30
+    "enemy_base_speed": 70,
+    "enemy_speed_per_score": 4,
+    "enemy_speed_cap": 260,
+    "pickup_spawn_seconds": 2.4,
+    "enemy_spawn_seconds": 3.5
   }
 }
