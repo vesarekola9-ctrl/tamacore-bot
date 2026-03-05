@@ -3,47 +3,29 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from src.tamacore.factory import generate_game
-from src.tamacore.utils import read_json, write_json
+from src.tamacore.factory_v3.generator import run_factory_v3
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="TamaCore AI Game Factory (v3)")
-    p.add_argument("--spec", default="specs/my_game.json", help="Spec JSON path")
-    p.add_argument("--out", default="../tamacore-game", help="Generated game output folder")
-    p.add_argument("--template-dir", default="templates/gdevelop_template", help="GDevelop template folder")
-    p.add_argument("--assets-dir", default="assets", help="Seed assets folder (optional)")
-    p.add_argument("--provider", default="", help="Override provider (rules-v2)")
-    p.add_argument("--seed", default="", help="Override seed")
-    p.add_argument("--theme", default="", help="Override theme")
-    p.add_argument("--difficulty", default="", help="Override difficulty")
-    p.add_argument("--prompt", default="", help="Override prompt")
+    p = argparse.ArgumentParser(description="TamaCore V3 Factory Mode (assets pack -> full GDevelop game)")
+    p.add_argument("--pack", required=True, help="Path to asset pack folder (assets/packs/<pack>)")
+    p.add_argument("--template-dir", default="templates/gdevelop_template", help="GDevelop template directory")
+    p.add_argument("--game-dir", required=True, help="Output game directory (e.g. ..\\tamacore-game)")
+
+    # Optional overrides
+    p.add_argument("--scene", default="Main", help="Scene name to patch (default Main)")
+    p.add_argument("--seed", type=int, default=1337, help="Deterministic random seed for layout/spawns")
+    p.add_argument("--with-demo-layout", action="store_true", help="Force a demo layout with objects placed")
 
     args = p.parse_args()
 
-    spec_path = Path(args.spec)
-
-    # optional spec overrides
-    if spec_path.exists():
-        spec = read_json(spec_path)
-        if isinstance(spec, dict):
-            if args.provider:
-                spec["provider"] = args.provider
-            if args.seed:
-                spec["seed"] = int(args.seed)
-            if args.theme:
-                spec["theme"] = args.theme
-            if args.difficulty:
-                spec["difficulty"] = args.difficulty
-            if args.prompt:
-                spec["prompt"] = args.prompt
-            write_json(spec_path, spec)
-
-    generate_game(
-        spec_path=spec_path,
-        out_dir=Path(args.out),
+    run_factory_v3(
+        pack_dir=Path(args.pack),
         template_dir=Path(args.template_dir),
-        seed_assets_dir=Path(args.assets_dir),
+        game_dir=Path(args.game_dir),
+        scene_name=str(args.scene),
+        seed=int(args.seed),
+        with_demo_layout=bool(args.with_demo_layout),
     )
 
 
