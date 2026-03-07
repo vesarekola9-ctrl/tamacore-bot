@@ -44,7 +44,7 @@ def run_factory_v3_1(
 
     levels = generate_levels(cfg, game_dir)
     shop = write_shop(cfg, game_dir)
-    save_data = write_save_schema(game_dir)
+    save_data = write_save_schema(game_dir, shop)
 
     project = read_json(game_json)
     if not isinstance(project, dict):
@@ -55,6 +55,7 @@ def run_factory_v3_1(
         raise ValueError(f"Scene '{cfg.scene}' was not found from game.json")
 
     apply_v3_1_rules(project, scene, cfg)
+    _ensure_shop_owned_vars(project, shop)
     apply_character_animations(project, scene, game_dir)
 
     if enable_v3_2:
@@ -94,6 +95,43 @@ def _find_scene(project: Dict[str, Any], name: str) -> Dict[str, Any] | None:
 
     first = layouts[0]
     return first if isinstance(first, dict) else None
+
+
+def _ensure_global_var(project: Dict[str, Any], name: str, value: float) -> None:
+    vars_ = project.get("variables")
+    if not isinstance(vars_, list):
+        vars_ = []
+        project["variables"] = vars_
+
+    for item in vars_:
+        if isinstance(item, dict) and item.get("name") == name:
+            item.setdefault("type", "number")
+            item.setdefault("children", [])
+            if "value" not in item:
+                item["value"] = value
+            return
+
+    vars_.append(
+        {
+            "name": name,
+            "type": "number",
+            "value": value,
+            "children": [],
+        }
+    )
+
+
+def _ensure_shop_owned_vars(project: Dict[str, Any], shop: Dict[str, Any]) -> None:
+    upgrades = shop.get("upgrades", [])
+    if not isinstance(upgrades, list):
+        return
+
+    for item in upgrades:
+        if not isinstance(item, dict):
+            continue
+        owned_var = str(item.get("ownedVariable", "")).strip()
+        if owned_var:
+            _ensure_global_var(project, owned_var, 0)
 
 
 def _build_manifest(
