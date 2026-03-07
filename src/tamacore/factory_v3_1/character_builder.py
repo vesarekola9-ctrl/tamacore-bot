@@ -12,9 +12,9 @@ def apply_character_animations(project: Dict[str, Any], scene: Dict[str, Any], g
         return
 
     generated = game_dir / "assets" / "generated"
-    image_paths = _find_candidate_frames(generated)
+    frames = _find_candidate_frames(generated)
 
-    if not image_paths:
+    if not frames:
         return
 
     player["type"] = "Sprite"
@@ -25,11 +25,25 @@ def apply_character_animations(project: Dict[str, Any], scene: Dict[str, Any], g
             "directions": [
                 {
                     "timeBetweenFrames": 0.12,
-                    "sprites": [_sprite_frame(path) for path in image_paths],
+                    "sprites": [_sprite_frame(path) for path in frames["idle"]],
                 }
             ],
         }
     ]
+
+    if frames["walk"]:
+        player["animations"].append(
+            {
+                "name": "Walk",
+                "useMultipleDirections": False,
+                "directions": [
+                    {
+                        "timeBetweenFrames": 0.08,
+                        "sprites": [_sprite_frame(path) for path in frames["walk"]],
+                    }
+                ],
+            }
+        )
 
 
 def _find_object(scene: Json, name: str) -> Json | None:
@@ -44,11 +58,11 @@ def _find_object(scene: Json, name: str) -> Json | None:
     return None
 
 
-def _find_candidate_frames(generated_dir: Path) -> List[str]:
-    if not generated_dir.exists():
-        return []
+def _find_candidate_frames(generated_dir: Path) -> Dict[str, List[str]]:
+    out = {"idle": [], "walk": []}
 
-    candidates: List[Path] = []
+    if not generated_dir.exists():
+        return out
 
     preferred_dirs = [
         generated_dir / "player",
@@ -56,6 +70,7 @@ def _find_candidate_frames(generated_dir: Path) -> List[str]:
         generated_dir / "character",
     ]
 
+    candidates: List[Path] = []
     for folder in preferred_dirs:
         if folder.exists():
             for file_path in sorted(folder.rglob("*")):
@@ -68,12 +83,24 @@ def _find_candidate_frames(generated_dir: Path) -> List[str]:
                 if any(key in file_path.stem.lower() for key in ("player", "pet", "character")):
                     candidates.append(file_path)
 
-    rels = []
-    for path in candidates[:8]:
-        rel = path.relative_to(generated_dir.parent.parent)
-        rels.append(rel.as_posix())
+    for path in candidates:
+        rel = path.relative_to(generated_dir.parent.parent).as_posix()
+        name = path.stem.lower()
+        if "walk" in name or "run" in name:
+            out["walk"].append(rel)
+        else:
+            out["idle"].append(rel)
 
-    return rels
+    if not out["idle"] and out["walk"]:
+        out["idle"] = out["walk"][:1]
+
+    if not out["walk"] and len(out["idle"]) > 1:
+        out["walk"] = out["idle"][:]
+
+    out["idle"] = out["idle"][:8]
+    out["walk"] = out["walk"][:8]
+
+    return out
 
 
 def _sprite_frame(image_path: str) -> Json:
