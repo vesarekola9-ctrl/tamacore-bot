@@ -24,14 +24,18 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
 
+      - name: Inspect demo pack
+        run: |
+          python -m tamacore.cli inspect-pack --pack assets/packs/demo_pack
+
       - name: Build demo game
         run: |
-          tamacore build --v31 --v32 --pack assets/packs/demo_pack --out demo_game --with-demo-layout
+          python -m tamacore.cli build --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out demo_game --with-demo-layout
 
-      - name: Verify outputs
+      - name: Validate outputs
         run: |
-          test -f demo_game/game.json
-          test -f demo_game/catalog.json
-          test -f demo_game/levels.json
-          test -f demo_game/shop.json
-          test -f demo_game/FACTORY_MANIFEST.json
+          python -m tamacore.cli validate --game-dir demo_game
+
+      - name: Run integration test
+        run: |
+          python test_build.py
