@@ -12,6 +12,7 @@ from tamacore.factory_v3_1.validate import validate_build_output
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "_test_build_output"
 EXPORTS = ROOT / "_test_exports"
+BUNDLE = ROOT / "_test_release_bundle"
 
 
 def main() -> int:
@@ -19,6 +20,12 @@ def main() -> int:
         shutil.rmtree(OUT)
     if EXPORTS.exists():
         shutil.rmtree(EXPORTS)
+    if BUNDLE.exists():
+        shutil.rmtree(BUNDLE)
+
+    bundle_zip = ROOT / "_test_release_bundle.zip"
+    if bundle_zip.exists():
+        bundle_zip.unlink()
 
     cmd = [
         sys.executable,
@@ -38,6 +45,9 @@ def main() -> int:
         str(EXPORTS),
         "--export-web",
         "--export-zip",
+        "--bundle-release",
+        "--bundle-out",
+        str(BUNDLE),
     ]
 
     result = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
@@ -74,6 +84,10 @@ def main() -> int:
         EXPORTS / "game.zip",
         EXPORTS / "EXPORT_REPORT.txt",
         EXPORTS / "export_manifest.json",
+        BUNDLE / "README_RELEASE.txt",
+        BUNDLE / "game" / "game.json",
+        BUNDLE / "exports" / "EXPORT_REPORT.txt",
+        ROOT / "_test_release_bundle.zip",
     ]
 
     missing = [str(p) for p in required if not p.exists()]
