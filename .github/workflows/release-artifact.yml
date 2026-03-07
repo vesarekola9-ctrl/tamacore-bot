@@ -21,9 +21,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
 
+      - name: Inspect pack
+        run: |
+          python -m tamacore.cli inspect-pack --pack assets/packs/demo_pack
+
       - name: Build demo
         run: |
-          tamacore build --v31 --v32 --pack assets/packs/demo_pack --out demo_game --with-demo-layout
+          python -m tamacore.cli build --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out demo_game --with-demo-layout
+
+      - name: Validate demo
+        run: |
+          python -m tamacore.cli validate --game-dir demo_game
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
