@@ -1,19 +1,28 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
-from tamacore.patches.shop_v321 import apply_shop_v321
-from tamacore.utils import read_json, write_json
 
-GAME_JSON = Path(r"..\tamacore-game\game.json")
+from tamacore.patch_gdevelop import patch_project
+
 
 def main() -> None:
-    project = read_json(GAME_JSON)
-    changed = apply_shop_v321(project, scene_name="Main")
-    if changed:
-        write_json(GAME_JSON, project)
-        print("[OK] Shop v3.2.1 patched into:", GAME_JSON)
-    else:
-        print("[OK] No changes (already patched or layout missing):", GAME_JSON)
+    parser = argparse.ArgumentParser(description="Patch shop + UI into an existing GDevelop game.json")
+    parser.add_argument("--game-dir", required=True, help="Existing game directory")
+    parser.add_argument("--scene", default="Main", help="Scene/layout name")
+    args = parser.parse_args()
+
+    game_dir = Path(args.game_dir)
+    game_json = game_dir / "game.json"
+
+    patch_project(
+        game_json_path=game_json,
+        image_map=None,
+        scene_name=str(args.scene),
+    )
+
+    print("[OK] Shop patched:", game_json)
+
 
 if __name__ == "__main__":
     main()
