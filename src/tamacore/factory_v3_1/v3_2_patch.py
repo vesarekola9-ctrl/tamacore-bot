@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -13,6 +14,8 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
     _ensure_global_var(project, "LevelCount", 1)
     _ensure_global_var(project, "CoinTarget", 0)
     _ensure_global_var(project, "EnemyTarget", 0)
+    _ensure_global_var(project, "CoinsCollected", 0)
+    _ensure_global_var(project, "EnemiesHit", 0)
     _ensure_global_var(project, "RuntimeReady", 0)
 
     _ensure_ui_layer(scene)
@@ -21,6 +24,8 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
     levels = _load_levels(game_dir)
     level_count = len(levels)
     first_level = levels[0] if levels else {}
+
+    _spawn_level_instances(scene, first_level)
 
     _inject_runtime_events(
         scene=scene,
@@ -39,19 +44,57 @@ def _load_levels(game_dir: Path) -> List[Json]:
     if not isinstance(data, list):
         return []
 
-    out: List[Json] = []
-    for item in data:
-        if isinstance(item, dict):
-            out.append(item)
+    return [item for item in data if isinstance(item, dict)]
+
+
+def _spawn_level_instances(scene: Json, level: Json) -> None:
+    bounds = level.get("worldBounds", {})
+    if not isinstance(bounds, dict):
+        bounds = {}
+
+    x_min = _safe_int(bounds.get("xMin"), 0)
+    y_min = _safe_int(bounds.get("yMin"), 0)
+    x_max = _safe_int(bounds.get("xMax"), 720)
+    y_max = _safe_int(bounds.get("yMax"), 1280)
+
+    coin_count = max(0, _safe_int(level.get("coinCount"), 0))
+    enemy_count = max(0, _safe_int(level.get("enemyCount"), 0))
+    coin_name = str(level.get("coinObjectName", "Coin") or "Coin")
+    enemy_name = str(level.get("enemyObjectName", "Enemy") or "Enemy")
+    seed = _safe_int(level.get("seed"), 1337)
+
+    rng = random.Random(seed)
+
+    if coin_count > 0:
+        for x, y in _random_points(rng, x_min, y_min, x_max, y_max, coin_count, margin=96):
+            _ensure_instance(scene, coin_name, x=x, y=y, layer="", z=20)
+
+    if enemy_count > 0:
+        for x, y in _random_points(rng, x_min, y_min, x_max, y_max, enemy_count, margin=140):
+            _ensure_instance(scene, enemy_name, x=x, y=y, layer="", z=20)
+
+
+def _random_points(
+    rng: random.Random,
+    x_min: int,
+    y_min: int,
+    x_max: int,
+    y_max: int,
+    count: int,
+    margin: int,
+) -> List[tuple[int, int]]:
+    out: List[tuple[int, int]] = []
+    left = x_min + margin
+    top = y_min + margin
+    right = max(left + 1, x_max - margin)
+    bottom = max(top + 1, y_max - margin)
+
+    for _ in range(count):
+        out.append((rng.randint(left, right), rng.randint(top, bottom)))
     return out
 
 
-def _inject_runtime_events(
-    scene: Json,
-    level_count: int,
-    coin_target: int,
-    enemy_target: int,
-) -> None:
+def _inject_runtime_events(scene: Json, level_count: int, coin_target: int, enemy_target: int) -> None:
     events = scene.get("events")
     if not isinstance(events, list):
         events = []
@@ -82,6 +125,8 @@ def _inject_runtime_events(
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelCount", str(max(1, level_count))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinTarget", str(max(0, coin_target))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemyTarget", str(max(0, enemy_target))]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinsCollected", "0"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemiesHit", "0"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["RuntimeReady", "1"]),
                 _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
                 _act("TextObject::SetString", ["SpeedLabel", "\"Speed: \" + ToString(Variable(PlayerMaxSpeed))"]),
@@ -90,6 +135,13 @@ def _inject_runtime_events(
                     [
                         "LevelLabel",
                         "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))",
+                    ],
+                ),
+                _act(
+                    "TextObject::SetString",
+                    [
+                        "GoalLabel",
+                        "\"Coins: \" + ToString(Variable(CoinsCollected)) + \"/\" + ToString(Variable(CoinTarget)) + \" | Enemies: \" + ToString(Variable(EnemiesHit)) + \"/\" + ToString(Variable(EnemyTarget))",
                     ],
                 ),
             ],
@@ -115,6 +167,13 @@ def _inject_runtime_events(
                         "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))",
                     ],
                 ),
+                _act(
+                    "TextObject::SetString",
+                    [
+                        "GoalLabel",
+                        "\"Coins: \" + ToString(Variable(CoinsCollected)) + \"/\" + ToString(Variable(CoinTarget)) + \" | Enemies: \" + ToString(Variable(EnemiesHit)) + \"/\" + ToString(Variable(EnemyTarget))",
+                    ],
+                ),
             ],
             "events": [],
             "disabled": False,
@@ -124,15 +183,78 @@ def _inject_runtime_events(
         }
     )
 
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::Collision", ["Player", "Coin", "", ""]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::Delete", ["Coin"]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["Coins", "10"]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["CoinsCollected", "1"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Collect Coin",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::Collision", ["Player", "Enemy", "", ""]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::Delete", ["Enemy"]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["EnemiesHit", "1"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Hit Enemy",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(CoinTarget)", ">", "0"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(CoinsCollected)", ">=", "Variable(CoinTarget)"]),
+            ],
+            "actions": [
+                _act(
+                    "TextObject::SetString",
+                    [
+                        "GoalLabel",
+                        "\"LEVEL COMPLETE\"",
+                    ],
+                )
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Level Complete",
+        }
+    )
+
 
 def _ensure_runtime_labels(scene: Json) -> None:
     _ensure_layout_object(scene, _obj_text("CoinsLabel", "Coins: 0", 26))
     _ensure_layout_object(scene, _obj_text("SpeedLabel", "Speed: 0", 26))
     _ensure_layout_object(scene, _obj_text("LevelLabel", "Level: 1/1", 26))
+    _ensure_layout_object(scene, _obj_text("GoalLabel", "Coins: 0/0 | Enemies: 0/0", 24))
 
     _ensure_instance(scene, "CoinsLabel", x=24, y=24, layer="UI", z=2500)
     _ensure_instance(scene, "SpeedLabel", x=24, y=58, layer="UI", z=2501)
     _ensure_instance(scene, "LevelLabel", x=24, y=92, layer="UI", z=2502)
+    _ensure_instance(scene, "GoalLabel", x=24, y=126, layer="UI", z=2503)
 
 
 def _ensure_ui_layer(scene: Json) -> None:
@@ -203,16 +325,6 @@ def _ensure_instance(scene: Json, object_name: str, x: float, y: float, layer: s
     if not isinstance(instances, list):
         instances = []
         scene["instances"] = instances
-
-    for inst in instances:
-        if not isinstance(inst, dict):
-            continue
-        if inst.get("objectName") == object_name or inst.get("name") == object_name:
-            inst["x"] = x
-            inst["y"] = y
-            inst["layer"] = layer
-            inst["zOrder"] = max(int(inst.get("zOrder", 0) or 0), z)
-            return
 
     instances.append(
         {
