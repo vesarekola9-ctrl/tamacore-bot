@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from .factory_v3.generator import run_factory_v3
+from .factory_v3_1.asset_generator import generate_placeholder_assets
 from .factory_v3_1.export_android_stub import export_android_stub
 from .factory_v3_1.export_report import write_export_report
 from .factory_v3_1.export_validate import validate_exports
@@ -58,11 +59,9 @@ def _export_game(game_dir: Path, out_dir: Path, export_type: str) -> int:
     if export_type == "web":
         export_web(game_dir, out_dir)
         return 0
-
     if export_type == "zip":
         export_zip(game_dir, out_dir / "game.zip")
         return 0
-
     if export_type == "android":
         export_android_stub(game_dir, out_dir)
         return 0
@@ -77,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="tamacore", description="TamaCore AI Game Factory")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    build = sub.add_parser("build", help="Build game from pack + template")
+    build = sub.add_parser("build")
     build.add_argument("--pack", required=True)
     build.add_argument("--template", default="templates/gdevelop_template")
     build.add_argument("--out", required=True)
@@ -87,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--scene", default="Main")
     build.add_argument("--seed", type=int, default=1337)
 
-    make_game = sub.add_parser("make-game", help="Inspect + build + validate in one command")
+    make_game = sub.add_parser("make-game")
     make_game.add_argument("--pack", required=True)
     make_game.add_argument("--template", default="templates/gdevelop_template")
     make_game.add_argument("--out", required=True)
@@ -102,26 +101,30 @@ def main(argv: list[str] | None = None) -> int:
     make_game.add_argument("--export-out", default="exports")
     make_game.add_argument("--bundle-out", default="")
     make_game.add_argument("--bundle-release", action="store_true")
+    make_game.add_argument("--generate-assets", action="store_true")
 
-    validate = sub.add_parser("validate", help="Validate generated game output")
+    validate = sub.add_parser("validate")
     validate.add_argument("--game-dir", required=True)
 
-    validate_exports_cmd = sub.add_parser("validate-exports", help="Validate export output")
+    validate_exports_cmd = sub.add_parser("validate-exports")
     validate_exports_cmd.add_argument("--export-dir", required=True)
 
-    inspect = sub.add_parser("inspect-pack", help="Validate pack before build")
+    inspect = sub.add_parser("inspect-pack")
     inspect.add_argument("--pack", required=True)
 
-    init_pack = sub.add_parser("init-pack", help="Create a new pack scaffold")
+    init_pack = sub.add_parser("init-pack")
     init_pack.add_argument("--out", required=True)
     init_pack.add_argument("--name", default="New Pack")
 
-    export = sub.add_parser("export", help="Export existing build")
+    gen_assets = sub.add_parser("generate-assets")
+    gen_assets.add_argument("--pack", required=True)
+
+    export = sub.add_parser("export")
     export.add_argument("--game-dir", required=True)
     export.add_argument("--out", required=True)
     export.add_argument("--type", required=True, choices=["web", "zip", "android"])
 
-    bundle = sub.add_parser("bundle-release", help="Bundle game + exports into a release folder and zip")
+    bundle = sub.add_parser("bundle-release")
     bundle.add_argument("--game-dir", required=True)
     bundle.add_argument("--export-dir", required=True)
     bundle.add_argument("--out", required=True)
@@ -141,8 +144,12 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     if args.cmd == "make-game":
+        pack_dir = Path(args.pack)
+        if args.generate_assets:
+            generate_placeholder_assets(pack_dir)
+
         rc = _build_game(
-            pack_dir=Path(args.pack),
+            pack_dir=pack_dir,
             template_dir=Path(args.template),
             out_dir=Path(args.out),
             with_demo_layout=bool(args.with_demo_layout),
@@ -161,11 +168,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
         export_out = Path(args.export_out)
-        exported = {
-            "web": False,
-            "zip": False,
-            "android": False,
-        }
+        exported = {"web": False, "zip": False, "android": False}
 
         if args.export_web:
             rc = _export_game(Path(args.out), export_out, "web")
@@ -232,6 +235,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "init-pack":
         create_pack(Path(args.out), str(args.name))
         print(f"[OK] Pack created: {Path(args.out)}")
+        return 0
+
+    if args.cmd == "generate-assets":
+        generate_placeholder_assets(Path(args.pack))
+        print(f"[OK] Placeholder assets generated: {Path(args.pack)}")
         return 0
 
     if args.cmd == "export":
