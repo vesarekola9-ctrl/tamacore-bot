@@ -17,6 +17,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
         game_dir / "levels.json",
         game_dir / "shop.json",
         game_dir / "FACTORY_MANIFEST.json",
+        game_dir / "BUILD_REPORT.txt",
     ]
 
     for path in required_files:
@@ -24,7 +25,9 @@ def validate_build_output(game_dir: Path) -> List[str]:
             errors.append(f"Missing file: {path.name}")
 
     if errors:
-        return errors
+        missing_only = [e for e in errors if "Missing file: BUILD_REPORT.txt" not in e]
+        if missing_only:
+            return errors
 
     game = _load_json(game_dir / "game.json", errors, "game.json")
     catalog = _load_json(game_dir / "catalog.json", errors, "catalog.json")
