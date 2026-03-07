@@ -14,19 +14,21 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("TamaCore Bot")
-        self.geometry("900x660")
-        self.minsize(900, 660)
+        self.geometry("940x700")
+        self.minsize(940, 700)
 
         self.pack_var = tk.StringVar(value=str(ROOT / "assets" / "packs" / "demo_pack"))
         self.template_var = tk.StringVar(value=str(ROOT / "templates" / "gdevelop_template"))
         self.out_var = tk.StringVar(value=str((ROOT.parent / "tamacore-game").resolve()))
         self.export_var = tk.StringVar(value=str((ROOT / "exports").resolve()))
+        self.bundle_var = tk.StringVar(value=str((ROOT / "release_bundle").resolve()))
         self.v31_var = tk.BooleanVar(value=True)
         self.v32_var = tk.BooleanVar(value=True)
         self.demo_layout_var = tk.BooleanVar(value=True)
         self.export_web_var = tk.BooleanVar(value=True)
         self.export_zip_var = tk.BooleanVar(value=True)
         self.export_android_var = tk.BooleanVar(value=False)
+        self.bundle_release_var = tk.BooleanVar(value=True)
 
         self._build_ui()
 
@@ -37,20 +39,24 @@ class App(tk.Tk):
         top.pack(fill="x", padx=12, pady=12)
 
         ttk.Label(top, text="Pack").grid(row=0, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.pack_var, width=80).grid(row=0, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.pack_var, width=82).grid(row=0, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_pack).grid(row=0, column=2, **pad)
 
         ttk.Label(top, text="Template").grid(row=1, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.template_var, width=80).grid(row=1, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.template_var, width=82).grid(row=1, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_template).grid(row=1, column=2, **pad)
 
         ttk.Label(top, text="Output").grid(row=2, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.out_var, width=80).grid(row=2, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.out_var, width=82).grid(row=2, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_out).grid(row=2, column=2, **pad)
 
         ttk.Label(top, text="Exports").grid(row=3, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.export_var, width=80).grid(row=3, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.export_var, width=82).grid(row=3, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_export).grid(row=3, column=2, **pad)
+
+        ttk.Label(top, text="Bundle").grid(row=4, column=0, sticky="w", **pad)
+        ttk.Entry(top, textvariable=self.bundle_var, width=82).grid(row=4, column=1, sticky="ew", **pad)
+        ttk.Button(top, text="Browse", command=self._browse_bundle).grid(row=4, column=2, **pad)
 
         top.columnconfigure(1, weight=1)
 
@@ -61,12 +67,13 @@ class App(tk.Tk):
         ttk.Checkbutton(opts, text="v3.2", variable=self.v32_var).pack(anchor="w", padx=10, pady=4)
         ttk.Checkbutton(opts, text="With demo layout", variable=self.demo_layout_var).pack(anchor="w", padx=10, pady=4)
 
-        export_opts = ttk.LabelFrame(self, text="Export Options")
+        export_opts = ttk.LabelFrame(self, text="Output Options")
         export_opts.pack(fill="x", padx=12, pady=(0, 12))
 
-        ttk.Checkbutton(export_opts, text="Web", variable=self.export_web_var).pack(anchor="w", padx=10, pady=4)
-        ttk.Checkbutton(export_opts, text="ZIP", variable=self.export_zip_var).pack(anchor="w", padx=10, pady=4)
-        ttk.Checkbutton(export_opts, text="Android stub", variable=self.export_android_var).pack(anchor="w", padx=10, pady=4)
+        ttk.Checkbutton(export_opts, text="Export Web", variable=self.export_web_var).pack(anchor="w", padx=10, pady=4)
+        ttk.Checkbutton(export_opts, text="Export ZIP", variable=self.export_zip_var).pack(anchor="w", padx=10, pady=4)
+        ttk.Checkbutton(export_opts, text="Export Android stub", variable=self.export_android_var).pack(anchor="w", padx=10, pady=4)
+        ttk.Checkbutton(export_opts, text="Create Release Bundle", variable=self.bundle_release_var).pack(anchor="w", padx=10, pady=4)
 
         actions = ttk.Frame(self)
         actions.pack(fill="x", padx=12, pady=(0, 12))
@@ -82,6 +89,7 @@ class App(tk.Tk):
 
         ttk.Button(actions2, text="Open Output", command=self._open_output).pack(side="left", padx=6)
         ttk.Button(actions2, text="Open Exports", command=self._open_exports).pack(side="left", padx=6)
+        ttk.Button(actions2, text="Open Bundle", command=self._open_bundle).pack(side="left", padx=6)
         ttk.Button(actions2, text="Open game.json", command=self._open_game_json).pack(side="left", padx=6)
         ttk.Button(actions2, text="Open BUILD_REPORT", command=self._open_build_report).pack(side="left", padx=6)
         ttk.Button(actions2, text="Open EXPORT_REPORT", command=self._open_export_report).pack(side="left", padx=6)
@@ -89,7 +97,7 @@ class App(tk.Tk):
         log_frame = ttk.LabelFrame(self, text="Log")
         log_frame.pack(fill="both", expand=True, padx=12, pady=(0, 12))
 
-        self.log = tk.Text(log_frame, wrap="word", height=22)
+        self.log = tk.Text(log_frame, wrap="word", height=24)
         self.log.pack(fill="both", expand=True, padx=8, pady=8)
 
     def _browse_pack(self) -> None:
@@ -111,6 +119,11 @@ class App(tk.Tk):
         path = filedialog.askdirectory(initialdir=self.export_var.get() or str(ROOT))
         if path:
             self.export_var.set(path)
+
+    def _browse_bundle(self) -> None:
+        path = filedialog.askdirectory(initialdir=self.bundle_var.get() or str(ROOT))
+        if path:
+            self.bundle_var.set(path)
 
     def _append_log(self, text: str) -> None:
         self.log.insert("end", text + "\n")
@@ -189,6 +202,8 @@ class App(tk.Tk):
             cmd.append("--export-zip")
         if self.export_android_var.get():
             cmd.append("--export-android")
+        if self.bundle_release_var.get():
+            cmd.extend(["--bundle-release", "--bundle-out", str(Path(self.bundle_var.get()))])
 
         rc = self._run_cmd(cmd)
         if rc == 0:
@@ -221,6 +236,9 @@ class App(tk.Tk):
 
     def _open_exports(self) -> None:
         self._open_path(Path(self.export_var.get()))
+
+    def _open_bundle(self) -> None:
+        self._open_path(Path(self.bundle_var.get()))
 
     def _open_game_json(self) -> None:
         self._open_file(Path(self.out_var.get()) / "game.json")
