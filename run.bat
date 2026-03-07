@@ -14,11 +14,17 @@ python -m pip install -e .
 python -m tamacore.cli make-game --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out ..\tamacore-game --with-demo-layout --export-out exports --export-web --export-zip
 if errorlevel 1 goto :fail
 
-echo [OK] Make Game complete
+python -m tamacore.cli validate --game-dir ..\tamacore-game
+if errorlevel 1 goto :fail
+
+python -m tamacore.cli validate-exports --export-dir exports
+if errorlevel 1 goto :fail
+
+echo [OK] TamaCore pipeline complete
 goto :end
 
 :fail
-echo [ERR] Make Game failed
+echo [ERR] TamaCore pipeline failed
 
 :end
 endlocal
