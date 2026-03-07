@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .factory_v3.generator import run_factory_v3
 from .factory_v3_1.asset_generator import generate_placeholder_assets
+from .factory_v3_1.auto_mode import run_auto_mode
 from .factory_v3_1.batch_factory import run_batch_factory
 from .factory_v3_1.export_android_stub import export_android_stub
 from .factory_v3_1.export_report import write_export_report
@@ -116,6 +117,12 @@ def main(argv: list[str] | None = None) -> int:
     batch.add_argument("--export-web", action="store_true")
     batch.add_argument("--export-zip", action="store_true")
     batch.add_argument("--bundle-release", action="store_true")
+
+    auto = sub.add_parser("auto")
+    auto.add_argument("--workspace", default="auto_workspace")
+    auto.add_argument("--template", default="templates/gdevelop_template")
+    auto.add_argument("--pack-name", default="auto_pack")
+    auto.add_argument("--game-name", default="auto_game")
 
     validate = sub.add_parser("validate")
     validate.add_argument("--game-dir", required=True)
@@ -236,6 +243,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[OK] batch complete: {summary['okCount']}/{summary['count']}")
         if int(summary["failedCount"]) > 0:
             return 1
+        return 0
+
+    if args.cmd == "auto":
+        result = run_auto_mode(
+            workspace_dir=Path(args.workspace),
+            template_dir=Path(args.template),
+            pack_name=str(args.pack_name),
+            game_name=str(args.game_name),
+        )
+        print(f"[OK] auto complete: {result['gameDir']}")
         return 0
 
     if args.cmd == "validate":
