@@ -23,6 +23,12 @@ def write_build_report(
     instance_count = len(catalog.get("instances", [])) if isinstance(catalog.get("instances"), list) else 0
     upgrade_count = len(shop.get("upgrades", [])) if isinstance(shop.get("upgrades"), list) else 0
 
+    save_defaults = {}
+    if isinstance(manifest.get("save"), dict):
+        save_defaults = manifest["save"].get("defaults", {})
+        if not isinstance(save_defaults, dict):
+            save_defaults = {}
+
     lines = [
         "TamaCore Build Report",
         "====================",
@@ -56,10 +62,19 @@ def write_build_report(
         uid = str(upgrade.get("id", "unknown"))
         name = str(upgrade.get("name", uid))
         cost = upgrade.get("cost", 0)
-        lines.append(f"- {uid}: {name} ({cost}c)")
+        owned = str(upgrade.get("ownedVariable", ""))
+        lines.append(f"- {uid}: {name} ({cost}c) [{owned}]")
+
+    lines.extend(["", "Save Defaults", "-------------"])
+    for key in ["Coins", "Speed", "PlayerMaxSpeed", "LevelIndex", "CoinsCollected", "EnemiesHit", "LevelComplete", "GameComplete", "SaveLoaded"]:
+        if key in save_defaults:
+            lines.append(f"- {key}: {save_defaults[key]}")
+    owned_upgrades = save_defaults.get("ownedUpgrades", {})
+    if isinstance(owned_upgrades, dict):
+        lines.append(f"- ownedUpgrades: {len(owned_upgrades)}")
 
     lines.extend(["", "Manifest", "--------"])
-    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns"]:
+    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns", "save"]:
         if key in manifest:
             lines.append(f"- {key}: OK")
 
