@@ -103,13 +103,22 @@ def _validate_game(game: Json, errors: List[str]) -> None:
         "CoinsLabel",
         "SpeedLabel",
         "LevelLabel",
+        "GoalLabel",
     }
 
     for name in required_objects:
         if name not in object_names:
             errors.append(f"game.json: missing object '{name}'")
 
-    required_instances = {"Player", "ShopButton", "ShopPanel", "CoinsLabel", "SpeedLabel", "LevelLabel"}
+    required_instances = {
+        "Player",
+        "ShopButton",
+        "ShopPanel",
+        "CoinsLabel",
+        "SpeedLabel",
+        "LevelLabel",
+        "GoalLabel",
+    }
     for name in required_instances:
         if name not in instance_names:
             errors.append(f"game.json: missing instance '{name}'")
@@ -133,7 +142,18 @@ def _validate_game(game: Json, errors: List[str]) -> None:
         return
 
     variable_names = {var.get("name") for var in variables if isinstance(var, dict)}
-    for name in ["Coins", "Speed", "PlayerMaxSpeed", "ShopOpen", "LevelIndex", "LevelCount", "CoinTarget", "EnemyTarget"]:
+    for name in [
+        "Coins",
+        "Speed",
+        "PlayerMaxSpeed",
+        "ShopOpen",
+        "LevelIndex",
+        "LevelCount",
+        "CoinTarget",
+        "EnemyTarget",
+        "CoinsCollected",
+        "EnemiesHit",
+    ]:
         if name not in variable_names:
             errors.append(f"game.json: missing global variable '{name}'")
 
