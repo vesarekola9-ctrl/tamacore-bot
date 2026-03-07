@@ -10,17 +10,20 @@ from tamacore.factory_v3_1.validate import validate_build_output
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "_test_build_output"
+EXPORTS = ROOT / "_test_exports"
 
 
 def main() -> int:
     if OUT.exists():
         shutil.rmtree(OUT)
+    if EXPORTS.exists():
+        shutil.rmtree(EXPORTS)
 
     cmd = [
         sys.executable,
         "-m",
         "tamacore.cli",
-        "build",
+        "make-game",
         "--v31",
         "--v32",
         "--pack",
@@ -30,6 +33,10 @@ def main() -> int:
         "--out",
         str(OUT),
         "--with-demo-layout",
+        "--export-out",
+        str(EXPORTS),
+        "--export-web",
+        "--export-zip",
     ]
 
     result = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
@@ -48,9 +55,22 @@ def main() -> int:
             print(err)
         raise SystemExit(1)
 
-    report = OUT / "BUILD_REPORT.txt"
-    if not report.exists():
-        print("Missing BUILD_REPORT.txt")
+    required = [
+        OUT / "game.json",
+        OUT / "catalog.json",
+        OUT / "levels.json",
+        OUT / "shop.json",
+        OUT / "save.json",
+        OUT / "FACTORY_MANIFEST.json",
+        OUT / "BUILD_REPORT.txt",
+        EXPORTS / "web" / "index.html",
+        EXPORTS / "game.zip",
+    ]
+
+    missing = [str(p) for p in required if not p.exists()]
+    if missing:
+        for item in missing:
+            print(f"Missing: {item}")
         raise SystemExit(1)
 
     print("[OK] test_build passed")
