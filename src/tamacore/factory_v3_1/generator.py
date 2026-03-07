@@ -7,6 +7,7 @@ from ..factory_v3.catalog import build_catalog
 from ..patch_gdevelop import factory_apply_catalog
 from ..template_ops import copy_template, ensure_template_exists
 from ..utils import read_json, write_json
+from .build_report import write_build_report
 from .character_builder import apply_character_animations
 from .levels import generate_levels
 from .patch_rules import apply_v3_1_rules
@@ -58,11 +59,23 @@ def run_factory_v3_1(
         apply_v3_2_runtime(project, scene, cfg, game_dir)
 
     write_json(game_json, project)
-    _write_manifest(game_dir, cfg, levels, shop, catalog, enable_v3_2)
+
+    manifest = _build_manifest(cfg, levels, shop, catalog, enable_v3_2)
+    write_json(game_dir / "FACTORY_MANIFEST.json", manifest)
 
     errors = validate_build_output(game_dir)
     if errors:
         raise RuntimeError("Build validation failed:\n" + "\n".join(f"- {item}" for item in errors))
+
+    write_build_report(
+        game_dir=game_dir,
+        pack_name=cfg.name,
+        factory_version="v3.2" if enable_v3_2 else "v3.1",
+        manifest=manifest,
+        catalog=catalog,
+        levels=levels,
+        shop=shop,
+    )
 
     print("[OK] Factory generated:", game_dir)
     print("[NEXT] Open in GDevelop:", game_json)
@@ -81,15 +94,14 @@ def _find_scene(project: Dict[str, Any], name: str) -> Dict[str, Any] | None:
     return first if isinstance(first, dict) else None
 
 
-def _write_manifest(
-    game_dir: Path,
+def _build_manifest(
     cfg: PackCfg,
     levels: List[Dict[str, Any]],
     shop: Dict[str, Any],
     catalog: Dict[str, Any],
     enable_v3_2: bool,
-) -> None:
-    manifest = {
+) -> Dict[str, Any]:
+    return {
         "factory": "v3.2" if enable_v3_2 else "v3.1",
         "pack": {
             "name": cfg.name,
@@ -146,8 +158,6 @@ def _write_manifest(
         "shopUpgrades": [u.get("id", f"upgrade_{i + 1}") for i, u in enumerate(shop.get("upgrades", []))],
         "catalogSummary": _catalog_summary(catalog),
     }
-
-    write_json(game_dir / "FACTORY_MANIFEST.json", manifest)
 
 
 def _catalog_summary(catalog: Dict[str, Any]) -> Dict[str, Any]:
