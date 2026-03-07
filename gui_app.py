@@ -14,8 +14,8 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("TamaCore Bot")
-        self.geometry("860x620")
-        self.minsize(860, 620)
+        self.geometry("900x660")
+        self.minsize(900, 660)
 
         self.pack_var = tk.StringVar(value=str(ROOT / "assets" / "packs" / "demo_pack"))
         self.template_var = tk.StringVar(value=str(ROOT / "templates" / "gdevelop_template"))
@@ -37,19 +37,19 @@ class App(tk.Tk):
         top.pack(fill="x", padx=12, pady=12)
 
         ttk.Label(top, text="Pack").grid(row=0, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.pack_var, width=78).grid(row=0, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.pack_var, width=80).grid(row=0, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_pack).grid(row=0, column=2, **pad)
 
         ttk.Label(top, text="Template").grid(row=1, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.template_var, width=78).grid(row=1, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.template_var, width=80).grid(row=1, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_template).grid(row=1, column=2, **pad)
 
         ttk.Label(top, text="Output").grid(row=2, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.out_var, width=78).grid(row=2, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.out_var, width=80).grid(row=2, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_out).grid(row=2, column=2, **pad)
 
-        ttk.Label(top, text="Export").grid(row=3, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.export_var, width=78).grid(row=3, column=1, sticky="ew", **pad)
+        ttk.Label(top, text="Exports").grid(row=3, column=0, sticky="w", **pad)
+        ttk.Entry(top, textvariable=self.export_var, width=80).grid(row=3, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_export).grid(row=3, column=2, **pad)
 
         top.columnconfigure(1, weight=1)
@@ -74,14 +74,22 @@ class App(tk.Tk):
         ttk.Button(actions, text="Make Game", command=self._make_game).pack(side="left", padx=6)
         ttk.Button(actions, text="Build Only", command=self._build_game).pack(side="left", padx=6)
         ttk.Button(actions, text="Inspect Pack", command=self._inspect_pack).pack(side="left", padx=6)
-        ttk.Button(actions, text="Validate", command=self._validate_game).pack(side="left", padx=6)
-        ttk.Button(actions, text="Open Output", command=self._open_output).pack(side="left", padx=6)
-        ttk.Button(actions, text="Open Exports", command=self._open_exports).pack(side="left", padx=6)
+        ttk.Button(actions, text="Validate Build", command=self._validate_game).pack(side="left", padx=6)
+        ttk.Button(actions, text="Validate Exports", command=self._validate_exports).pack(side="left", padx=6)
+
+        actions2 = ttk.Frame(self)
+        actions2.pack(fill="x", padx=12, pady=(0, 12))
+
+        ttk.Button(actions2, text="Open Output", command=self._open_output).pack(side="left", padx=6)
+        ttk.Button(actions2, text="Open Exports", command=self._open_exports).pack(side="left", padx=6)
+        ttk.Button(actions2, text="Open game.json", command=self._open_game_json).pack(side="left", padx=6)
+        ttk.Button(actions2, text="Open BUILD_REPORT", command=self._open_build_report).pack(side="left", padx=6)
+        ttk.Button(actions2, text="Open EXPORT_REPORT", command=self._open_export_report).pack(side="left", padx=6)
 
         log_frame = ttk.LabelFrame(self, text="Log")
         log_frame.pack(fill="both", expand=True, padx=12, pady=(0, 12))
 
-        self.log = tk.Text(log_frame, wrap="word", height=20)
+        self.log = tk.Text(log_frame, wrap="word", height=22)
         self.log.pack(fill="both", expand=True, padx=8, pady=8)
 
     def _browse_pack(self) -> None:
@@ -132,15 +140,10 @@ class App(tk.Tk):
         return proc.returncode
 
     def _inspect_pack(self) -> None:
-        cmd = [
-            sys.executable,
-            "-m",
-            "tamacore.cli",
-            "inspect-pack",
-            "--pack",
-            str(Path(self.pack_var.get())),
-        ]
-        rc = self._run_cmd(cmd)
+        rc = self._run_cmd([
+            sys.executable, "-m", "tamacore.cli", "inspect-pack",
+            "--pack", str(Path(self.pack_var.get()))
+        ])
         if rc == 0:
             messagebox.showinfo("TamaCore", "Pack inspection passed")
         else:
@@ -148,16 +151,10 @@ class App(tk.Tk):
 
     def _build_game(self) -> None:
         cmd = [
-            sys.executable,
-            "-m",
-            "tamacore.cli",
-            "build",
-            "--pack",
-            str(Path(self.pack_var.get())),
-            "--template",
-            str(Path(self.template_var.get())),
-            "--out",
-            str(Path(self.out_var.get())),
+            sys.executable, "-m", "tamacore.cli", "build",
+            "--pack", str(Path(self.pack_var.get())),
+            "--template", str(Path(self.template_var.get())),
+            "--out", str(Path(self.out_var.get())),
         ]
         if self.demo_layout_var.get():
             cmd.append("--with-demo-layout")
@@ -174,18 +171,11 @@ class App(tk.Tk):
 
     def _make_game(self) -> None:
         cmd = [
-            sys.executable,
-            "-m",
-            "tamacore.cli",
-            "make-game",
-            "--pack",
-            str(Path(self.pack_var.get())),
-            "--template",
-            str(Path(self.template_var.get())),
-            "--out",
-            str(Path(self.out_var.get())),
-            "--export-out",
-            str(Path(self.export_var.get())),
+            sys.executable, "-m", "tamacore.cli", "make-game",
+            "--pack", str(Path(self.pack_var.get())),
+            "--template", str(Path(self.template_var.get())),
+            "--out", str(Path(self.out_var.get())),
+            "--export-out", str(Path(self.export_var.get())),
         ]
         if self.demo_layout_var.get():
             cmd.append("--with-demo-layout")
@@ -207,25 +197,39 @@ class App(tk.Tk):
             messagebox.showerror("TamaCore", f"Make Game failed with exit code {rc}")
 
     def _validate_game(self) -> None:
-        cmd = [
-            sys.executable,
-            "-m",
-            "tamacore.cli",
-            "validate",
-            "--game-dir",
-            str(Path(self.out_var.get())),
-        ]
-        rc = self._run_cmd(cmd)
+        rc = self._run_cmd([
+            sys.executable, "-m", "tamacore.cli", "validate",
+            "--game-dir", str(Path(self.out_var.get()))
+        ])
         if rc == 0:
-            messagebox.showinfo("TamaCore", "Validation passed")
+            messagebox.showinfo("TamaCore", "Build validation passed")
         else:
-            messagebox.showerror("TamaCore", f"Validation failed with exit code {rc}")
+            messagebox.showerror("TamaCore", f"Build validation failed with exit code {rc}")
+
+    def _validate_exports(self) -> None:
+        rc = self._run_cmd([
+            sys.executable, "-m", "tamacore.cli", "validate-exports",
+            "--export-dir", str(Path(self.export_var.get()))
+        ])
+        if rc == 0:
+            messagebox.showinfo("TamaCore", "Export validation passed")
+        else:
+            messagebox.showerror("TamaCore", f"Export validation failed with exit code {rc}")
 
     def _open_output(self) -> None:
         self._open_path(Path(self.out_var.get()))
 
     def _open_exports(self) -> None:
         self._open_path(Path(self.export_var.get()))
+
+    def _open_game_json(self) -> None:
+        self._open_file(Path(self.out_var.get()) / "game.json")
+
+    def _open_build_report(self) -> None:
+        self._open_file(Path(self.out_var.get()) / "BUILD_REPORT.txt")
+
+    def _open_export_report(self) -> None:
+        self._open_file(Path(self.export_var.get()) / "EXPORT_REPORT.txt")
 
     def _open_path(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
@@ -238,6 +242,20 @@ class App(tk.Tk):
                 subprocess.Popen(["xdg-open", str(path)])
         except Exception as exc:
             messagebox.showerror("Open path failed", str(exc))
+
+    def _open_file(self, path: Path) -> None:
+        if not path.exists():
+            messagebox.showwarning("Missing file", f"Not found: {path}")
+            return
+        try:
+            if sys.platform.startswith("win"):
+                subprocess.Popen(["cmd", "/c", "start", "", str(path)])
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(path)])
+            else:
+                subprocess.Popen(["xdg-open", str(path)])
+        except Exception as exc:
+            messagebox.showerror("Open file failed", str(exc))
 
 
 if __name__ == "__main__":
