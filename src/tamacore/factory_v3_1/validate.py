@@ -18,7 +18,6 @@ def validate_build_output(game_dir: Path) -> List[str]:
         game_dir / "shop.json",
         game_dir / "save.json",
         game_dir / "FACTORY_MANIFEST.json",
-        game_dir / "BUILD_REPORT.txt",
     ]
 
     for path in required_files:
@@ -26,9 +25,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
             errors.append(f"Missing file: {path.name}")
 
     if errors:
-        missing_only = [e for e in errors if "Missing file: BUILD_REPORT.txt" not in e]
-        if missing_only:
-            return errors
+        return errors
 
     game = _load_json(game_dir / "game.json", errors, "game.json")
     catalog = _load_json(game_dir / "catalog.json", errors, "catalog.json")
@@ -52,10 +49,18 @@ def validate_build_output(game_dir: Path) -> List[str]:
         _validate_shop(shop, errors)
 
     if isinstance(save_data, dict):
-        _validate_save(save_data, errors)
+        _validate_save(save_data, shop if isinstance(shop, dict) else {}, errors)
 
     if isinstance(manifest, dict):
         _validate_manifest(manifest, errors)
+
+    build_report = game_dir / "BUILD_REPORT.txt"
+    if build_report.exists():
+        text = build_report.read_text(encoding="utf-8")
+        if "TamaCore Build Report" not in text:
+            errors.append("BUILD_REPORT.txt: invalid header")
+    else:
+        errors.append("Missing file: BUILD_REPORT.txt")
 
     return errors
 
@@ -228,7 +233,7 @@ def _validate_shop(shop: Json, errors: List[str]) -> None:
                 errors.append(f"shop.json: upgrade {index} missing '{key}'")
 
 
-def _validate_save(save_data: Json, errors: List[str]) -> None:
+def _validate_save(save_data: Json, shop: Json, errors: List[str]) -> None:
     for key in ["version", "storageKey", "defaults"]:
         if key not in save_data:
             errors.append(f"save.json: missing '{key}'")
@@ -238,9 +243,23 @@ def _validate_save(save_data: Json, errors: List[str]) -> None:
         errors.append("save.json: defaults missing")
         return
 
-    for key in ["Coins", "Speed", "PlayerMaxSpeed", "LevelIndex", "CoinsCollected", "EnemiesHit", "LevelComplete", "GameComplete", "ownedUpgrades"]:
+    for key in ["Coins", "Speed", "PlayerMaxSpeed", "LevelIndex", "LevelCount", "CoinTarget", "EnemyTarget", "CoinsCollected", "EnemiesHit", "LevelComplete", "GameComplete", "SaveLoaded", "ownedUpgrades"]:
         if key not in defaults:
             errors.append(f"save.json: defaults missing '{key}'")
+
+    owned_upgrades = defaults.get("ownedUpgrades")
+    if not isinstance(owned_upgrades, dict):
+        errors.append("save.json: ownedUpgrades missing")
+        return
+
+    upgrades = shop.get("upgrades", [])
+    if isinstance(upgrades, list):
+        for item in upgrades:
+            if not isinstance(item, dict):
+                continue
+            owned_var = str(item.get("ownedVariable", "")).strip()
+            if owned_var and owned_var not in owned_upgrades:
+                errors.append(f"save.json: ownedUpgrades missing '{owned_var}'")
 
 
 def _validate_manifest(manifest: Json, errors: List[str]) -> None:
