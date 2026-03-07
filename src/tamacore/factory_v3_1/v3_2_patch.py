@@ -19,6 +19,7 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
     _ensure_global_var(project, "RuntimeReady", 0)
     _ensure_global_var(project, "LevelComplete", 0)
     _ensure_global_var(project, "GameComplete", 0)
+    _ensure_global_var(project, "SaveLoaded", 0)
 
     _ensure_ui_layer(scene)
     _ensure_runtime_labels(scene)
@@ -102,7 +103,7 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
         events = []
         scene["events"] = events
 
-    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_3"
+    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_4"
     for event in events:
         if isinstance(event, dict) and event.get("type") == "BuiltinCommonInstructions::Comment":
             if marker in str(event.get("comment", "")):
@@ -129,32 +130,15 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
                 _cond("BuiltinCommonInstructions::AtTheBeginningOfTheScene", []),
             ],
             "actions": [
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelIndex", "0"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelCount", str(max(1, level_count))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinTarget", str(max(0, coin_target))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemyTarget", str(max(0, enemy_target))]),
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinsCollected", "0"]),
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemiesHit", "0"]),
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelComplete", "0"]),
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["GameComplete", "0"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["RuntimeReady", "1"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
                 _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
                 _act("TextObject::SetString", ["SpeedLabel", "\"Speed: \" + ToString(Variable(PlayerMaxSpeed))"]),
-                _act(
-                    "TextObject::SetString",
-                    [
-                        "LevelLabel",
-                        "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))",
-                    ],
-                ),
-                _act(
-                    "TextObject::SetString",
-                    [
-                        "GoalLabel",
-                        "\"Coins: \" + ToString(Variable(CoinsCollected)) + \"/\" + ToString(Variable(CoinTarget)) + \" | Enemies: \" + ToString(Variable(EnemiesHit)) + \"/\" + ToString(Variable(EnemyTarget))",
-                    ],
-                ),
+                _act("TextObject::SetString", ["LevelLabel", "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))"]),
+                _act("TextObject::SetString", ["GoalLabel", "\"Coins: \" + ToString(Variable(CoinsCollected)) + \"/\" + ToString(Variable(CoinTarget)) + \" | Enemies: \" + ToString(Variable(EnemiesHit)) + \"/\" + ToString(Variable(EnemyTarget))"]),
             ],
             "events": [],
             "disabled": False,
@@ -172,26 +156,31 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
                 _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
                 _act("TextObject::SetString", ["SpeedLabel", "\"Speed: \" + ToString(Variable(PlayerMaxSpeed))"]),
-                _act(
-                    "TextObject::SetString",
-                    [
-                        "LevelLabel",
-                        "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))",
-                    ],
-                ),
-                _act(
-                    "TextObject::SetString",
-                    [
-                        "GoalLabel",
-                        "\"Coins: \" + ToString(Variable(CoinsCollected)) + \"/\" + ToString(Variable(CoinTarget)) + \" | Enemies: \" + ToString(Variable(EnemiesHit)) + \"/\" + ToString(Variable(EnemyTarget))",
-                    ],
-                ),
+                _act("TextObject::SetString", ["LevelLabel", "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))"]),
+                _act("TextObject::SetString", ["GoalLabel", "\"Coins: \" + ToString(Variable(CoinsCollected)) + \"/\" + ToString(Variable(CoinTarget)) + \" | Enemies: \" + ToString(Variable(EnemiesHit)) + \"/\" + ToString(Variable(EnemyTarget))"]),
             ],
             "events": [],
             "disabled": False,
             "folded": False,
             "infiniteLoopWarning": False,
             "name": "TamaCore HUD Refresh",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(SaveLoaded)", "=", "0"]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveLoaded", "1"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Save Load Stub",
         }
     )
 
@@ -310,13 +299,7 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
             ],
             "actions": [
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelComplete", "1"]),
-                _act(
-                    "TextObject::SetString",
-                    [
-                        "GoalLabel",
-                        "\"LEVEL COMPLETE - TAP SHOP TO CONTINUE\"",
-                    ],
-                ),
+                _act("TextObject::SetString", ["GoalLabel", "\"LEVEL COMPLETE - TAP SHOP TO CONTINUE\""]),
             ],
             "events": [],
             "disabled": False,
@@ -342,13 +325,7 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelComplete", "0"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinTarget", "Variable(CoinTarget)+2"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemyTarget", "Variable(EnemyTarget)+1"]),
-                _act(
-                    "TextObject::SetString",
-                    [
-                        "GoalLabel",
-                        "\"NEXT LEVEL\"",
-                    ],
-                ),
+                _act("TextObject::SetString", ["GoalLabel", "\"NEXT LEVEL\""]),
             ],
             "events": [],
             "disabled": False,
@@ -369,19 +346,30 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
             ],
             "actions": [
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["GameComplete", "1"]),
-                _act(
-                    "TextObject::SetString",
-                    [
-                        "GoalLabel",
-                        "\"GAME COMPLETE\"",
-                    ],
-                ),
+                _act("TextObject::SetString", ["GoalLabel", "\"GAME COMPLETE\""]),
             ],
             "events": [],
             "disabled": False,
             "folded": False,
             "infiniteLoopWarning": False,
             "name": "Game Complete",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(GameComplete)", "=", "1"]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveLoaded", "1"]),
+            ],
+            "events": [],
+            "disabled": True,
+            "folded": True,
+            "infiniteLoopWarning": False,
+            "name": "Save Write Stub",
         }
     )
 
