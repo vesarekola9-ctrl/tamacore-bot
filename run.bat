@@ -11,7 +11,7 @@ call .\.venv\Scripts\activate.bat
 python -m pip install -U pip
 python -m pip install -e .
 
-python -m tamacore.cli make-game --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out ..\tamacore-game --with-demo-layout --export-out exports --export-web --export-zip
+python -m tamacore.cli make-game --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out ..\tamacore-game --with-demo-layout --export-out exports --export-web --export-zip --bundle-release --bundle-out release_bundle
 if errorlevel 1 goto :fail
 
 python -m tamacore.cli validate --game-dir ..\tamacore-game
