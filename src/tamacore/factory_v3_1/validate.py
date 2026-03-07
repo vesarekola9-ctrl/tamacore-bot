@@ -138,8 +138,8 @@ def _validate_game(game: Json, errors: List[str]) -> None:
     if not any("TAMACORE_AUTOGEN_PACK_SHOP_V3_3" in marker for marker in markers):
         errors.append("game.json: pack shop events marker missing")
 
-    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_2" in marker for marker in markers):
-        errors.append("game.json: runtime v3.2 marker missing")
+    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_3" in marker for marker in markers):
+        errors.append("game.json: runtime v3.3 marker missing")
 
     variables = game.get("variables")
     if not isinstance(variables, list):
@@ -158,6 +158,8 @@ def _validate_game(game: Json, errors: List[str]) -> None:
         "EnemyTarget",
         "CoinsCollected",
         "EnemiesHit",
+        "LevelComplete",
+        "GameComplete",
     ]:
         if name not in variable_names:
             errors.append(f"game.json: missing global variable '{name}'")
