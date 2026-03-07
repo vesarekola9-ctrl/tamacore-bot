@@ -23,7 +23,15 @@ jobs:
 
       - name: Make demo
         run: |
-          python -m tamacore.cli make-game --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out demo_game --with-demo-layout --export-out exports --export-web --export-zip --export-android
+          python -m tamacore.cli make-game --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out demo_game --with-demo-layout --export-out exports --export-web --export-zip --export-android --bundle-release --bundle-out release_bundle
+
+      - name: Validate build
+        run: |
+          python -m tamacore.cli validate --game-dir demo_game
+
+      - name: Validate exports
+        run: |
+          python -m tamacore.cli validate-exports --export-dir exports
 
       - name: Upload game artifact
         uses: actions/upload-artifact@v4
@@ -31,8 +39,16 @@ jobs:
           name: tamacore-demo-game
           path: demo_game
 
-      - name: Upload export artifact
+      - name: Upload exports artifact
         uses: actions/upload-artifact@v4
         with:
           name: tamacore-demo-exports
           path: exports
+
+      - name: Upload release bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tamacore-release-bundle
+          path: |
+            release_bundle
+            release_bundle.zip
