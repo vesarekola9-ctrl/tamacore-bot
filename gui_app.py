@@ -14,8 +14,8 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("TamaCore Bot")
-        self.geometry("760x520")
-        self.minsize(760, 520)
+        self.geometry("780x560")
+        self.minsize(780, 560)
 
         self.pack_var = tk.StringVar(value=str(ROOT / "assets" / "packs" / "demo_pack"))
         self.template_var = tk.StringVar(value=str(ROOT / "templates" / "gdevelop_template"))
@@ -33,15 +33,15 @@ class App(tk.Tk):
         top.pack(fill="x", padx=12, pady=12)
 
         ttk.Label(top, text="Pack").grid(row=0, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.pack_var, width=70).grid(row=0, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.pack_var, width=72).grid(row=0, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_pack).grid(row=0, column=2, **pad)
 
         ttk.Label(top, text="Template").grid(row=1, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.template_var, width=70).grid(row=1, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.template_var, width=72).grid(row=1, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_template).grid(row=1, column=2, **pad)
 
         ttk.Label(top, text="Output").grid(row=2, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.out_var, width=70).grid(row=2, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.out_var, width=72).grid(row=2, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=self._browse_out).grid(row=2, column=2, **pad)
 
         top.columnconfigure(1, weight=1)
@@ -57,6 +57,7 @@ class App(tk.Tk):
         actions.pack(fill="x", padx=12, pady=(0, 12))
 
         ttk.Button(actions, text="Build Game", command=self._build_game).pack(side="left", padx=6)
+        ttk.Button(actions, text="Validate Output", command=self._validate_game).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Output Folder", command=self._open_output).pack(side="left", padx=6)
         ttk.Button(actions, text="Open game.json", command=self._open_game_json).pack(side="left", padx=6)
 
@@ -86,33 +87,8 @@ class App(tk.Tk):
         self.log.see("end")
         self.update_idletasks()
 
-    def _build_game(self) -> None:
-        pack_dir = Path(self.pack_var.get())
-        template_dir = Path(self.template_var.get())
-        out_dir = Path(self.out_var.get())
-
-        cmd = [
-            sys.executable,
-            "-m",
-            "tamacore.cli",
-            "build",
-            "--pack",
-            str(pack_dir),
-            "--template",
-            str(template_dir),
-            "--out",
-            str(out_dir),
-        ]
-
-        if self.demo_layout_var.get():
-            cmd.append("--with-demo-layout")
-        if self.v31_var.get():
-            cmd.append("--v31")
-        if self.v32_var.get():
-            cmd.append("--v32")
-
+    def _run_cmd(self, cmd: list[str]) -> int:
         self._append_log(" ".join(cmd))
-
         try:
             proc = subprocess.run(
                 cmd,
@@ -122,26 +98,66 @@ class App(tk.Tk):
                 check=False,
             )
         except Exception as exc:
-            messagebox.showerror("Build failed", str(exc))
             self._append_log(f"[ERR] {exc}")
-            return
+            messagebox.showerror("TamaCore", str(exc))
+            return 1
 
         if proc.stdout:
             self._append_log(proc.stdout.rstrip())
         if proc.stderr:
             self._append_log(proc.stderr.rstrip())
 
-        if proc.returncode == 0:
+        return proc.returncode
+
+    def _build_game(self) -> None:
+        cmd = [
+            sys.executable,
+            "-m",
+            "tamacore.cli",
+            "build",
+            "--pack",
+            str(Path(self.pack_var.get())),
+            "--template",
+            str(Path(self.template_var.get())),
+            "--out",
+            str(Path(self.out_var.get())),
+        ]
+
+        if self.demo_layout_var.get():
+            cmd.append("--with-demo-layout")
+        if self.v31_var.get():
+            cmd.append("--v31")
+        if self.v32_var.get():
+            cmd.append("--v32")
+
+        rc = self._run_cmd(cmd)
+        if rc == 0:
             self._append_log("[OK] Build completed")
             messagebox.showinfo("TamaCore", "Build completed")
         else:
-            self._append_log(f"[ERR] Exit code {proc.returncode}")
-            messagebox.showerror("TamaCore", f"Build failed with exit code {proc.returncode}")
+            self._append_log(f"[ERR] Exit code {rc}")
+            messagebox.showerror("TamaCore", f"Build failed with exit code {rc}")
+
+    def _validate_game(self) -> None:
+        cmd = [
+            sys.executable,
+            "-m",
+            "tamacore.cli",
+            "validate",
+            "--game-dir",
+            str(Path(self.out_var.get())),
+        ]
+        rc = self._run_cmd(cmd)
+        if rc == 0:
+            self._append_log("[OK] Validation completed")
+            messagebox.showinfo("TamaCore", "Validation passed")
+        else:
+            self._append_log(f"[ERR] Validation exit code {rc}")
+            messagebox.showerror("TamaCore", f"Validation failed with exit code {rc}")
 
     def _open_output(self) -> None:
         out_dir = Path(self.out_var.get())
         out_dir.mkdir(parents=True, exist_ok=True)
-
         try:
             if sys.platform.startswith("win"):
                 subprocess.Popen(["explorer", str(out_dir)])
