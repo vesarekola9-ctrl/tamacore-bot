@@ -3,14 +3,28 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from src.tamacore.pipeline import run_pipeline
+from tamacore.pipeline import run_pipeline
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="TamaCore bot pipeline -> patches GDevelop game.json + copies assets")
-    parser.add_argument("--assets-dir", default="assets", help="Source assets directory (default: assets)")
-    parser.add_argument("--template-dir", default="templates/gdevelop_template", help="Template project directory")
-    parser.add_argument("--game-dir", required=True, help="Output game directory (your tamacore-game folder)")
+    parser = argparse.ArgumentParser(
+        description="TamaCore bot pipeline -> patches GDevelop game.json + copies assets"
+    )
+    parser.add_argument(
+        "--assets-dir",
+        default="assets",
+        help="Source assets directory (default: assets)",
+    )
+    parser.add_argument(
+        "--template-dir",
+        default="templates/gdevelop_template",
+        help="Template project directory",
+    )
+    parser.add_argument(
+        "--game-dir",
+        required=True,
+        help="Output game directory (your tamacore-game folder)",
+    )
 
     args = parser.parse_args()
 
