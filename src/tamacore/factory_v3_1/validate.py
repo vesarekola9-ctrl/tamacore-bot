@@ -98,6 +98,7 @@ def _validate_game(game: Json, errors: List[str]) -> None:
         "Player",
         "Coin",
         "Enemy",
+        "TouchJoystick",
         "ShopButton",
         "ShopPanel",
         "CoinsLabel",
@@ -112,6 +113,7 @@ def _validate_game(game: Json, errors: List[str]) -> None:
 
     required_instances = {
         "Player",
+        "TouchJoystick",
         "ShopButton",
         "ShopPanel",
         "CoinsLabel",
@@ -172,6 +174,12 @@ def _validate_catalog(catalog: Json, errors: List[str]) -> None:
 
     if isinstance(assets, dict) and len(assets) == 0:
         errors.append("catalog.json: assets empty")
+
+    if isinstance(objects, list):
+        names = {obj.get("name") for obj in objects if isinstance(obj, dict)}
+        for name in ["Player", "Coin", "Enemy", "TouchJoystick"]:
+            if name not in names:
+                errors.append(f"catalog.json: missing object '{name}'")
 
 
 def _validate_levels(levels: List[Json], errors: List[str]) -> None:
