@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .factory_v3.generator import run_factory_v3
 from .factory_v3_1.export_android_stub import export_android_stub
+from .factory_v3_1.export_report import write_export_report
 from .factory_v3_1.export_web import export_web
 from .factory_v3_1.export_zip import export_zip
 from .factory_v3_1.generator import run_factory_v3_1
@@ -148,21 +149,32 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
         export_out = Path(args.export_out)
+        exported = {
+            "web": False,
+            "zip": False,
+            "android": False,
+        }
 
         if args.export_web:
             rc = _export_game(Path(args.out), export_out, "web")
             if rc != 0:
                 return rc
+            exported["web"] = True
 
         if args.export_zip:
             rc = _export_game(Path(args.out), export_out, "zip")
             if rc != 0:
                 return rc
+            exported["zip"] = True
 
         if args.export_android:
             rc = _export_game(Path(args.out), export_out, "android")
             if rc != 0:
                 return rc
+            exported["android"] = True
+
+        if any(exported.values()):
+            write_export_report(export_out, exported)
 
         print("[OK] make-game complete")
         return 0
@@ -191,11 +203,21 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "export":
-        return _export_game(
+        rc = _export_game(
             game_dir=Path(args.game_dir),
             out_dir=Path(args.out),
             export_type=str(args.type),
         )
+        if rc != 0:
+            return rc
+
+        exported = {
+            "web": args.type == "web",
+            "zip": args.type == "zip",
+            "android": args.type == "android",
+        }
+        write_export_report(Path(args.out), exported)
+        return 0
 
     return 1
 
