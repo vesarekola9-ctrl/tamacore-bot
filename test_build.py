@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from tamacore.factory_v3_1.export_validate import validate_exports
 from tamacore.factory_v3_1.validate import validate_build_output
 
 
@@ -49,9 +50,15 @@ def main() -> int:
     if result.returncode != 0:
         raise SystemExit(result.returncode)
 
-    errors = validate_build_output(OUT)
-    if errors:
-        for err in errors:
+    build_errors = validate_build_output(OUT)
+    if build_errors:
+        for err in build_errors:
+            print(err)
+        raise SystemExit(1)
+
+    export_errors = validate_exports(EXPORTS)
+    if export_errors:
+        for err in export_errors:
             print(err)
         raise SystemExit(1)
 
