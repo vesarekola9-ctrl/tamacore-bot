@@ -9,12 +9,31 @@ from src.tamacore.factory_v3_1.generator import run_factory_v3_1
 
 def main() -> None:
     p = argparse.ArgumentParser(description="TamaCore Factory Mode")
-    p.add_argument("--pack", required=True, help="Path to asset pack folder (assets/packs/<pack>)")
-    p.add_argument("--template-dir", default="templates/gdevelop_template", help="GDevelop template directory")
-    p.add_argument("--game-dir", required=True, help="Output game directory (e.g. ..\\tamacore-game)")
-
-    p.add_argument("--v31", action="store_true", help="Use v3.1 pro pack schema (levels/shop/ui/camera)")
-    p.add_argument("--with-demo-layout", action="store_true", help="Place demo instances in scene")
+    p.add_argument(
+        "--pack",
+        required=True,
+        help="Path to asset pack folder (assets/packs/)",
+    )
+    p.add_argument(
+        "--template-dir",
+        default="templates/gdevelop_template",
+        help="GDevelop template directory",
+    )
+    p.add_argument(
+        "--game-dir",
+        required=True,
+        help="Output game directory (e.g. ..\\tamacore-game)",
+    )
+    p.add_argument(
+        "--v31",
+        action="store_true",
+        help="Use v3.1 pro pack schema (levels/shop/ui/camera)",
+    )
+    p.add_argument(
+        "--with-demo-layout",
+        action="store_true",
+        help="Place demo instances in scene",
+    )
 
     # v3 options
     p.add_argument("--scene", default="Main", help="Scene name to patch (v3 fallback)")
