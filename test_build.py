@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 from tamacore.factory_v3_1.validate import validate_build_output
@@ -13,9 +15,6 @@ OUT = ROOT / "_test_build_output"
 def main() -> int:
     if OUT.exists():
         shutil.rmtree(OUT)
-
-    import subprocess
-    import sys
 
     cmd = [
         sys.executable,
@@ -47,6 +46,11 @@ def main() -> int:
     if errors:
         for err in errors:
             print(err)
+        raise SystemExit(1)
+
+    report = OUT / "BUILD_REPORT.txt"
+    if not report.exists():
+        print("Missing BUILD_REPORT.txt")
         raise SystemExit(1)
 
     print("[OK] test_build passed")
