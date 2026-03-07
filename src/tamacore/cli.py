@@ -7,6 +7,7 @@ from pathlib import Path
 from .factory_v3.generator import run_factory_v3
 from .factory_v3_1.export_android_stub import export_android_stub
 from .factory_v3_1.export_report import write_export_report
+from .factory_v3_1.export_validate import validate_exports
 from .factory_v3_1.export_web import export_web
 from .factory_v3_1.export_zip import export_zip
 from .factory_v3_1.generator import run_factory_v3_1
@@ -102,6 +103,9 @@ def main(argv: list[str] | None = None) -> int:
     validate = sub.add_parser("validate", help="Validate generated game output")
     validate.add_argument("--game-dir", required=True, help="Generated game directory")
 
+    validate_exports_cmd = sub.add_parser("validate-exports", help="Validate export output")
+    validate_exports_cmd.add_argument("--export-dir", required=True, help="Export directory")
+
     inspect = sub.add_parser("inspect-pack", help="Validate pack before build")
     inspect.add_argument("--pack", required=True, help="Pack directory")
 
@@ -175,6 +179,11 @@ def main(argv: list[str] | None = None) -> int:
 
         if any(exported.values()):
             write_export_report(export_out, exported)
+            export_errors = validate_exports(export_out)
+            if export_errors:
+                for err in export_errors:
+                    print(err)
+                return 1
 
         print("[OK] make-game complete")
         return 0
@@ -186,6 +195,15 @@ def main(argv: list[str] | None = None) -> int:
                 print(err)
             return 1
         print("[OK] Build validation passed")
+        return 0
+
+    if args.cmd == "validate-exports":
+        errors = validate_exports(Path(args.export_dir))
+        if errors:
+            for err in errors:
+                print(err)
+            return 1
+        print("[OK] Export validation passed")
         return 0
 
     if args.cmd == "inspect-pack":
@@ -217,6 +235,14 @@ def main(argv: list[str] | None = None) -> int:
             "android": args.type == "android",
         }
         write_export_report(Path(args.out), exported)
+
+        errors = validate_exports(Path(args.out))
+        if errors:
+            for err in errors:
+                print(err)
+            return 1
+
+        print("[OK] Export complete")
         return 0
 
     return 1
