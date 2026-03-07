@@ -18,9 +18,21 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--pack", required=True, help="Pack dir (e.g. assets/packs/demo_pack)")
     b.add_argument("--template", default="templates/gdevelop_template", help="Template dir")
     b.add_argument("--out", required=True, help="Output game dir (e.g. ../tamacore-game)")
-    b.add_argument("--with-demo-layout", action="store_true", help="Place demo instances into scene")
-    b.add_argument("--v31", action="store_true", help="Use v3.1 schema (recommended)")
-    b.add_argument("--v32", action="store_true", help="Enable v3.2 runtime features (shop/upgrades/level injection)")
+    b.add_argument(
+        "--with-demo-layout",
+        action="store_true",
+        help="Place demo instances into scene",
+    )
+    b.add_argument(
+        "--v31",
+        action="store_true",
+        help="Use v3.1 schema (recommended)",
+    )
+    b.add_argument(
+        "--v32",
+        action="store_true",
+        help="Enable v3.2 runtime features (shop/upgrades/level injection)",
+    )
 
     args = p.parse_args(argv)
 
