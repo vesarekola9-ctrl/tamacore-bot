@@ -1,7 +1,5 @@
 # TamaCore Bot
 
-TamaCore builds a GDevelop-ready game project from a pack.
-
 ## Install
 
 ```bash
