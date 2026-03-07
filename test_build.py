@@ -65,6 +65,8 @@ def main() -> int:
         OUT / "BUILD_REPORT.txt",
         EXPORTS / "web" / "index.html",
         EXPORTS / "game.zip",
+        EXPORTS / "EXPORT_REPORT.txt",
+        EXPORTS / "export_manifest.json",
     ]
 
     missing = [str(p) for p in required if not p.exists()]
