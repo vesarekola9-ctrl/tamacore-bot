@@ -26,9 +26,9 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
     first_level = levels[0] if levels else {}
 
     _spawn_level_instances(scene, first_level)
-
     _inject_runtime_events(
         scene=scene,
+        cfg=cfg,
         level_count=level_count,
         coin_target=_safe_int(first_level.get("coinCount"), 0),
         enemy_target=_safe_int(first_level.get("enemyCount"), 0),
@@ -67,11 +67,11 @@ def _spawn_level_instances(scene: Json, level: Json) -> None:
 
     if coin_count > 0:
         for x, y in _random_points(rng, x_min, y_min, x_max, y_max, coin_count, margin=96):
-            _ensure_instance(scene, coin_name, x=x, y=y, layer="", z=20)
+            _ensure_unique_instance(scene, coin_name, x=x, y=y, layer="", z=20)
 
     if enemy_count > 0:
         for x, y in _random_points(rng, x_min, y_min, x_max, y_max, enemy_count, margin=140):
-            _ensure_instance(scene, enemy_name, x=x, y=y, layer="", z=20)
+            _ensure_unique_instance(scene, enemy_name, x=x, y=y, layer="", z=20)
 
 
 def _random_points(
@@ -94,7 +94,7 @@ def _random_points(
     return out
 
 
-def _inject_runtime_events(scene: Json, level_count: int, coin_target: int, enemy_target: int) -> None:
+def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target: int, enemy_target: int) -> None:
     events = scene.get("events")
     if not isinstance(events, list):
         events = []
@@ -105,6 +105,12 @@ def _inject_runtime_events(scene: Json, level_count: int, coin_target: int, enem
         if isinstance(event, dict) and event.get("type") == "BuiltinCommonInstructions::Comment":
             if marker in str(event.get("comment", "")):
                 return
+
+    player_name = str(getattr(getattr(cfg, "camera", None), "followObject", "Player") or "Player")
+    x_min = str(getattr(getattr(cfg, "worldBounds", None), "xMin", 0))
+    y_min = str(getattr(getattr(cfg, "worldBounds", None), "yMin", 0))
+    x_max = str(getattr(getattr(cfg, "worldBounds", None), "xMax", 720))
+    y_max = str(getattr(getattr(cfg, "worldBounds", None), "yMax", 1280))
 
     events.append(
         {
@@ -128,6 +134,7 @@ def _inject_runtime_events(scene: Json, level_count: int, coin_target: int, enem
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinsCollected", "0"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemiesHit", "0"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["RuntimeReady", "1"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
                 _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
                 _act("TextObject::SetString", ["SpeedLabel", "\"Speed: \" + ToString(Variable(PlayerMaxSpeed))"]),
                 _act(
@@ -158,6 +165,7 @@ def _inject_runtime_events(scene: Json, level_count: int, coin_target: int, enem
             "type": "BuiltinCommonInstructions::Standard",
             "conditions": [],
             "actions": [
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
                 _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
                 _act("TextObject::SetString", ["SpeedLabel", "\"Speed: \" + ToString(Variable(PlayerMaxSpeed))"]),
                 _act(
@@ -187,7 +195,95 @@ def _inject_runtime_events(scene: Json, level_count: int, coin_target: int, enem
         {
             "type": "BuiltinCommonInstructions::Standard",
             "conditions": [
-                _cond("BuiltinCommonInstructions::Collision", ["Player", "Coin", "", ""]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(ShopOpen)", "=", "0"]),
+            ],
+            "actions": [
+                _act("TopDownMovementBehavior::SimulateUpKey", [player_name, "TopDownMovement"]),
+                _act("TopDownMovementBehavior::SimulateLeftKey", [player_name, "TopDownMovement"]),
+                _act("TopDownMovementBehavior::SimulateRightKey", [player_name, "TopDownMovement"]),
+                _act("TopDownMovementBehavior::SimulateDownKey", [player_name, "TopDownMovement"]),
+            ],
+            "events": [],
+            "disabled": True,
+            "folded": True,
+            "infiniteLoopWarning": False,
+            "name": "Touch Controls Placeholder",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.X()", "<", x_min]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", x_min, "X"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Clamp Player Left",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.Y()", "<", y_min]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", y_min, "Y"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Clamp Player Top",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.X()", ">", x_max]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", x_max, "X"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Clamp Player Right",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.Y()", ">", y_max]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", y_max, "Y"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Clamp Player Bottom",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::Collision", [player_name, "Coin", "", ""]),
             ],
             "actions": [
                 _act("BuiltinCommonInstructions::Delete", ["Coin"]),
@@ -206,7 +302,7 @@ def _inject_runtime_events(scene: Json, level_count: int, coin_target: int, enem
         {
             "type": "BuiltinCommonInstructions::Standard",
             "conditions": [
-                _cond("BuiltinCommonInstructions::Collision", ["Player", "Enemy", "", ""]),
+                _cond("BuiltinCommonInstructions::Collision", [player_name, "Enemy", "", ""]),
             ],
             "actions": [
                 _act("BuiltinCommonInstructions::Delete", ["Enemy"]),
@@ -228,13 +324,7 @@ def _inject_runtime_events(scene: Json, level_count: int, coin_target: int, enem
                 _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(CoinsCollected)", ">=", "Variable(CoinTarget)"]),
             ],
             "actions": [
-                _act(
-                    "TextObject::SetString",
-                    [
-                        "GoalLabel",
-                        "\"LEVEL COMPLETE\"",
-                    ],
-                )
+                _act("TextObject::SetString", ["GoalLabel", "\"LEVEL COMPLETE\""]),
             ],
             "events": [],
             "disabled": False,
@@ -326,6 +416,12 @@ def _ensure_instance(scene: Json, object_name: str, x: float, y: float, layer: s
         instances = []
         scene["instances"] = instances
 
+    for inst in instances:
+        if not isinstance(inst, dict):
+            continue
+        if inst.get("objectName") == object_name and inst.get("x") == x and inst.get("y") == y and inst.get("layer", "") == layer:
+            return
+
     instances.append(
         {
             "name": object_name,
@@ -342,6 +438,10 @@ def _ensure_instance(scene: Json, object_name: str, x: float, y: float, layer: s
             "height": 0,
         }
     )
+
+
+def _ensure_unique_instance(scene: Json, object_name: str, x: float, y: float, layer: str, z: int) -> None:
+    _ensure_instance(scene, object_name, x, y, layer, z)
 
 
 def _obj_text(name: str, text: str, font_size: int) -> Json:
