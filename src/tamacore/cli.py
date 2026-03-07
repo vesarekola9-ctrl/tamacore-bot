@@ -11,6 +11,43 @@ from .factory_v3_1.pack_scaffold import create_pack
 from .factory_v3_1.validate import validate_build_output
 
 
+def _build_game(
+    pack_dir: Path,
+    template_dir: Path,
+    out_dir: Path,
+    with_demo_layout: bool,
+    use_v31: bool,
+    use_v32: bool,
+    scene: str,
+    seed: int,
+) -> int:
+    pack_errors = inspect_pack(pack_dir)
+    if pack_errors:
+        for err in pack_errors:
+            print(err)
+        return 1
+
+    if use_v31 or use_v32:
+        run_factory_v3_1(
+            pack_dir=pack_dir,
+            template_dir=template_dir,
+            game_dir=out_dir,
+            with_demo_layout=with_demo_layout,
+            enable_v3_2=use_v32,
+        )
+        return 0
+
+    run_factory_v3(
+        pack_dir=pack_dir,
+        template_dir=template_dir,
+        game_dir=out_dir,
+        scene_name=scene,
+        seed=seed,
+        with_demo_layout=with_demo_layout,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
 
@@ -27,6 +64,16 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--scene", default="Main")
     build.add_argument("--seed", type=int, default=1337)
 
+    make_game = sub.add_parser("make-game", help="Inspect + build + validate in one command")
+    make_game.add_argument("--pack", required=True, help="Pack directory, e.g. assets/packs/demo_pack")
+    make_game.add_argument("--template", default="templates/gdevelop_template", help="Template directory")
+    make_game.add_argument("--out", required=True, help="Output game directory")
+    make_game.add_argument("--with-demo-layout", action="store_true")
+    make_game.add_argument("--v31", action="store_true")
+    make_game.add_argument("--v32", action="store_true")
+    make_game.add_argument("--scene", default="Main")
+    make_game.add_argument("--seed", type=int, default=1337)
+
     validate = sub.add_parser("validate", help="Validate generated game output")
     validate.add_argument("--game-dir", required=True, help="Generated game directory")
 
@@ -40,34 +87,38 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.cmd == "build":
-        pack_dir = Path(args.pack)
-        template_dir = Path(args.template)
-        out_dir = Path(args.out)
+        return _build_game(
+            pack_dir=Path(args.pack),
+            template_dir=Path(args.template),
+            out_dir=Path(args.out),
+            with_demo_layout=bool(args.with_demo_layout),
+            use_v31=bool(args.v31),
+            use_v32=bool(args.v32),
+            scene=str(args.scene),
+            seed=int(args.seed),
+        )
 
-        pack_errors = inspect_pack(pack_dir)
-        if pack_errors:
-            for err in pack_errors:
+    if args.cmd == "make-game":
+        rc = _build_game(
+            pack_dir=Path(args.pack),
+            template_dir=Path(args.template),
+            out_dir=Path(args.out),
+            with_demo_layout=bool(args.with_demo_layout),
+            use_v31=bool(args.v31 or args.v32),
+            use_v32=bool(args.v32),
+            scene=str(args.scene),
+            seed=int(args.seed),
+        )
+        if rc != 0:
+            return rc
+
+        errors = validate_build_output(Path(args.out))
+        if errors:
+            for err in errors:
                 print(err)
             return 1
 
-        if args.v31 or args.v32:
-            run_factory_v3_1(
-                pack_dir=pack_dir,
-                template_dir=template_dir,
-                game_dir=out_dir,
-                with_demo_layout=bool(args.with_demo_layout),
-                enable_v3_2=bool(args.v32),
-            )
-            return 0
-
-        run_factory_v3(
-            pack_dir=pack_dir,
-            template_dir=template_dir,
-            game_dir=out_dir,
-            scene_name=str(args.scene),
-            seed=int(args.seed),
-            with_demo_layout=bool(args.with_demo_layout),
-        )
+        print("[OK] make-game complete")
         return 0
 
     if args.cmd == "validate":
