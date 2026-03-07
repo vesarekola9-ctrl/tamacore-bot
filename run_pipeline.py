@@ -1,39 +1,21 @@
-from __future__ import annotations
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
 
-import argparse
-from pathlib import Path
+[project]
+name = "tamacore-bot"
+version = "0.3.2"
+description = "TamaCore AI Game Factory (GDevelop project generator)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
 
-from tamacore.pipeline import run_pipeline
+[project.scripts]
+tamacore = "src.tamacore.cli:main"
 
+[tool.setuptools]
+package-dir = {"" = "."}
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="TamaCore bot pipeline -> patches GDevelop game.json + copies assets"
-    )
-    parser.add_argument(
-        "--assets-dir",
-        default="assets",
-        help="Source assets directory (default: assets)",
-    )
-    parser.add_argument(
-        "--template-dir",
-        default="templates/gdevelop_template",
-        help="Template project directory",
-    )
-    parser.add_argument(
-        "--game-dir",
-        required=True,
-        help="Output game directory (your tamacore-game folder)",
-    )
-
-    args = parser.parse_args()
-
-    run_pipeline(
-        assets_dir=Path(args.assets_dir),
-        template_dir=Path(args.template_dir),
-        game_dir=Path(args.game_dir),
-    )
-
-
-if __name__ == "__main__":
-    main()
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
