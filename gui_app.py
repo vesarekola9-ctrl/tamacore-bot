@@ -57,7 +57,8 @@ class App(tk.Tk):
         actions.pack(fill="x", padx=12, pady=(0, 12))
 
         ttk.Button(actions, text="Inspect Pack", command=self._inspect_pack).pack(side="left", padx=6)
-        ttk.Button(actions, text="Build Game", command=self._build_game).pack(side="left", padx=6)
+        ttk.Button(actions, text="Make Game", command=self._make_game).pack(side="left", padx=6)
+        ttk.Button(actions, text="Build Only", command=self._build_game).pack(side="left", padx=6)
         ttk.Button(actions, text="Validate Output", command=self._validate_game).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Output Folder", command=self._open_output).pack(side="left", padx=6)
         ttk.Button(actions, text="Open game.json", command=self._open_game_json).pack(side="left", padx=6)
@@ -126,6 +127,35 @@ class App(tk.Tk):
         else:
             self._append_log(f"[ERR] Inspect exit code {rc}")
             messagebox.showerror("TamaCore", f"Pack inspection failed with exit code {rc}")
+
+    def _make_game(self) -> None:
+        cmd = [
+            sys.executable,
+            "-m",
+            "tamacore.cli",
+            "make-game",
+            "--pack",
+            str(Path(self.pack_var.get())),
+            "--template",
+            str(Path(self.template_var.get())),
+            "--out",
+            str(Path(self.out_var.get())),
+        ]
+
+        if self.demo_layout_var.get():
+            cmd.append("--with-demo-layout")
+        if self.v31_var.get():
+            cmd.append("--v31")
+        if self.v32_var.get():
+            cmd.append("--v32")
+
+        rc = self._run_cmd(cmd)
+        if rc == 0:
+            self._append_log("[OK] Make Game completed")
+            messagebox.showinfo("TamaCore", "Make Game completed")
+        else:
+            self._append_log(f"[ERR] Exit code {rc}")
+            messagebox.showerror("TamaCore", f"Make Game failed with exit code {rc}")
 
     def _build_game(self) -> None:
         cmd = [
