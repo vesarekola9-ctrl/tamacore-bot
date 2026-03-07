@@ -14,6 +14,8 @@ def apply_v3_1_rules(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any) -
     _ensure_ui_layer(scene)
     _ensure_scene_property(scene, "standardSortMethod", False)
 
+    _ensure_player_object(scene)
+    _ensure_coin_enemy_objects(scene, cfg)
     _ensure_camera_marker(scene, cfg)
     _ensure_hud_objects(scene, cfg)
     _ensure_joystick_instance(scene, cfg)
@@ -88,6 +90,17 @@ def _ensure_layout_object(scene: Json, obj_def: Json) -> None:
     objects.append(obj_def)
 
 
+def _find_layout_object(scene: Json, name: str) -> Json | None:
+    objects = scene.get("objects")
+    if not isinstance(objects, list):
+        return None
+
+    for existing in objects:
+        if isinstance(existing, dict) and existing.get("name") == name:
+            return existing
+    return None
+
+
 def _ensure_instance(scene: Json, object_name: str, x: float, y: float, layer: str, z: int) -> None:
     instances = scene.get("instances")
     if not isinstance(instances, list):
@@ -157,6 +170,96 @@ def _obj_panel(name: str, w: int, h: int) -> Json:
         "content": {"width": w, "height": h},
         "effects": [],
     }
+
+
+def _ensure_behavior(obj: Json, behavior_type: str, behavior_name: str) -> None:
+    behaviors = obj.get("behaviors")
+    if not isinstance(behaviors, list):
+        behaviors = []
+        obj["behaviors"] = behaviors
+
+    for behavior in behaviors:
+        if not isinstance(behavior, dict):
+            continue
+        if behavior.get("name") == behavior_name or behavior.get("type") == behavior_type:
+            behavior.setdefault("name", behavior_name)
+            behavior.setdefault("type", behavior_type)
+            return
+
+    behaviors.append(
+        {
+            "name": behavior_name,
+            "type": behavior_type,
+        }
+    )
+
+
+def _ensure_player_object(scene: Json) -> None:
+    player = _find_layout_object(scene, "Player")
+    if not isinstance(player, dict):
+        _ensure_layout_object(
+            scene,
+            {
+                "name": "Player",
+                "type": "Sprite",
+                "assetStoreId": "",
+                "tags": "",
+                "variables": [],
+                "behaviors": [],
+                "animations": [
+                    {
+                        "name": "Idle",
+                        "useMultipleDirections": False,
+                        "directions": [
+                            {
+                                "timeBetweenFrames": 0.12,
+                                "sprites": [],
+                            }
+                        ],
+                    }
+                ],
+                "effects": [],
+            },
+        )
+        player = _find_layout_object(scene, "Player")
+
+    if isinstance(player, dict):
+        player["type"] = "Sprite"
+        _ensure_behavior(player, "TopDownMovementBehavior::TopDownMovementBehavior", "TopDownMovement")
+        _ensure_behavior(player, "PathfindingBehavior::PathfindingBehavior", "Pathfinding")
+
+
+def _ensure_coin_enemy_objects(scene: Json, cfg: Any) -> None:
+    for object_name in {
+        getattr(cfg.coinSpawn, "objectName", "Coin"),
+        getattr(cfg.enemySpawn, "objectName", "Enemy"),
+    }:
+        obj = _find_layout_object(scene, object_name)
+        if not isinstance(obj, dict):
+            _ensure_layout_object(
+                scene,
+                {
+                    "name": object_name,
+                    "type": "Sprite",
+                    "assetStoreId": "",
+                    "tags": "",
+                    "variables": [],
+                    "behaviors": [],
+                    "animations": [
+                        {
+                            "name": "Idle",
+                            "useMultipleDirections": False,
+                            "directions": [
+                                {
+                                    "timeBetweenFrames": 0.12,
+                                    "sprites": [],
+                                }
+                            ],
+                        }
+                    ],
+                    "effects": [],
+                },
+            )
 
 
 def _ensure_camera_marker(scene: Json, cfg: Any) -> None:
