@@ -17,6 +17,8 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
     _ensure_global_var(project, "CoinsCollected", 0)
     _ensure_global_var(project, "EnemiesHit", 0)
     _ensure_global_var(project, "RuntimeReady", 0)
+    _ensure_global_var(project, "LevelComplete", 0)
+    _ensure_global_var(project, "GameComplete", 0)
 
     _ensure_ui_layer(scene)
     _ensure_runtime_labels(scene)
@@ -100,7 +102,7 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
         events = []
         scene["events"] = events
 
-    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_2"
+    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_3"
     for event in events:
         if isinstance(event, dict) and event.get("type") == "BuiltinCommonInstructions::Comment":
             if marker in str(event.get("comment", "")):
@@ -133,6 +135,8 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemyTarget", str(max(0, enemy_target))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinsCollected", "0"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemiesHit", "0"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelComplete", "0"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["GameComplete", "0"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["RuntimeReady", "1"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
                 _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
@@ -188,26 +192,6 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
             "folded": False,
             "infiniteLoopWarning": False,
             "name": "TamaCore HUD Refresh",
-        }
-    )
-
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(ShopOpen)", "=", "0"]),
-            ],
-            "actions": [
-                _act("TopDownMovementBehavior::SimulateUpKey", [player_name, "TopDownMovement"]),
-                _act("TopDownMovementBehavior::SimulateLeftKey", [player_name, "TopDownMovement"]),
-                _act("TopDownMovementBehavior::SimulateRightKey", [player_name, "TopDownMovement"]),
-                _act("TopDownMovementBehavior::SimulateDownKey", [player_name, "TopDownMovement"]),
-            ],
-            "events": [],
-            "disabled": True,
-            "folded": True,
-            "infiniteLoopWarning": False,
-            "name": "Touch Controls Placeholder",
         }
     )
 
@@ -320,17 +304,84 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
         {
             "type": "BuiltinCommonInstructions::Standard",
             "conditions": [
-                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(CoinTarget)", ">", "0"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelComplete)", "=", "0"]),
                 _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(CoinsCollected)", ">=", "Variable(CoinTarget)"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(EnemiesHit)", ">=", "Variable(EnemyTarget)"]),
             ],
             "actions": [
-                _act("TextObject::SetString", ["GoalLabel", "\"LEVEL COMPLETE\""]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelComplete", "1"]),
+                _act(
+                    "TextObject::SetString",
+                    [
+                        "GoalLabel",
+                        "\"LEVEL COMPLETE - TAP SHOP TO CONTINUE\"",
+                    ],
+                ),
             ],
             "events": [],
             "disabled": False,
             "folded": False,
             "infiniteLoopWarning": False,
             "name": "Level Complete",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CursorOnObject", ["ShopButton", "", ""]),
+                _cond("BuiltinCommonInstructions::MouseButtonReleased", ["Left"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelComplete)", "=", "1"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelIndex)", "<", "Variable(LevelCount)-1"]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["LevelIndex", "1"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinsCollected", "0"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemiesHit", "0"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelComplete", "0"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinTarget", "Variable(CoinTarget)+2"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemyTarget", "Variable(EnemyTarget)+1"]),
+                _act(
+                    "TextObject::SetString",
+                    [
+                        "GoalLabel",
+                        "\"NEXT LEVEL\"",
+                    ],
+                ),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Advance Level",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CursorOnObject", ["ShopButton", "", ""]),
+                _cond("BuiltinCommonInstructions::MouseButtonReleased", ["Left"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelComplete)", "=", "1"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelIndex)", ">=", "Variable(LevelCount)-1"]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["GameComplete", "1"]),
+                _act(
+                    "TextObject::SetString",
+                    [
+                        "GoalLabel",
+                        "\"GAME COMPLETE\"",
+                    ],
+                ),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "Game Complete",
         }
     )
 
