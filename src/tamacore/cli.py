@@ -13,6 +13,7 @@ from .factory_v3_1.export_zip import export_zip
 from .factory_v3_1.generator import run_factory_v3_1
 from .factory_v3_1.pack_inspector import inspect_pack
 from .factory_v3_1.pack_scaffold import create_pack
+from .factory_v3_1.release_bundle import bundle_release
 from .factory_v3_1.validate import validate_build_output
 
 
@@ -77,9 +78,9 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     build = sub.add_parser("build", help="Build game from pack + template")
-    build.add_argument("--pack", required=True, help="Pack directory, e.g. assets/packs/demo_pack")
-    build.add_argument("--template", default="templates/gdevelop_template", help="Template directory")
-    build.add_argument("--out", required=True, help="Output game directory")
+    build.add_argument("--pack", required=True)
+    build.add_argument("--template", default="templates/gdevelop_template")
+    build.add_argument("--out", required=True)
     build.add_argument("--with-demo-layout", action="store_true")
     build.add_argument("--v31", action="store_true")
     build.add_argument("--v32", action="store_true")
@@ -87,9 +88,9 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--seed", type=int, default=1337)
 
     make_game = sub.add_parser("make-game", help="Inspect + build + validate in one command")
-    make_game.add_argument("--pack", required=True, help="Pack directory, e.g. assets/packs/demo_pack")
-    make_game.add_argument("--template", default="templates/gdevelop_template", help="Template directory")
-    make_game.add_argument("--out", required=True, help="Output game directory")
+    make_game.add_argument("--pack", required=True)
+    make_game.add_argument("--template", default="templates/gdevelop_template")
+    make_game.add_argument("--out", required=True)
     make_game.add_argument("--with-demo-layout", action="store_true")
     make_game.add_argument("--v31", action="store_true")
     make_game.add_argument("--v32", action="store_true")
@@ -98,25 +99,32 @@ def main(argv: list[str] | None = None) -> int:
     make_game.add_argument("--export-web", action="store_true")
     make_game.add_argument("--export-zip", action="store_true")
     make_game.add_argument("--export-android", action="store_true")
-    make_game.add_argument("--export-out", default="exports", help="Export output directory")
+    make_game.add_argument("--export-out", default="exports")
+    make_game.add_argument("--bundle-out", default="")
+    make_game.add_argument("--bundle-release", action="store_true")
 
     validate = sub.add_parser("validate", help="Validate generated game output")
-    validate.add_argument("--game-dir", required=True, help="Generated game directory")
+    validate.add_argument("--game-dir", required=True)
 
     validate_exports_cmd = sub.add_parser("validate-exports", help="Validate export output")
-    validate_exports_cmd.add_argument("--export-dir", required=True, help="Export directory")
+    validate_exports_cmd.add_argument("--export-dir", required=True)
 
     inspect = sub.add_parser("inspect-pack", help="Validate pack before build")
-    inspect.add_argument("--pack", required=True, help="Pack directory")
+    inspect.add_argument("--pack", required=True)
 
     init_pack = sub.add_parser("init-pack", help="Create a new pack scaffold")
-    init_pack.add_argument("--out", required=True, help="Output pack directory")
-    init_pack.add_argument("--name", default="New Pack", help="Pack name")
+    init_pack.add_argument("--out", required=True)
+    init_pack.add_argument("--name", default="New Pack")
 
     export = sub.add_parser("export", help="Export existing build")
-    export.add_argument("--game-dir", required=True, help="Built game directory")
-    export.add_argument("--out", required=True, help="Export output directory")
+    export.add_argument("--game-dir", required=True)
+    export.add_argument("--out", required=True)
     export.add_argument("--type", required=True, choices=["web", "zip", "android"])
+
+    bundle = sub.add_parser("bundle-release", help="Bundle game + exports into a release folder and zip")
+    bundle.add_argument("--game-dir", required=True)
+    bundle.add_argument("--export-dir", required=True)
+    bundle.add_argument("--out", required=True)
 
     args = parser.parse_args(argv)
 
@@ -185,6 +193,12 @@ def main(argv: list[str] | None = None) -> int:
                     print(err)
                 return 1
 
+        if args.bundle_release:
+            bundle_out = Path(args.bundle_out) if str(args.bundle_out).strip() else Path("release_bundle")
+            bundle_release(Path(args.out), export_out, bundle_out)
+            print(f"[OK] release bundle created: {bundle_out}")
+            print(f"[OK] release zip created: {bundle_out}.zip")
+
         print("[OK] make-game complete")
         return 0
 
@@ -243,6 +257,16 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
         print("[OK] Export complete")
+        return 0
+
+    if args.cmd == "bundle-release":
+        bundle_release(
+            game_dir=Path(args.game_dir),
+            export_dir=Path(args.export_dir),
+            bundle_dir=Path(args.out),
+        )
+        print(f"[OK] release bundle created: {Path(args.out)}")
+        print(f"[OK] release zip created: {Path(args.out)}.zip")
         return 0
 
     return 1
