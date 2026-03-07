@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .factory_v3.generator import run_factory_v3
 from .factory_v3_1.asset_generator import generate_placeholder_assets
+from .factory_v3_1.batch_factory import run_batch_factory
 from .factory_v3_1.export_android_stub import export_android_stub
 from .factory_v3_1.export_report import write_export_report
 from .factory_v3_1.export_validate import validate_exports
@@ -102,6 +103,19 @@ def main(argv: list[str] | None = None) -> int:
     make_game.add_argument("--bundle-out", default="")
     make_game.add_argument("--bundle-release", action="store_true")
     make_game.add_argument("--generate-assets", action="store_true")
+
+    batch = sub.add_parser("make-batch")
+    batch.add_argument("--packs-root", required=True)
+    batch.add_argument("--template", default="templates/gdevelop_template")
+    batch.add_argument("--out-root", required=True)
+    batch.add_argument("--export-root", default="batch_exports")
+    batch.add_argument("--bundle-root", default="batch_bundles")
+    batch.add_argument("--with-demo-layout", action="store_true")
+    batch.add_argument("--v32", action="store_true")
+    batch.add_argument("--generate-assets", action="store_true")
+    batch.add_argument("--export-web", action="store_true")
+    batch.add_argument("--export-zip", action="store_true")
+    batch.add_argument("--bundle-release", action="store_true")
 
     validate = sub.add_parser("validate")
     validate.add_argument("--game-dir", required=True)
@@ -203,6 +217,25 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[OK] release zip created: {bundle_out}.zip")
 
         print("[OK] make-game complete")
+        return 0
+
+    if args.cmd == "make-batch":
+        summary = run_batch_factory(
+            packs_root=Path(args.packs_root),
+            template_dir=Path(args.template),
+            out_root=Path(args.out_root),
+            export_root=Path(args.export_root),
+            bundle_root=Path(args.bundle_root),
+            with_demo_layout=bool(args.with_demo_layout),
+            enable_v3_2=bool(args.v32),
+            generate_assets=bool(args.generate_assets),
+            export_web_enabled=bool(args.export_web),
+            export_zip_enabled=bool(args.export_zip),
+            bundle_enabled=bool(args.bundle_release),
+        )
+        print(f"[OK] batch complete: {summary['okCount']}/{summary['count']}")
+        if int(summary["failedCount"]) > 0:
+            return 1
         return 0
 
     if args.cmd == "validate":
