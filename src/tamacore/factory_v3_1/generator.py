@@ -11,6 +11,7 @@ from .build_report import write_build_report
 from .character_builder import apply_character_animations
 from .levels import generate_levels
 from .patch_rules import apply_v3_1_rules
+from .save_system import write_save_schema
 from .schema import PackCfg, load_pack_cfg
 from .shop import write_shop
 from .v3_2_patch import apply_v3_2_runtime
@@ -43,6 +44,7 @@ def run_factory_v3_1(
 
     levels = generate_levels(cfg, game_dir)
     shop = write_shop(cfg, game_dir)
+    save_data = write_save_schema(game_dir)
 
     project = read_json(game_json)
     if not isinstance(project, dict):
@@ -60,7 +62,7 @@ def run_factory_v3_1(
 
     write_json(game_json, project)
 
-    manifest = _build_manifest(cfg, levels, shop, catalog, enable_v3_2)
+    manifest = _build_manifest(cfg, levels, shop, catalog, save_data, enable_v3_2)
     write_json(game_dir / "FACTORY_MANIFEST.json", manifest)
 
     errors = validate_build_output(game_dir)
@@ -99,6 +101,7 @@ def _build_manifest(
     levels: List[Dict[str, Any]],
     shop: Dict[str, Any],
     catalog: Dict[str, Any],
+    save_data: Dict[str, Any],
     enable_v3_2: bool,
 ) -> Dict[str, Any]:
     return {
@@ -157,6 +160,7 @@ def _build_manifest(
         "levels": [level.get("id", f"level_{i + 1}") for i, level in enumerate(levels)],
         "shopUpgrades": [u.get("id", f"upgrade_{i + 1}") for i, u in enumerate(shop.get("upgrades", []))],
         "catalogSummary": _catalog_summary(catalog),
+        "save": save_data,
     }
 
 
