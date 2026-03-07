@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .factory_v3.generator import run_factory_v3
 from .factory_v3_1.generator import run_factory_v3_1
+from .factory_v3_1.pack_inspector import inspect_pack
 from .factory_v3_1.pack_scaffold import create_pack
 from .factory_v3_1.validate import validate_build_output
 
@@ -29,6 +30,9 @@ def main(argv: list[str] | None = None) -> int:
     validate = sub.add_parser("validate", help="Validate generated game output")
     validate.add_argument("--game-dir", required=True, help="Generated game directory")
 
+    inspect = sub.add_parser("inspect-pack", help="Validate pack before build")
+    inspect.add_argument("--pack", required=True, help="Pack directory")
+
     init_pack = sub.add_parser("init-pack", help="Create a new pack scaffold")
     init_pack.add_argument("--out", required=True, help="Output pack directory")
     init_pack.add_argument("--name", default="New Pack", help="Pack name")
@@ -39,6 +43,12 @@ def main(argv: list[str] | None = None) -> int:
         pack_dir = Path(args.pack)
         template_dir = Path(args.template)
         out_dir = Path(args.out)
+
+        pack_errors = inspect_pack(pack_dir)
+        if pack_errors:
+            for err in pack_errors:
+                print(err)
+            return 1
 
         if args.v31 or args.v32:
             run_factory_v3_1(
@@ -67,6 +77,15 @@ def main(argv: list[str] | None = None) -> int:
                 print(err)
             return 1
         print("[OK] Build validation passed")
+        return 0
+
+    if args.cmd == "inspect-pack":
+        errors = inspect_pack(Path(args.pack))
+        if errors:
+            for err in errors:
+                print(err)
+            return 1
+        print("[OK] Pack validation passed")
         return 0
 
     if args.cmd == "init-pack":
