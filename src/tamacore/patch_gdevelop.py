@@ -9,28 +9,25 @@ from .utils import is_image_file, read_json, write_json
 Json = Dict[str, Any]
 
 
-# ----------------------------
-# Public API (pipeline uses these)
-# ----------------------------
-
 def copy_assets_into_game(assets_dir: Path, game_dir: Path) -> Dict[str, str]:
-    """
-    Copies images from repo assets/ into game/assets/generated/.
-    Returns map: resourceName -> relative path in game folder.
-    """
     out_dir = game_dir / "assets" / "generated"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     image_map: Dict[str, str] = {}
+
     if not assets_dir.exists():
         return image_map
 
     for p in sorted(assets_dir.rglob("*")):
+        if not p.is_file():
+            continue
         if not is_image_file(p):
             continue
-        dst = out_dir / p.name
+
+        rel_name = p.name
+        dst = out_dir / rel_name
         shutil.copy2(p, dst)
-        image_map[p.stem] = str(Path("assets") / "generated" / p.name).replace("\\", "/")
+        image_map[p.stem] = str(Path("assets") / "generated" / rel_name).replace("\\", "/")
 
     return image_map
 
@@ -40,13 +37,6 @@ def patch_project(
     image_map: Optional[Dict[str, str]] = None,
     scene_name: str = "Main",
 ) -> None:
-    """
-    Patch game.json in-place:
-    - register resources for generated assets
-    - add pack-driven shop UI + events based on shop.json if present
-    - ensure UI layer exists
-    - ensure globals Coins/Speed/ShopOpen/PlayerMaxSpeed exist
-    """
     project = read_json(game_json_path)
     if not isinstance(project, dict):
         raise ValueError("game.json is not a JSON object")
@@ -54,44 +44,87 @@ def patch_project(
     if image_map:
         _patch_resources(project, image_map)
 
-    # Globals
     _ensure_global_var(project, "Coins", 250)
     _ensure_global_var(project, "Speed", 200)
     _ensure_global_var(project, "PlayerMaxSpeed", 200)
     _ensure_global_var(project, "ShopOpen", 0)
 
     layout = _find_layout(project, scene_name)
-    if layout is None:
+    if not isinstance(layout, dict):
+        write_json(game_json_path, project)
+        return
+
+    _ensure_ui_layer(layout)
+    _ensure_layout_object(layout, _obj_text("ShopButton", "SHOP", 36))
+    _ensure_layout_object(layout, _obj_panel("ShopPanel", 520, 420))
+
+    _ensure_instance(layout, "ShopButton", x=820, y=24, layer="UI", z=2000)
+    _ensure_instance(layout, "ShopPanel", x=450, y=110, layer="UI", z=2100)
+
+    shop = _load_shop_json(game_json_path.parent)
+    if isinstance(shop, dict):
+        _ensure_pack_shop(project, layout, shop)
+    else:
+        _ensure_layout_object(layout, _obj_text("ShopItem", "BUY: SPEED +50 (100c)", 28))
+        _ensure_instance(layout, "ShopItem", x=490, y=200, layer="UI", z=2200)
+        _ensure_legacy_shop_events(layout)
+
+    write_json(game_json_path, project)
+
+
+def factory_apply_catalog(
+    game_json_path: Path,
+    catalog: Dict[str, Any],
+    scene_name: str = "Main",
+    seed: int = 1337,
+    with_demo_layout: bool = True,
+) -> None:
+    project = read_json(game_json_path)
+    if not isinstance(project, dict):
+        raise ValueError("game.json is not a JSON object")
+
+    assets = catalog.get("assets", {})
+    if isinstance(assets, dict):
+        _patch_resources(project, assets)
+
+    _ensure_global_var(project, "Coins", 250)
+    _ensure_global_var(project, "Speed", 200)
+    _ensure_global_var(project, "PlayerMaxSpeed", 200)
+    _ensure_global_var(project, "ShopOpen", 0)
+    _ensure_global_var(project, "FactorySeed", seed)
+
+    layout = _find_layout(project, scene_name)
+    if not isinstance(layout, dict):
         write_json(game_json_path, project)
         return
 
     _ensure_ui_layer(layout)
 
-    # Static shell objects
-    _ensure_layout_object(layout, _obj_text("ShopButton", "SHOP", 36))
-    _ensure_layout_object(layout, _obj_panel("ShopPanel", w=520, h=420))
+    objects = catalog.get("objects", [])
+    if isinstance(objects, list):
+        for obj in objects:
+            if isinstance(obj, dict):
+                _ensure_layout_object(layout, obj)
 
-    # Static shell instances
+    if with_demo_layout:
+        instances = catalog.get("instances", [])
+        if isinstance(instances, list):
+            for inst in instances:
+                if isinstance(inst, dict):
+                    _ensure_catalog_instance(layout, inst)
+
+    _ensure_layout_object(layout, _obj_text("ShopButton", "SHOP", 36))
+    _ensure_layout_object(layout, _obj_panel("ShopPanel", 520, 420))
+
     _ensure_instance(layout, "ShopButton", x=820, y=24, layer="UI", z=2000)
     _ensure_instance(layout, "ShopPanel", x=450, y=110, layer="UI", z=2100)
 
-    # Load pack-driven shop data from output game folder
     shop = _load_shop_json(game_json_path.parent)
-
-    if shop is None:
-        # Backward-compatible fallback: old single demo item
-        _ensure_layout_object(layout, _obj_text("ShopItem", "BUY: SPEED +50 (100c)", 28))
-        _ensure_instance(layout, "ShopItem", x=490, y=200, layer="UI", z=2200)
-        _ensure_legacy_shop_events(layout)
-    else:
+    if isinstance(shop, dict):
         _ensure_pack_shop(project, layout, shop)
 
     write_json(game_json_path, project)
 
-
-# ----------------------------
-# Core JSON ops
-# ----------------------------
 
 def _load_shop_json(game_dir: Path) -> Optional[Json]:
     path = game_dir / "shop.json"
@@ -106,9 +139,9 @@ def _find_layout(project: Json, scene_name: str) -> Optional[Json]:
     if not isinstance(layouts, list) or not layouts:
         return None
 
-    for l in layouts:
-        if isinstance(l, dict) and l.get("name") == scene_name:
-            return l
+    for layout in layouts:
+        if isinstance(layout, dict) and layout.get("name") == scene_name:
+            return layout
 
     first = layouts[0]
     return first if isinstance(first, dict) else None
@@ -120,9 +153,9 @@ def _ensure_ui_layer(layout: Json) -> None:
         layers = []
         layout["layers"] = layers
 
-    for ly in layers:
-        if isinstance(ly, dict) and ly.get("name") == "UI":
-            ly.setdefault("followBaseLayerCamera", True)
+    for layer in layers:
+        if isinstance(layer, dict) and layer.get("name") == "UI":
+            layer.setdefault("followBaseLayerCamera", True)
             return
 
     layers.append(
@@ -142,12 +175,12 @@ def _ensure_global_var(project: Json, name: str, number_value: float) -> None:
         vars_ = []
         project["variables"] = vars_
 
-    for v in vars_:
-        if isinstance(v, dict) and v.get("name") == name:
-            v.setdefault("type", "number")
-            v.setdefault("children", [])
-            if "value" not in v:
-                v["value"] = number_value
+    for var in vars_:
+        if isinstance(var, dict) and var.get("name") == name:
+            var.setdefault("type", "number")
+            var.setdefault("children", [])
+            if "value" not in var:
+                var["value"] = number_value
             return
 
     vars_.append(
@@ -161,20 +194,20 @@ def _ensure_global_var(project: Json, name: str, number_value: float) -> None:
 
 
 def _patch_resources(project: Json, image_map: Dict[str, str]) -> None:
-    res = project.get("resources")
-    if not isinstance(res, dict):
-        res = {}
-        project["resources"] = res
+    resources = project.get("resources")
+    if not isinstance(resources, dict):
+        resources = {}
+        project["resources"] = resources
 
-    inner = res.get("resources")
+    inner = resources.get("resources")
     if not isinstance(inner, list):
         inner = []
-        res["resources"] = inner
+        resources["resources"] = inner
 
     by_name: Dict[str, Json] = {}
-    for r in inner:
-        if isinstance(r, dict) and isinstance(r.get("name"), str):
-            by_name[r["name"]] = r
+    for item in inner:
+        if isinstance(item, dict) and isinstance(item.get("name"), str):
+            by_name[item["name"]] = item
 
     for name, relpath in image_map.items():
         if name in by_name:
@@ -203,28 +236,30 @@ def _ensure_layout_object(layout: Json, obj_def: Json) -> None:
     if not name:
         return
 
-    for o in objects:
-        if isinstance(o, dict) and o.get("name") == name:
+    for obj in objects:
+        if isinstance(obj, dict) and obj.get("name") == name:
             return
 
     objects.append(obj_def)
 
 
 def _ensure_instance(layout: Json, object_name: str, x: float, y: float, layer: str, z: int) -> None:
-    inst = layout.get("instances")
-    if not isinstance(inst, list):
-        inst = []
-        layout["instances"] = inst
+    instances = layout.get("instances")
+    if not isinstance(instances, list):
+        instances = []
+        layout["instances"] = instances
 
-    for it in inst:
-        if not isinstance(it, dict):
+    for inst in instances:
+        if not isinstance(inst, dict):
             continue
-        if it.get("name") == object_name or it.get("objectName") == object_name:
-            it["layer"] = layer
-            it["zOrder"] = max(int(it.get("zOrder", 0) or 0), z)
+        if inst.get("name") == object_name or inst.get("objectName") == object_name:
+            inst["x"] = x
+            inst["y"] = y
+            inst["layer"] = layer
+            inst["zOrder"] = max(int(inst.get("zOrder", 0) or 0), z)
             return
 
-    inst.append(
+    instances.append(
         {
             "name": object_name,
             "objectName": object_name,
@@ -242,9 +277,20 @@ def _ensure_instance(layout: Json, object_name: str, x: float, y: float, layer: 
     )
 
 
-# ----------------------------
-# Object defs
-# ----------------------------
+def _ensure_catalog_instance(layout: Json, inst: Json) -> None:
+    object_name = str(inst.get("objectName") or inst.get("name") or "").strip()
+    if not object_name:
+        return
+
+    _ensure_instance(
+        layout,
+        object_name=object_name,
+        x=_safe_float(inst.get("x"), 0),
+        y=_safe_float(inst.get("y"), 0),
+        layer=str(inst.get("layer", "")),
+        z=_safe_int(inst.get("zOrder"), 0),
+    )
+
 
 def _obj_text(name: str, text: str, font_size: int) -> Json:
     return {
@@ -283,17 +329,12 @@ def _obj_panel(name: str, w: int, h: int) -> Json:
     }
 
 
-# ----------------------------
-# Pack-driven shop
-# ----------------------------
-
 def _ensure_pack_shop(project: Json, layout: Json, shop: Json) -> None:
     upgrades = shop.get("upgrades")
     if not isinstance(upgrades, list):
         upgrades = []
 
     currency_var = str(shop.get("currencyVariable", "Coins") or "Coins")
-
     marker = "TAMACORE_AUTOGEN_PACK_SHOP_V3_3"
 
     events = layout.get("events")
@@ -304,7 +345,6 @@ def _ensure_pack_shop(project: Json, layout: Json, shop: Json) -> None:
     if any(isinstance(e, dict) and e.get("type") == "BuiltinCommonInstructions::Comment" and marker in str(e.get("comment", "")) for e in events):
         return
 
-    # Normalize and create UI objects/instances
     normalized: List[Json] = []
     for idx, raw in enumerate(upgrades):
         if not isinstance(raw, dict):
@@ -332,28 +372,24 @@ def _ensure_pack_shop(project: Json, layout: Json, shop: Json) -> None:
             }
         )
 
-    # Ensure owned vars exist
     for item in normalized:
         _ensure_global_var(project, item["ownedVariable"], 0)
 
-    # Add text objects + instances
     start_x = 490
     start_y = 180
     step_y = 56
 
     for idx, item in enumerate(normalized):
-        object_name = item["objectName"]
-        _ensure_layout_object(layout, _obj_text(object_name, item["uiText"], 28))
+        _ensure_layout_object(layout, _obj_text(item["objectName"], item["uiText"], 28))
         _ensure_instance(
             layout,
-            object_name,
+            item["objectName"],
             x=start_x,
             y=start_y + idx * step_y,
             layer="UI",
             z=2200 + idx,
         )
 
-    # Add events
     events.append(
         {
             "type": "BuiltinCommonInstructions::Comment",
@@ -378,9 +414,7 @@ def _ensure_pack_shop(project: Json, layout: Json, shop: Json) -> None:
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::AtTheBeginningOfTheScene", []),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::AtTheBeginningOfTheScene", [])],
             "actions": hide_actions,
             "events": [],
             "disabled": False,
@@ -432,14 +466,8 @@ def _ensure_pack_shop(project: Json, layout: Json, shop: Json) -> None:
 
 def _purchase_event(item: Json, currency_var: str) -> Json:
     actions: List[Json] = [
-        _act(
-            "BuiltinCommonInstructions::SubFromNumberVariable",
-            [currency_var, str(item["cost"])],
-        ),
-        _act(
-            "BuiltinCommonInstructions::SetNumberVariable",
-            [item["ownedVariable"], "1"],
-        ),
+        _act("BuiltinCommonInstructions::SubFromNumberVariable", [currency_var, str(item["cost"])]),
+        _act("BuiltinCommonInstructions::SetNumberVariable", [item["ownedVariable"], "1"]),
     ]
 
     actions.extend(_effect_actions(item["effect"]))
@@ -541,18 +569,11 @@ def _effect_actions(effect: Json) -> List[Json]:
         elif key == "coinsAdd":
             actions.append(_act("BuiltinCommonInstructions::AddToNumberVariable", ["Coins", str(amount)]))
         else:
-            # Generic fallback:
-            # effect {"HP": 10} -> AddToNumberVariable("HP", "10")
-            # effect {"Damage": 5} -> AddToNumberVariable("Damage", "5")
             if _is_reasonable_variable_name(str(key)):
                 actions.append(_act("BuiltinCommonInstructions::AddToNumberVariable", [str(key), str(amount)]))
 
     return actions
 
-
-# ----------------------------
-# Legacy fallback shop
-# ----------------------------
 
 def _ensure_legacy_shop_events(layout: Json) -> None:
     events = layout.get("events")
@@ -561,9 +582,9 @@ def _ensure_legacy_shop_events(layout: Json) -> None:
         layout["events"] = events
 
     marker = "TAMACORE_AUTOGEN_SHOP_V3_2_1"
-    for e in events:
-        if isinstance(e, dict) and e.get("type") == "BuiltinCommonInstructions::Comment":
-            if marker in str(e.get("comment", "")):
+    for event in events:
+        if isinstance(event, dict) and event.get("type") == "BuiltinCommonInstructions::Comment":
+            if marker in str(event.get("comment", "")):
                 return
 
     events.append(
@@ -577,9 +598,7 @@ def _ensure_legacy_shop_events(layout: Json) -> None:
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::AtTheBeginningOfTheScene", []),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::AtTheBeginningOfTheScene", [])],
             "actions": [
                 _act("BuiltinCommonInstructions::Hide", ["ShopPanel"]),
                 _act("BuiltinCommonInstructions::Hide", ["ShopItem"]),
@@ -657,13 +676,16 @@ def _ensure_legacy_shop_events(layout: Json) -> None:
     )
 
 
-# ----------------------------
-# Helpers
-# ----------------------------
-
 def _safe_int(value: Any, default: int = 0) -> int:
     try:
         return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
     except (TypeError, ValueError):
         return default
 
