@@ -1,8 +1,6 @@
 # TamaCore Bot
 
-## Install
+## Auto mode
 
 ```bash
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -U pip
-.\.venv\Scripts\python.exe -m pip install -e .
+python -m tamacore.cli auto --workspace auto_workspace --template templates/gdevelop_template --pack-name auto_pack --game-name auto_game
