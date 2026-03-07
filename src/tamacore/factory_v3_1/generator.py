@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from ..utils import write_json, read_json
-from ..template_ops import ensure_template_exists, copy_template
-from ..patch_gdevelop import factory_apply_catalog
 from ..factory_v3.catalog import build_catalog
-
-from .schema import load_pack_cfg
-from .levels import generate_levels
-from .shop import write_shop
-from .patch_rules import apply_v3_1_rules
-from .v3_2_patch import apply_v3_2_runtime
+from ..patch_gdevelop import factory_apply_catalog
+from ..template_ops import copy_template, ensure_template_exists
+from ..utils import read_json, write_json
 from .character_builder import apply_character_animations
+from .levels import generate_levels
+from .patch_rules import apply_v3_1_rules
+from .schema import PackCfg, load_pack_cfg
+from .shop import write_shop
+from .v3_2_patch import apply_v3_2_runtime
 
 
 def run_factory_v3_1(
@@ -28,11 +27,10 @@ def run_factory_v3_1(
     ensure_template_exists(template_dir)
     copy_template(template_dir, game_dir)
 
-    # Copies images into game/assets/generated and builds a catalog
     catalog = build_catalog(pack_dir=pack_dir, game_dir=game_dir)
 
-    # Applies resources/objects/instances based on catalog
     game_json = game_dir / "game.json"
+
     factory_apply_catalog(
         game_json_path=game_json,
         catalog=catalog,
@@ -41,46 +39,25 @@ def run_factory_v3_1(
         with_demo_layout=with_demo_layout,
     )
 
-    # Generate data outputs
     levels = generate_levels(cfg, game_dir)
     shop = write_shop(cfg, game_dir)
 
-    # Apply rules + character anims + optional v3.2 runtime
     project = read_json(game_json)
-    if isinstance(project, dict):
-        scene = _find_scene(project, cfg.scene)
-        if isinstance(scene, dict):
-            apply_v3_1_rules(project, scene, cfg)
+    if not isinstance(project, dict):
+        raise ValueError("game.json must be a JSON object after catalog patching")
 
-            # ✅ NEW: build "real" TamaCore player animations from assets/generated
-            apply_character_animations(project, scene, game_dir)
+    scene = _find_scene(project, cfg.scene)
+    if not isinstance(scene, dict):
+        raise ValueError(f"Scene '{cfg.scene}' was not found from game.json")
 
-            if enable_v3_2:
-                apply_v3_2_runtime(project, scene, cfg, game_dir)
+    apply_v3_1_rules(project, scene, cfg)
+    apply_character_animations(project, scene, game_dir)
 
-            write_json(game_json, project)
+    if enable_v3_2:
+        apply_v3_2_runtime(project, scene, cfg, game_dir)
 
-    # Manifest for debugging / future automation
-    write_json(
-        game_dir / "FACTORY_MANIFEST.json",
-        {
-            "factory": "v3.1" if not enable_v3_2 else "v3.2",
-            "pack": {"name": cfg.name, "version": cfg.version, "scene": cfg.scene},
-            "display": {
-                "mode": cfg.display.mode,
-                "virtualWidth": cfg.display.virtualWidth,
-                "virtualHeight": cfg.display.virtualHeight,
-            },
-            "worldBounds": {
-                "xMin": cfg.worldBounds.xMin,
-                "yMin": cfg.worldBounds.yMin,
-                "xMax": cfg.worldBounds.xMax,
-                "yMax": cfg.worldBounds.yMax,
-            },
-            "levels": [l["id"] for l in levels],
-            "shopUpgrades": [u["id"] for u in shop.get("upgrades", [])] if isinstance(shop, dict) else [],
-        },
-    )
+    write_json(game_json, project)
+    _write_manifest(game_dir, cfg, levels, shop, catalog, enable_v3_2)
 
     print("[OK] Factory generated:", game_dir)
     print("[NEXT] Open in GDevelop:", game_json)
@@ -90,8 +67,91 @@ def _find_scene(project: Dict[str, Any], name: str) -> Dict[str, Any] | None:
     layouts = project.get("layouts")
     if not isinstance(layouts, list) or not layouts:
         return None
-    for l in layouts:
-        if isinstance(l, dict) and l.get("name") == name:
-            return l
+
+    for layout in layouts:
+        if isinstance(layout, dict) and layout.get("name") == name:
+            return layout
+
     first = layouts[0]
     return first if isinstance(first, dict) else None
+
+
+def _write_manifest(
+    game_dir: Path,
+    cfg: PackCfg,
+    levels: List[Dict[str, Any]],
+    shop: Dict[str, Any],
+    catalog: Dict[str, Any],
+    enable_v3_2: bool,
+) -> None:
+    manifest = {
+        "factory": "v3.2" if enable_v3_2 else "v3.1",
+        "pack": {
+            "name": cfg.name,
+            "version": cfg.version,
+            "scene": cfg.scene,
+        },
+        "display": {
+            "mode": cfg.display.mode,
+            "virtualWidth": cfg.display.virtualWidth,
+            "virtualHeight": cfg.display.virtualHeight,
+        },
+        "worldBounds": {
+            "xMin": cfg.worldBounds.xMin,
+            "yMin": cfg.worldBounds.yMin,
+            "xMax": cfg.worldBounds.xMax,
+            "yMax": cfg.worldBounds.yMax,
+        },
+        "camera": {
+            "followObject": cfg.camera.followObject,
+            "lerp": cfg.camera.lerp,
+        },
+        "ui": {
+            "layer": cfg.ui.layer,
+            "hud": {
+                "objectName": cfg.ui.hud.objectName,
+                "anchor": cfg.ui.hud.anchor,
+                "marginX": cfg.ui.hud.marginX,
+                "marginY": cfg.ui.hud.marginY,
+            },
+            "joystick": {
+                "objectName": cfg.ui.joystick.objectName,
+                "anchor": cfg.ui.joystick.anchor,
+                "marginX": cfg.ui.joystick.marginX,
+                "marginY": cfg.ui.joystick.marginY,
+            },
+        },
+        "spawns": {
+            "coin": {
+                "objectName": cfg.coinSpawn.objectName,
+                "count": cfg.coinSpawn.count,
+                "enabled": cfg.coinSpawn.enabled,
+                "respawnOnCollect": cfg.coinSpawn.respawnOnCollect,
+                "minDistanceFromPlayer": cfg.coinSpawn.minDistanceFromPlayer,
+            },
+            "enemy": {
+                "objectName": cfg.enemySpawn.objectName,
+                "count": cfg.enemySpawn.count,
+                "enabled": cfg.enemySpawn.enabled,
+                "respawnOnCollect": cfg.enemySpawn.respawnOnCollect,
+                "minDistanceFromPlayer": cfg.enemySpawn.minDistanceFromPlayer,
+            },
+        },
+        "levels": [level.get("id", f"level_{i + 1}") for i, level in enumerate(levels)],
+        "shopUpgrades": [u.get("id", f"upgrade_{i + 1}") for i, u in enumerate(shop.get("upgrades", []))],
+        "catalogSummary": _catalog_summary(catalog),
+    }
+
+    write_json(game_dir / "FACTORY_MANIFEST.json", manifest)
+
+
+def _catalog_summary(catalog: Dict[str, Any]) -> Dict[str, Any]:
+    assets = catalog.get("assets", {})
+    objects = catalog.get("objects", [])
+    instances = catalog.get("instances", [])
+
+    return {
+        "assetCount": len(assets) if isinstance(assets, dict) else 0,
+        "objectCount": len(objects) if isinstance(objects, list) else 0,
+        "instanceCount": len(instances) if isinstance(instances, list) else 0,
+    }
