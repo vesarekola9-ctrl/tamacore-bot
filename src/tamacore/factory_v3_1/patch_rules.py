@@ -2,168 +2,202 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from .schema import PackCfg
+Json = Dict[str, Any]
 
 
-def apply_v3_1_rules(project: Dict[str, Any], scene: Dict[str, Any], pack: PackCfg) -> None:
-    """
-    Adds:
-      - global vars: Coins, HP, CurrentLevel
-      - camera follow + lerp
-      - clamp player to world bounds
-      - coin respawn logic using level spawn area (reads variables)
-      - UI anchoring using camera center (keeps HUD fixed)
-    """
-    ensure_global_var(project, "Coins", "number", "0")
-    ensure_global_var(project, "HP", "number", "3")
-    ensure_global_var(project, "CurrentLevel", "string", "level_001")
+def apply_v3_1_rules(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any) -> None:
+    _ensure_project_var(project, "Coins", 250)
+    _ensure_project_var(project, "Speed", 200)
+    _ensure_project_var(project, "PlayerMaxSpeed", 200)
+    _ensure_project_var(project, "ShopOpen", 0)
 
-    # Ensure scene vars to store spawn rectangles (set on start from level file later)
-    ensure_scene_var(scene, "CoinAreaX", "number", "200")
-    ensure_scene_var(scene, "CoinAreaY", "number", "200")
-    ensure_scene_var(scene, "CoinAreaW", "number", "800")
-    ensure_scene_var(scene, "CoinAreaH", "number", "500")
+    _ensure_ui_layer(scene)
+    _ensure_scene_property(scene, "standardSortMethod", False)
 
-    ensure_scene_var(scene, "EnemyAreaX", "number", "300")
-    ensure_scene_var(scene, "EnemyAreaY", "number", "300")
-    ensure_scene_var(scene, "EnemyAreaW", "number", "900")
-    ensure_scene_var(scene, "EnemyAreaH", "number", "650")
-
-    events = scene.get("events")
-    if not isinstance(events, list):
-        return
-
-    # Prevent duplicates
-    if any(isinstance(e, dict) and e.get("comment") == "FACTORY_V3_1_BOOT" for e in events):
-        return
-
-    # BOOT: set camera follow + anchor UI positions relative to camera
-    events.append(
-        {
-            "comment": "FACTORY_V3_1_BOOT",
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [{"type": "BuiltinCommonInstructions::Once"}],
-            "actions": [
-                # Camera follows Player (layer "")
-                {"type": "BuiltinCommonInstructions::CameraCenterOnObject", "parameters": ["", "Player", "0", "0"]},
-                # HUD text init shows Coins/HP
-                {"type": "TextObject::SetString", "parameters": ["HUD", "\"Coins: \" + ToString(Variable(Coins)) + \"  HP: \" + ToString(Variable(HP))"]},
-                # Spawn initial coin/enemy inside area
-                {"type": "BuiltinCommonInstructions::SetObjectX", "parameters": ["Coin", "RandomInRange(Variable(CoinAreaX), Variable(CoinAreaX)+Variable(CoinAreaW))"]},
-                {"type": "BuiltinCommonInstructions::SetObjectY", "parameters": ["Coin", "RandomInRange(Variable(CoinAreaY), Variable(CoinAreaY)+Variable(CoinAreaH))"]},
-                {"type": "BuiltinCommonInstructions::SetObjectX", "parameters": ["Enemy", "RandomInRange(Variable(EnemyAreaX), Variable(EnemyAreaX)+Variable(EnemyAreaW))"]},
-                {"type": "BuiltinCommonInstructions::SetObjectY", "parameters": ["Enemy", "RandomInRange(Variable(EnemyAreaY), Variable(EnemyAreaY)+Variable(EnemyAreaH))"]},
-            ],
-            "events": [],
-        }
-    )
-
-    # EVERY FRAME: camera lerp to player + UI anchor recalculation
-    # (Simple approach: keep HUD and joystick at camera top-left/bottom-left positions)
-    events.append(
-        {
-            "comment": "FACTORY_V3_1_CAMERA_UI",
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [],
-            "actions": [
-                # Camera smooth follow
-                {
-                    "type": "BuiltinCommonInstructions::SetCameraX",
-                    "parameters": ["", "CameraX(\"\") + (" + _f(pack.camera.lerp) + ")*(Player.X()-CameraX(\"\"))"],
-                },
-                {
-                    "type": "BuiltinCommonInstructions::SetCameraY",
-                    "parameters": ["", "CameraY(\"\") + (" + _f(pack.camera.lerp) + ")*(Player.Y()-CameraY(\"\"))"],
-                },
-
-                # UI anchoring:
-                # Top-left HUD: camera position + offset
-                {"type": "BuiltinCommonInstructions::SetObjectX", "parameters": ["HUD", "CameraX(\"\") - " + str(pack.display.virtualWidth//2) + " + " + str(pack.ui.hud.marginX)]},
-                {"type": "BuiltinCommonInstructions::SetObjectY", "parameters": ["HUD", "CameraY(\"\") - " + str(pack.display.virtualHeight//2) + " + " + str(pack.ui.hud.marginY)]},
-
-                # Bottom-left joystick: camera pos + offset from bottom
-                {"type": "BuiltinCommonInstructions::SetObjectX", "parameters": ["TouchJoystick", "CameraX(\"\") - " + str(pack.display.virtualWidth//2) + " + " + str(pack.ui.joystick.marginX)]},
-                {"type": "BuiltinCommonInstructions::SetObjectY", "parameters": ["TouchJoystick", "CameraY(\"\") + " + str(pack.display.virtualHeight//2) + " - " + str(pack.ui.joystick.marginY)]},
-            ],
-            "events": [],
-        }
-    )
-
-    # Clamp player to world bounds
-    b = pack.worldBounds
-    events.append(
-        {
-            "comment": "FACTORY_V3_1_CLAMP",
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [],
-            "actions": [
-                {"type": "BuiltinCommonInstructions::SetObjectX", "parameters": ["Player", f"clamp(Player.X(), {b.xMin}, {b.xMax})"]},
-                {"type": "BuiltinCommonInstructions::SetObjectY", "parameters": ["Player", f"clamp(Player.Y(), {b.yMin}, {b.yMax})"]},
-            ],
-            "events": [],
-        }
-    )
-
-    # Coin collect -> Coins++ and respawn within area, update HUD
-    events.append(
-        {
-            "comment": "FACTORY_V3_1_COIN_COLLECT",
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [{"type": "BuiltinCommonInstructions::Collision", "parameters": ["Player", "Coin"]}],
-            "actions": [
-                {"type": "BuiltinCommonInstructions::SetNumberVariable", "parameters": ["Coins", "=", "Variable(Coins)+1"]},
-                {"type": "TextObject::SetString", "parameters": ["HUD", "\"Coins: \" + ToString(Variable(Coins)) + \"  HP: \" + ToString(Variable(HP))"]},
-                {"type": "BuiltinCommonInstructions::SetObjectX", "parameters": ["Coin", "RandomInRange(Variable(CoinAreaX), Variable(CoinAreaX)+Variable(CoinAreaW))"]},
-                {"type": "BuiltinCommonInstructions::SetObjectY", "parameters": ["Coin", "RandomInRange(Variable(CoinAreaY), Variable(CoinAreaY)+Variable(CoinAreaH))"]},
-            ],
-            "events": [],
-        }
-    )
-
-    # Enemy collision -> HP--, reset player, update HUD
-    events.append(
-        {
-            "comment": "FACTORY_V3_1_ENEMY_HIT",
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [{"type": "BuiltinCommonInstructions::Collision", "parameters": ["Player", "Enemy"]}],
-            "actions": [
-                {"type": "BuiltinCommonInstructions::SetNumberVariable", "parameters": ["HP", "=", "max(0, Variable(HP)-1)"]},
-                {"type": "TextObject::SetString", "parameters": ["HUD", "\"Coins: \" + ToString(Variable(Coins)) + \"  HP: \" + ToString(Variable(HP))"]},
-                {"type": "BuiltinCommonInstructions::SetObjectPosition", "parameters": ["Player", "200", "240"]},
-            ],
-            "events": [],
-        }
-    )
+    _ensure_camera_marker(scene, cfg)
+    _ensure_hud_objects(scene, cfg)
+    _ensure_joystick_instance(scene, cfg)
+    _ensure_shop_shell(scene)
 
 
-def ensure_global_var(project: Dict[str, Any], name: str, vtype: str, value: str) -> None:
+def _ensure_project_var(project: Json, name: str, value: float) -> None:
     vars_ = project.get("variables")
     if not isinstance(vars_, list):
         vars_ = []
         project["variables"] = vars_
-    for v in vars_:
-        if isinstance(v, dict) and v.get("name") == name:
-            v["type"] = vtype
-            v["value"] = value
-            v.setdefault("children", [])
+
+    for item in vars_:
+        if isinstance(item, dict) and item.get("name") == name:
+            item.setdefault("type", "number")
+            item.setdefault("children", [])
+            if "value" not in item:
+                item["value"] = value
             return
-    vars_.append({"name": name, "type": vtype, "value": value, "children": []})
+
+    vars_.append(
+        {
+            "name": name,
+            "type": "number",
+            "value": value,
+            "children": [],
+        }
+    )
 
 
-def ensure_scene_var(scene: Dict[str, Any], name: str, vtype: str, value: str) -> None:
-    vars_ = scene.get("variables")
-    if not isinstance(vars_, list):
-        vars_ = []
-        scene["variables"] = vars_
-    for v in vars_:
-        if isinstance(v, dict) and v.get("name") == name:
-            v["type"] = vtype
-            v["value"] = value
-            v.setdefault("children", [])
+def _ensure_scene_property(scene: Json, key: str, value: Any) -> None:
+    if key not in scene:
+        scene[key] = value
+
+
+def _ensure_ui_layer(scene: Json) -> None:
+    layers = scene.get("layers")
+    if not isinstance(layers, list):
+        layers = []
+        scene["layers"] = layers
+
+    for layer in layers:
+        if isinstance(layer, dict) and layer.get("name") == "UI":
+            layer.setdefault("followBaseLayerCamera", True)
             return
-    vars_.append({"name": name, "type": vtype, "value": value, "children": []})
+
+    layers.append(
+        {
+            "name": "UI",
+            "visibility": True,
+            "effects": [],
+            "isLightingLayer": False,
+            "followBaseLayerCamera": True,
+        }
+    )
 
 
-def _f(x: float) -> str:
-    # stable formatting for GDevelop expressions
-    return f"{x:.4f}"
+def _ensure_layout_object(scene: Json, obj_def: Json) -> None:
+    objects = scene.get("objects")
+    if not isinstance(objects, list):
+        objects = []
+        scene["objects"] = objects
+
+    name = obj_def.get("name")
+    if not name:
+        return
+
+    for existing in objects:
+        if isinstance(existing, dict) and existing.get("name") == name:
+            return
+
+    objects.append(obj_def)
+
+
+def _ensure_instance(scene: Json, object_name: str, x: float, y: float, layer: str, z: int) -> None:
+    instances = scene.get("instances")
+    if not isinstance(instances, list):
+        instances = []
+        scene["instances"] = instances
+
+    for inst in instances:
+        if not isinstance(inst, dict):
+            continue
+        if inst.get("objectName") == object_name or inst.get("name") == object_name:
+            inst["x"] = x
+            inst["y"] = y
+            inst["layer"] = layer
+            inst["zOrder"] = max(int(inst.get("zOrder", 0) or 0), z)
+            return
+
+    instances.append(
+        {
+            "name": object_name,
+            "objectName": object_name,
+            "layer": layer,
+            "x": x,
+            "y": y,
+            "angle": 0,
+            "zOrder": z,
+            "locked": False,
+            "persistentUuid": "",
+            "customSize": False,
+            "width": 0,
+            "height": 0,
+        }
+    )
+
+
+def _obj_text(name: str, text: str, size: int, align: str = "left") -> Json:
+    return {
+        "name": name,
+        "type": "TextObject::Text",
+        "assetStoreId": "",
+        "tags": "",
+        "variables": [],
+        "behaviors": [],
+        "content": {
+            "font": "",
+            "size": size,
+            "bold": True,
+            "italic": False,
+            "underlined": False,
+            "color": "255;255;255",
+            "string": text,
+            "alignment": align,
+            "verticalAlignment": "center",
+            "wrapping": False,
+        },
+        "effects": [],
+    }
+
+
+def _obj_panel(name: str, w: int, h: int) -> Json:
+    return {
+        "name": name,
+        "type": "PanelSpriteObject::PanelSprite",
+        "assetStoreId": "",
+        "tags": "",
+        "variables": [],
+        "behaviors": [],
+        "content": {"width": w, "height": h},
+        "effects": [],
+    }
+
+
+def _ensure_camera_marker(scene: Json, cfg: Any) -> None:
+    marker_name = "CameraTarget"
+    follow_object = getattr(cfg.camera, "followObject", "Player")
+
+    _ensure_layout_object(scene, _obj_text(marker_name, f"FOLLOW: {follow_object}", 18))
+    _ensure_instance(scene, marker_name, x=-9999, y=-9999, layer="UI", z=10)
+
+
+def _ensure_hud_objects(scene: Json, cfg: Any) -> None:
+    hud_name = getattr(cfg.ui.hud, "objectName", "HUD")
+    _ensure_layout_object(scene, _obj_text(hud_name, "HUD", 28))
+    _ensure_instance(
+        scene,
+        hud_name,
+        x=max(0, int(getattr(cfg.ui.hud, "marginX", 24))),
+        y=max(0, int(getattr(cfg.ui.hud, "marginY", 24))),
+        layer="UI",
+        z=2400,
+    )
+
+
+def _ensure_joystick_instance(scene: Json, cfg: Any) -> None:
+    object_name = getattr(cfg.ui.joystick, "objectName", "TouchJoystick")
+    margin_x = max(0, int(getattr(cfg.ui.joystick, "marginX", 36)))
+    margin_y = max(0, int(getattr(cfg.ui.joystick, "marginY", 36)))
+
+    _ensure_instance(
+        scene,
+        object_name,
+        x=margin_x,
+        y=900 + margin_y,
+        layer="UI",
+        z=2300,
+    )
+
+
+def _ensure_shop_shell(scene: Json) -> None:
+    _ensure_layout_object(scene, _obj_text("ShopButton", "SHOP", 36, align="center"))
+    _ensure_layout_object(scene, _obj_panel("ShopPanel", 520, 420))
+
+    _ensure_instance(scene, "ShopButton", x=820, y=24, layer="UI", z=2000)
+    _ensure_instance(scene, "ShopPanel", x=450, y=110, layer="UI", z=2100)
