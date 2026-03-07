@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="80" viewBox="0 0 320 80">
+  <rect x="4" y="4" width="312" height="72" rx="18" fill="#0f172a" opacity="0.68" stroke="#334155" stroke-width="2"/>
+  <text x="20" y="49" font-family="Arial" font-size="28" font-weight="700" fill="#f8fafc">HUD</text>
+</svg>
