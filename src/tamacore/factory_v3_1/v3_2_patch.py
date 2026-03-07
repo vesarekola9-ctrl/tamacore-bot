@@ -1,246 +1,284 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from ..utils import read_json
 
+Json = Dict[str, Any]
+
 
 def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any, game_dir: Path) -> None:
-    """
-    V3.2: inject level spawn areas into scene vars + add shop/upgrade runtime events.
+    _ensure_global_var(project, "LevelIndex", 0)
+    _ensure_global_var(project, "LevelCount", 1)
+    _ensure_global_var(project, "CoinTarget", 0)
+    _ensure_global_var(project, "EnemyTarget", 0)
+    _ensure_global_var(project, "RuntimeReady", 0)
 
-    V3.2.1:
-      - Adds a UI text button "ShopBtn" that works on mobile (touch/click).
-      - Clicking ShopBtn purchases speed_1 (cost 10) once and applies +20 PlayerMaxSpeed.
-    """
-    level = _load_first_level(game_dir)
-    if isinstance(level, dict):
-        _inject_level_areas(scene, level)
+    _ensure_ui_layer(scene)
+    _ensure_runtime_labels(scene)
 
-    # Ensure UI layer exists
-    _ensure_ui_layer(scene, "UI")
+    levels = _load_levels(game_dir)
+    level_count = len(levels)
+    first_level = levels[0] if levels else {}
 
-    # Ensure shop button object exists + instance exists
-    _ensure_shop_button(scene)
+    _inject_runtime_events(
+        scene=scene,
+        level_count=level_count,
+        coin_target=_safe_int(first_level.get("coinCount"), 0),
+        enemy_target=_safe_int(first_level.get("enemyCount"), 0),
+    )
 
+
+def _load_levels(game_dir: Path) -> List[Json]:
+    path = game_dir / "levels.json"
+    if not path.exists():
+        return []
+
+    data = read_json(path)
+    if not isinstance(data, list):
+        return []
+
+    out: List[Json] = []
+    for item in data:
+        if isinstance(item, dict):
+            out.append(item)
+    return out
+
+
+def _inject_runtime_events(
+    scene: Json,
+    level_count: int,
+    coin_target: int,
+    enemy_target: int,
+) -> None:
     events = scene.get("events")
     if not isinstance(events, list):
-        return
+        events = []
+        scene["events"] = events
 
-    # Prevent duplicates for v3.2.1
-    if any(isinstance(e, dict) and e.get("comment") == "FACTORY_V3_2_1_SHOPBTN" for e in events):
-        return
+    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_2"
+    for event in events:
+        if isinstance(event, dict) and event.get("type") == "BuiltinCommonInstructions::Comment":
+            if marker in str(event.get("comment", "")):
+                return
 
-    # Add variables
-    _ensure_global_var(project, "PlayerMaxSpeed", "number", "240")
-    _ensure_global_var(project, "Owned_speed_1", "number", "0")
-    _ensure_global_var(project, "Owned_speed_2", "number", "0")
-
-    # Update movement speed continuously from PlayerMaxSpeed
     events.append(
         {
-            "comment": "FACTORY_V3_2_STATS",
+            "type": "BuiltinCommonInstructions::Comment",
+            "comment": marker,
+            "comment2": "",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::AtTheBeginningOfTheScene", []),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelIndex", "0"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelCount", str(max(1, level_count))]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinTarget", str(max(0, coin_target))]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemyTarget", str(max(0, enemy_target))]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["RuntimeReady", "1"]),
+                _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
+                _act("TextObject::SetString", ["SpeedLabel", "\"Speed: \" + ToString(Variable(PlayerMaxSpeed))"]),
+                _act(
+                    "TextObject::SetString",
+                    [
+                        "LevelLabel",
+                        "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))",
+                    ],
+                ),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "TamaCore Runtime Init",
+        }
+    )
+
+    events.append(
+        {
             "type": "BuiltinCommonInstructions::Standard",
             "conditions": [],
             "actions": [
-                {
-                    "type": "TopDownMovement::SetMaxSpeed",
-                    "parameters": ["Player", "TopDownMovement", "Variable(PlayerMaxSpeed)"],
-                }
-            ],
-            "events": [],
-        }
-    )
-
-    # Keyboard fallback buy (PC)
-    events.append(
-        {
-            "comment": "FACTORY_V3_2_SHOP_KEY_1",
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                {"type": "BuiltinCommonInstructions::KeyPressed", "parameters": ["1"]},
-                {"type": "BuiltinCommonInstructions::CompareNumberVariable", "parameters": ["Owned_speed_1", "=", "0"]},
-                {"type": "BuiltinCommonInstructions::CompareNumberVariable", "parameters": ["Coins", ">=", "10"]},
-            ],
-            "actions": _actions_buy_speed1(),
-            "events": [],
-        }
-    )
-
-    # V3.2.1: Touch/click ShopBtn (mobile + desktop)
-    events.append(
-        {
-            "comment": "FACTORY_V3_2_1_SHOPBTN",
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                {"type": "BuiltinCommonInstructions::ObjectClicked", "parameters": ["ShopBtn"]},
-                {"type": "BuiltinCommonInstructions::CompareNumberVariable", "parameters": ["Owned_speed_1", "=", "0"]},
-                {"type": "BuiltinCommonInstructions::CompareNumberVariable", "parameters": ["Coins", ">=", "10"]},
-            ],
-            "actions": _actions_buy_speed1(),
-            "events": [],
-        }
-    )
-
-    # If not enough coins, show hint when clicking ShopBtn
-    events.append(
-        {
-            "comment": "FACTORY_V3_2_1_SHOPBTN_NOCOINS",
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                {"type": "BuiltinCommonInstructions::ObjectClicked", "parameters": ["ShopBtn"]},
-                {"type": "BuiltinCommonInstructions::CompareNumberVariable", "parameters": ["Owned_speed_1", "=", "0"]},
-                {"type": "BuiltinCommonInstructions::CompareNumberVariable", "parameters": ["Coins", "<", "10"]},
-            ],
-            "actions": [
-                {
-                    "type": "TextObject::SetString",
-                    "parameters": [
-                        "ShopBtn",
-                        "\"BUY SPEED +20 (10 coins)  —  NEED \" + ToString(10-Variable(Coins)) + \" MORE\"",
+                _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
+                _act("TextObject::SetString", ["SpeedLabel", "\"Speed: \" + ToString(Variable(PlayerMaxSpeed))"]),
+                _act(
+                    "TextObject::SetString",
+                    [
+                        "LevelLabel",
+                        "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))",
                     ],
-                }
+                ),
             ],
             "events": [],
-        }
-    )
-
-    # If already owned, show owned label
-    events.append(
-        {
-            "comment": "FACTORY_V3_2_1_SHOPBTN_OWNED",
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                {"type": "BuiltinCommonInstructions::ObjectClicked", "parameters": ["ShopBtn"]},
-                {"type": "BuiltinCommonInstructions::CompareNumberVariable", "parameters": ["Owned_speed_1", "=", "1"]},
-            ],
-            "actions": [{"type": "TextObject::SetString", "parameters": ["ShopBtn", "\"SPEED +20  —  OWNED\""]}],
-            "events": [],
+            "disabled": False,
+            "folded": False,
+            "infiniteLoopWarning": False,
+            "name": "TamaCore HUD Refresh",
         }
     )
 
 
-def _actions_buy_speed1() -> list[dict]:
-    return [
-        {"type": "BuiltinCommonInstructions::SetNumberVariable", "parameters": ["Coins", "=", "Variable(Coins)-10"]},
-        {"type": "BuiltinCommonInstructions::SetNumberVariable", "parameters": ["Owned_speed_1", "=", "1"]},
-        {"type": "BuiltinCommonInstructions::SetNumberVariable", "parameters": ["PlayerMaxSpeed", "=", "Variable(PlayerMaxSpeed)+20"]},
-        {"type": "TextObject::SetString", "parameters": ["ShopBtn", "\"SPEED +20  —  OWNED\""]},
-        {"type": "TextObject::SetString", "parameters": ["HUD", "\"Coins: \" + ToString(Variable(Coins)) + \"  HP: \" + ToString(Variable(HP)) + \"  SPD: \" + ToString(Variable(PlayerMaxSpeed))"]},
-    ]
+def _ensure_runtime_labels(scene: Json) -> None:
+    _ensure_layout_object(scene, _obj_text("CoinsLabel", "Coins: 0", 26))
+    _ensure_layout_object(scene, _obj_text("SpeedLabel", "Speed: 0", 26))
+    _ensure_layout_object(scene, _obj_text("LevelLabel", "Level: 1/1", 26))
+
+    _ensure_instance(scene, "CoinsLabel", x=24, y=24, layer="UI", z=2500)
+    _ensure_instance(scene, "SpeedLabel", x=24, y=58, layer="UI", z=2501)
+    _ensure_instance(scene, "LevelLabel", x=24, y=92, layer="UI", z=2502)
 
 
-def _load_first_level(game_dir: Path) -> Dict[str, Any] | None:
-    manifest = game_dir / "levels" / "manifest.json"
-    if manifest.exists():
-        m = read_json(manifest)
-        if isinstance(m, dict) and isinstance(m.get("levels"), list) and m["levels"]:
-            first_id = str(m["levels"][0])
-            p = game_dir / "levels" / f"{first_id}.json"
-            if p.exists():
-                d = read_json(p)
-                return d if isinstance(d, dict) else None
-
-    p = game_dir / "levels" / "level_001.json"
-    if p.exists():
-        d = read_json(p)
-        return d if isinstance(d, dict) else None
-    return None
-
-
-def _inject_level_areas(scene: Dict[str, Any], level: Dict[str, Any]) -> None:
-    coin = level.get("coinSpawnArea") if isinstance(level.get("coinSpawnArea"), dict) else {}
-    enemy = level.get("enemySpawnArea") if isinstance(level.get("enemySpawnArea"), dict) else {}
-
-    _ensure_scene_var(scene, "CoinAreaX", "number", str(int(coin.get("x", 200))))
-    _ensure_scene_var(scene, "CoinAreaY", "number", str(int(coin.get("y", 200))))
-    _ensure_scene_var(scene, "CoinAreaW", "number", str(int(coin.get("w", 800))))
-    _ensure_scene_var(scene, "CoinAreaH", "number", str(int(coin.get("h", 500))))
-
-    _ensure_scene_var(scene, "EnemyAreaX", "number", str(int(enemy.get("x", 300))))
-    _ensure_scene_var(scene, "EnemyAreaY", "number", str(int(enemy.get("y", 300))))
-    _ensure_scene_var(scene, "EnemyAreaW", "number", str(int(enemy.get("w", 900))))
-    _ensure_scene_var(scene, "EnemyAreaH", "number", str(int(enemy.get("h", 650))))
-
-
-def _ensure_ui_layer(scene: Dict[str, Any], layer_name: str) -> None:
+def _ensure_ui_layer(scene: Json) -> None:
     layers = scene.get("layers")
     if not isinstance(layers, list):
         layers = []
         scene["layers"] = layers
-    if not any(isinstance(l, dict) and l.get("name") == layer_name for l in layers):
-        layers.append({"name": layer_name, "visibility": True, "effects": []})
+
+    for layer in layers:
+        if isinstance(layer, dict) and layer.get("name") == "UI":
+            layer.setdefault("followBaseLayerCamera", True)
+            return
+
+    layers.append(
+        {
+            "name": "UI",
+            "visibility": True,
+            "effects": [],
+            "isLightingLayer": False,
+            "followBaseLayerCamera": True,
+        }
+    )
 
 
-def _ensure_shop_button(scene: Dict[str, Any]) -> None:
-    # Objects list in a layout is "objects": [ {name,type,...} ]
+def _ensure_global_var(project: Json, name: str, number_value: float) -> None:
+    vars_ = project.get("variables")
+    if not isinstance(vars_, list):
+        vars_ = []
+        project["variables"] = vars_
+
+    for var in vars_:
+        if isinstance(var, dict) and var.get("name") == name:
+            var.setdefault("type", "number")
+            var.setdefault("children", [])
+            if "value" not in var:
+                var["value"] = number_value
+            return
+
+    vars_.append(
+        {
+            "name": name,
+            "type": "number",
+            "value": number_value,
+            "children": [],
+        }
+    )
+
+
+def _ensure_layout_object(scene: Json, obj_def: Json) -> None:
     objects = scene.get("objects")
     if not isinstance(objects, list):
         objects = []
         scene["objects"] = objects
 
-    if not any(isinstance(o, dict) and o.get("name") == "ShopBtn" for o in objects):
-        objects.append(
-            {
-                "name": "ShopBtn",
-                "type": "Text",
-                "string": "BUY SPEED +20 (10 coins)",
-                "fontSize": 28,
-                "bold": True,
-                "italic": False,
-                "underlined": False,
-                "smoothed": True,
-                "font": "",
-                "color": {"r": 245, "g": 245, "b": 250},
-                "behaviors": [],
-                "effects": [],
-            }
-        )
+    obj_name = obj_def.get("name")
+    if not obj_name:
+        return
 
+    for existing in objects:
+        if isinstance(existing, dict) and existing.get("name") == obj_name:
+            return
+
+    objects.append(obj_def)
+
+
+def _ensure_instance(scene: Json, object_name: str, x: float, y: float, layer: str, z: int) -> None:
     instances = scene.get("instances")
     if not isinstance(instances, list):
         instances = []
         scene["instances"] = instances
 
-    if not any(isinstance(i, dict) and (i.get("objectName") == "ShopBtn" or i.get("name") == "ShopBtn") for i in instances):
-        # place on UI layer; anchoring is handled by v3.1 camera-ui anchoring if present
-        instances.append(
-            {
-                "objectName": "ShopBtn",
-                "name": "ShopBtn",
-                "x": 20,
-                "y": 70,
-                "angle": 0,
-                "layer": "UI",
-                "zOrder": 1000,
-            }
-        )
-
-
-def _ensure_global_var(project: Dict[str, Any], name: str, vtype: str, value: str) -> None:
-    vars_ = project.get("variables")
-    if not isinstance(vars_, list):
-        vars_ = []
-        project["variables"] = vars_
-    for v in vars_:
-        if isinstance(v, dict) and v.get("name") == name:
-            v["type"] = vtype
-            v["value"] = value
-            v.setdefault("children", [])
+    for inst in instances:
+        if not isinstance(inst, dict):
+            continue
+        if inst.get("objectName") == object_name or inst.get("name") == object_name:
+            inst["x"] = x
+            inst["y"] = y
+            inst["layer"] = layer
+            inst["zOrder"] = max(int(inst.get("zOrder", 0) or 0), z)
             return
-    vars_.append({"name": name, "type": vtype, "value": value, "children": []})
+
+    instances.append(
+        {
+            "name": object_name,
+            "objectName": object_name,
+            "layer": layer,
+            "x": x,
+            "y": y,
+            "angle": 0,
+            "zOrder": z,
+            "locked": False,
+            "persistentUuid": "",
+            "customSize": False,
+            "width": 0,
+            "height": 0,
+        }
+    )
 
 
-def _ensure_scene_var(scene: Dict[str, Any], name: str, vtype: str, value: str) -> None:
-    vars_ = scene.get("variables")
-    if not isinstance(vars_, list):
-        vars_ = []
-        scene["variables"] = vars_
-    for v in vars_:
-        if isinstance(v, dict) and v.get("name") == name:
-            v["type"] = vtype
-            v["value"] = value
-            v.setdefault("children", [])
-            return
-    vars_.append({"name": name, "type": vtype, "value": value, "children": []})
+def _obj_text(name: str, text: str, font_size: int) -> Json:
+    return {
+        "name": name,
+        "type": "TextObject::Text",
+        "assetStoreId": "",
+        "tags": "",
+        "variables": [],
+        "behaviors": [],
+        "content": {
+            "font": "",
+            "size": font_size,
+            "bold": True,
+            "italic": False,
+            "underlined": False,
+            "color": "255;255;255",
+            "string": text,
+            "alignment": "left",
+            "verticalAlignment": "center",
+            "wrapping": False,
+        },
+        "effects": [],
+    }
+
+
+def _cond(instruction: str, parameters: List[str]) -> Json:
+    return {
+        "type": "BuiltinCommonInstructions::Standard",
+        "inverted": False,
+        "parameters": parameters,
+        "subInstructions": [],
+        "instructionType": "condition",
+        "instruction": instruction,
+    }
+
+
+def _act(instruction: str, parameters: List[str]) -> Json:
+    return {
+        "type": "BuiltinCommonInstructions::Standard",
+        "parameters": parameters,
+        "subInstructions": [],
+        "instructionType": "action",
+        "instruction": instruction,
+    }
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
