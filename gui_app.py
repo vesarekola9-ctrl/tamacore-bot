@@ -56,6 +56,7 @@ class App(tk.Tk):
         actions = ttk.Frame(self)
         actions.pack(fill="x", padx=12, pady=(0, 12))
 
+        ttk.Button(actions, text="Inspect Pack", command=self._inspect_pack).pack(side="left", padx=6)
         ttk.Button(actions, text="Build Game", command=self._build_game).pack(side="left", padx=6)
         ttk.Button(actions, text="Validate Output", command=self._validate_game).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Output Folder", command=self._open_output).pack(side="left", padx=6)
@@ -108,6 +109,23 @@ class App(tk.Tk):
             self._append_log(proc.stderr.rstrip())
 
         return proc.returncode
+
+    def _inspect_pack(self) -> None:
+        cmd = [
+            sys.executable,
+            "-m",
+            "tamacore.cli",
+            "inspect-pack",
+            "--pack",
+            str(Path(self.pack_var.get())),
+        ]
+        rc = self._run_cmd(cmd)
+        if rc == 0:
+            self._append_log("[OK] Pack inspection passed")
+            messagebox.showinfo("TamaCore", "Pack inspection passed")
+        else:
+            self._append_log(f"[ERR] Inspect exit code {rc}")
+            messagebox.showerror("TamaCore", f"Pack inspection failed with exit code {rc}")
 
     def _build_game(self) -> None:
         cmd = [
