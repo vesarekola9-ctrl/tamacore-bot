@@ -16,6 +16,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
         game_dir / "catalog.json",
         game_dir / "levels.json",
         game_dir / "shop.json",
+        game_dir / "save.json",
         game_dir / "FACTORY_MANIFEST.json",
         game_dir / "BUILD_REPORT.txt",
     ]
@@ -33,6 +34,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
     catalog = _load_json(game_dir / "catalog.json", errors, "catalog.json")
     levels = _load_json(game_dir / "levels.json", errors, "levels.json")
     shop = _load_json(game_dir / "shop.json", errors, "shop.json")
+    save_data = _load_json(game_dir / "save.json", errors, "save.json")
     manifest = _load_json(game_dir / "FACTORY_MANIFEST.json", errors, "FACTORY_MANIFEST.json")
 
     if isinstance(game, dict):
@@ -48,6 +50,9 @@ def validate_build_output(game_dir: Path) -> List[str]:
 
     if isinstance(shop, dict):
         _validate_shop(shop, errors)
+
+    if isinstance(save_data, dict):
+        _validate_save(save_data, errors)
 
     if isinstance(manifest, dict):
         _validate_manifest(manifest, errors)
@@ -138,8 +143,8 @@ def _validate_game(game: Json, errors: List[str]) -> None:
     if not any("TAMACORE_AUTOGEN_PACK_SHOP_V3_3" in marker for marker in markers):
         errors.append("game.json: pack shop events marker missing")
 
-    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_3" in marker for marker in markers):
-        errors.append("game.json: runtime v3.3 marker missing")
+    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_4" in marker for marker in markers):
+        errors.append("game.json: runtime v3.4 marker missing")
 
     variables = game.get("variables")
     if not isinstance(variables, list):
@@ -160,6 +165,7 @@ def _validate_game(game: Json, errors: List[str]) -> None:
         "EnemiesHit",
         "LevelComplete",
         "GameComplete",
+        "SaveLoaded",
     ]:
         if name not in variable_names:
             errors.append(f"game.json: missing global variable '{name}'")
@@ -222,8 +228,23 @@ def _validate_shop(shop: Json, errors: List[str]) -> None:
                 errors.append(f"shop.json: upgrade {index} missing '{key}'")
 
 
+def _validate_save(save_data: Json, errors: List[str]) -> None:
+    for key in ["version", "storageKey", "defaults"]:
+        if key not in save_data:
+            errors.append(f"save.json: missing '{key}'")
+
+    defaults = save_data.get("defaults")
+    if not isinstance(defaults, dict):
+        errors.append("save.json: defaults missing")
+        return
+
+    for key in ["Coins", "Speed", "PlayerMaxSpeed", "LevelIndex", "CoinsCollected", "EnemiesHit", "LevelComplete", "GameComplete", "ownedUpgrades"]:
+        if key not in defaults:
+            errors.append(f"save.json: defaults missing '{key}'")
+
+
 def _validate_manifest(manifest: Json, errors: List[str]) -> None:
-    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns", "levels", "shopUpgrades", "catalogSummary"]:
+    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns", "levels", "shopUpgrades", "catalogSummary", "save"]:
         if key not in manifest:
             errors.append(f"FACTORY_MANIFEST.json: missing '{key}'")
 
