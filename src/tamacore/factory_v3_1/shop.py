@@ -19,12 +19,9 @@ def _normalize_effect(effect: Dict[str, Any]) -> Dict[str, Any]:
         return {}
 
     out: Dict[str, Any] = {}
-
-    # Keep only simple scalar values for JSON/runtime use.
     for key, value in effect.items():
         if isinstance(value, (int, float, str, bool)):
             out[str(key)] = value
-
     return out
 
 
