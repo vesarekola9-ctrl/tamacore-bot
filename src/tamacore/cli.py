@@ -7,6 +7,7 @@ from pathlib import Path
 from .factory_v3.generator import run_factory_v3
 from .factory_v3_1.asset_generator import generate_placeholder_assets
 from .factory_v3_1.auto_mode import run_auto_mode
+from .factory_v3_1.auto_validate import validate_auto_workspace
 from .factory_v3_1.batch_factory import run_batch_factory
 from .factory_v3_1.export_android_stub import export_android_stub
 from .factory_v3_1.export_report import write_export_report
@@ -129,6 +130,9 @@ def main(argv: list[str] | None = None) -> int:
 
     validate_exports_cmd = sub.add_parser("validate-exports")
     validate_exports_cmd.add_argument("--export-dir", required=True)
+
+    validate_auto_cmd = sub.add_parser("validate-auto")
+    validate_auto_cmd.add_argument("--workspace", required=True)
 
     inspect = sub.add_parser("inspect-pack")
     inspect.add_argument("--pack", required=True)
@@ -271,6 +275,15 @@ def main(argv: list[str] | None = None) -> int:
                 print(err)
             return 1
         print("[OK] Export validation passed")
+        return 0
+
+    if args.cmd == "validate-auto":
+        errors = validate_auto_workspace(Path(args.workspace))
+        if errors:
+            for err in errors:
+                print(err)
+            return 1
+        print("[OK] Auto workspace validation passed")
         return 0
 
     if args.cmd == "inspect-pack":
