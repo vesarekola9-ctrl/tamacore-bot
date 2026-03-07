@@ -13,6 +13,7 @@ from .patch_rules import apply_v3_1_rules
 from .schema import PackCfg, load_pack_cfg
 from .shop import write_shop
 from .v3_2_patch import apply_v3_2_runtime
+from .validate import validate_build_output
 
 
 def run_factory_v3_1(
@@ -58,6 +59,10 @@ def run_factory_v3_1(
 
     write_json(game_json, project)
     _write_manifest(game_dir, cfg, levels, shop, catalog, enable_v3_2)
+
+    errors = validate_build_output(game_dir)
+    if errors:
+        raise RuntimeError("Build validation failed:\n" + "\n".join(f"- {item}" for item in errors))
 
     print("[OK] Factory generated:", game_dir)
     print("[NEXT] Open in GDevelop:", game_json)
