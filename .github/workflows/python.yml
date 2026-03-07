@@ -32,14 +32,13 @@ jobs:
         run: |
           python -m tamacore.cli make-game --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out demo_game --with-demo-layout --export-out exports --export-web --export-zip
 
-      - name: Validate outputs
+      - name: Validate build
         run: |
           python -m tamacore.cli validate --game-dir demo_game
 
-      - name: Verify exports
+      - name: Validate exports
         run: |
-          test -f exports/web/index.html
-          test -f exports/game.zip
+          python -m tamacore.cli validate-exports --export-dir exports
 
       - name: Run integration test
         run: |
