@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 
 from ..utils import ensure_dir, write_json
 from .asset_generator import generate_placeholder_assets
+from .batch_report import write_batch_report
 from .export_report import write_export_report
 from .export_validate import validate_exports
 from .export_web import export_web
@@ -128,4 +129,5 @@ def run_batch_factory(
     }
 
     write_json(out_root / "BATCH_REPORT.json", summary)
+    write_batch_report(out_root, summary)
     return summary
