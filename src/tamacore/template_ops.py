@@ -5,16 +5,18 @@ from pathlib import Path
 
 
 def ensure_template_exists(template_dir: Path) -> None:
+    if not template_dir.exists():
+        raise FileNotFoundError(f"Template directory not found: {template_dir}")
+
     game_json = template_dir / "game.json"
     if not game_json.exists():
-        raise FileNotFoundError(
-            f"Template missing: {game_json}\n"
-            "Fix:\n"
-            "  GDevelop -> New project -> Empty -> Save As into templates/gdevelop_template\n"
-            "  Ensure templates/gdevelop_template/game.json exists and commit it."
-        )
+        raise FileNotFoundError(f"Template game.json not found: {game_json}")
 
 
-def copy_template(template_dir: Path, out_dir: Path) -> None:
-    out_dir.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(template_dir, out_dir, dirs_exist_ok=True)
+def copy_template(template_dir: Path, game_dir: Path) -> None:
+    ensure_template_exists(template_dir)
+
+    if game_dir.exists():
+        shutil.rmtree(game_dir)
+
+    shutil.copytree(template_dir, game_dir)
