@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from .asset_generator import generate_placeholder_assets
+from .auto_report import write_auto_report
 from .batch_factory import run_batch_factory
 from .pack_scaffold import create_pack
 
@@ -39,7 +40,7 @@ def run_auto_mode(
         bundle_enabled=True,
     )
 
-    return {
+    result = {
         "workspace": str(workspace_dir),
         "packDir": str(pack_dir),
         "gameDir": str(out_root / pack_name),
@@ -48,3 +49,6 @@ def run_auto_mode(
         "summary": summary,
         "gameName": game_name,
     }
+
+    write_auto_report(workspace_dir, result)
+    return result
