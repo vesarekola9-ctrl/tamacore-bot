@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 
 from .factory_v3.generator import run_factory_v3
+from .factory_v3_1.ai_pack_generator import generate_ai_pack
+from .factory_v3_1.ai_pet_generator import generate_ai_pet
 from .factory_v3_1.asset_generator import generate_placeholder_assets
 from .factory_v3_1.auto_mode import run_auto_mode
 from .factory_v3_1.auto_validate import validate_auto_workspace
@@ -149,6 +151,12 @@ def main(argv: list[str] | None = None) -> int:
 
     gen_assets = sub.add_parser("generate-assets")
     gen_assets.add_argument("--pack", required=True)
+
+    ai_pack = sub.add_parser("ai-pack")
+    ai_pack.add_argument("--out", required=True)
+
+    ai_pet = sub.add_parser("ai-pet")
+    ai_pet.add_argument("--pack", required=True)
 
     export = sub.add_parser("export")
     export.add_argument("--game-dir", required=True)
@@ -322,6 +330,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "generate-assets":
         generate_placeholder_assets(Path(args.pack))
         print(f"[OK] Placeholder assets generated: {Path(args.pack)}")
+        return 0
+
+    if args.cmd == "ai-pack":
+        generate_ai_pack(Path(args.out))
+        print(f"[OK] AI pack created: {args.out}")
+        return 0
+
+    if args.cmd == "ai-pet":
+        result = generate_ai_pet(Path(args.pack))
+        print(f"[OK] AI pet created: {result.get('name', 'pet')}")
         return 0
 
     if args.cmd == "export":
