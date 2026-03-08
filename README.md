@@ -1,7 +1,6 @@
 # TamaCore Bot
 
-## Auto mode
+## AI pack
 
 ```bash
-python -m tamacore.cli auto --workspace auto_workspace --template templates/gdevelop_template --pack-name auto_pack --game-name auto_game
-python -m tamacore.cli validate-auto --workspace auto_workspace
+python -m tamacore.cli ai-pack --out assets/packs/ai_pack1
