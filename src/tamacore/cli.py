@@ -5,8 +5,10 @@ import sys
 from pathlib import Path
 
 from .factory_v3.generator import run_factory_v3
+from .factory_v3_1.ai_level_generator import generate_ai_levels
 from .factory_v3_1.ai_pack_generator import generate_ai_pack
 from .factory_v3_1.ai_pet_generator import generate_ai_pet
+from .factory_v3_1.ai_shop_generator import generate_ai_shop
 from .factory_v3_1.asset_generator import generate_placeholder_assets
 from .factory_v3_1.auto_mode import run_auto_mode
 from .factory_v3_1.auto_validate import validate_auto_workspace
@@ -157,6 +159,13 @@ def main(argv: list[str] | None = None) -> int:
 
     ai_pet = sub.add_parser("ai-pet")
     ai_pet.add_argument("--pack", required=True)
+
+    ai_shop = sub.add_parser("ai-shop")
+    ai_shop.add_argument("--pack", required=True)
+    ai_shop.add_argument("--count", type=int, default=4)
+
+    ai_levels = sub.add_parser("ai-levels")
+    ai_levels.add_argument("--pack", required=True)
 
     export = sub.add_parser("export")
     export.add_argument("--game-dir", required=True)
@@ -340,6 +349,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "ai-pet":
         result = generate_ai_pet(Path(args.pack))
         print(f"[OK] AI pet created: {result.get('name', 'pet')}")
+        return 0
+
+    if args.cmd == "ai-shop":
+        result = generate_ai_shop(Path(args.pack), int(args.count))
+        print(f"[OK] AI shop created: {len(result.get('upgrades', []))} upgrades")
+        return 0
+
+    if args.cmd == "ai-levels":
+        result = generate_ai_levels(Path(args.pack))
+        print(f"[OK] AI levels created: {result.get('count', 0)}")
         return 0
 
     if args.cmd == "export":
