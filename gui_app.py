@@ -14,8 +14,8 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("TamaCore Bot")
-        self.geometry("980x760")
-        self.minsize(980, 760)
+        self.geometry("1020x780")
+        self.minsize(1020, 780)
 
         self.pack_var = tk.StringVar(value=str(ROOT / "assets" / "packs" / "demo_pack"))
         self.packs_root_var = tk.StringVar(value=str(ROOT / "assets" / "packs"))
@@ -39,25 +39,30 @@ class App(tk.Tk):
         self.bundle_release_var = tk.BooleanVar(value=True)
         self.generate_assets_var = tk.BooleanVar(value=True)
 
+        self.ai_shop_count_var = tk.StringVar(value="4")
+
         self._build_ui()
 
     def _build_ui(self) -> None:
-        root_notebook = ttk.Notebook(self)
-        root_notebook.pack(fill="both", expand=True, padx=10, pady=10)
+        notebook = ttk.Notebook(self)
+        notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
-        single_tab = ttk.Frame(root_notebook)
-        batch_tab = ttk.Frame(root_notebook)
-        auto_tab = ttk.Frame(root_notebook)
-        log_tab = ttk.Frame(root_notebook)
+        single_tab = ttk.Frame(notebook)
+        batch_tab = ttk.Frame(notebook)
+        auto_tab = ttk.Frame(notebook)
+        ai_tab = ttk.Frame(notebook)
+        log_tab = ttk.Frame(notebook)
 
-        root_notebook.add(single_tab, text="Single")
-        root_notebook.add(batch_tab, text="Batch")
-        root_notebook.add(auto_tab, text="Auto")
-        root_notebook.add(log_tab, text="Log")
+        notebook.add(single_tab, text="Single")
+        notebook.add(batch_tab, text="Batch")
+        notebook.add(auto_tab, text="Auto")
+        notebook.add(ai_tab, text="AI Tools")
+        notebook.add(log_tab, text="Log")
 
         self._build_single_tab(single_tab)
         self._build_batch_tab(batch_tab)
         self._build_auto_tab(auto_tab)
+        self._build_ai_tab(ai_tab)
         self._build_log_tab(log_tab)
 
     def _build_single_tab(self, parent: ttk.Frame) -> None:
@@ -161,6 +166,7 @@ class App(tk.Tk):
         actions = ttk.Frame(parent)
         actions.pack(fill="x", padx=12, pady=(0, 12))
         ttk.Button(actions, text="Run Batch", command=self._make_batch).pack(side="left", padx=6)
+        ttk.Button(actions, text="Validate Batch", command=self._validate_batch).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Batch Games", command=lambda: self._open_path(Path(self.out_root_var.get()))).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Batch Exports", command=lambda: self._open_path(Path(self.export_root_var.get()))).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Batch Bundles", command=lambda: self._open_path(Path(self.bundle_root_var.get()))).pack(side="left", padx=6)
@@ -191,10 +197,34 @@ class App(tk.Tk):
         actions = ttk.Frame(parent)
         actions.pack(fill="x", padx=12, pady=(0, 12))
         ttk.Button(actions, text="Run Auto", command=self._run_auto).pack(side="left", padx=6)
+        ttk.Button(actions, text="Validate Auto", command=self._validate_auto).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Workspace", command=lambda: self._open_path(Path(self.workspace_var.get()))).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Auto Games", command=lambda: self._open_path(Path(self.workspace_var.get()) / "games")).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Auto Exports", command=lambda: self._open_path(Path(self.workspace_var.get()) / "exports")).pack(side="left", padx=6)
         ttk.Button(actions, text="Open Auto Bundles", command=lambda: self._open_path(Path(self.workspace_var.get()) / "bundles")).pack(side="left", padx=6)
+        ttk.Button(actions, text="Open AUTO_REPORT", command=lambda: self._open_file(Path(self.workspace_var.get()) / "AUTO_REPORT.txt")).pack(side="left", padx=6)
+
+    def _build_ai_tab(self, parent: ttk.Frame) -> None:
+        pad = {"padx": 8, "pady": 6}
+
+        frame = ttk.LabelFrame(parent, text="AI Generators")
+        frame.pack(fill="x", padx=12, pady=12)
+
+        ttk.Label(frame, text="Pack").grid(row=0, column=0, sticky="w", **pad)
+        ttk.Entry(frame, textvariable=self.pack_var, width=86).grid(row=0, column=1, sticky="ew", **pad)
+        ttk.Button(frame, text="Browse", command=lambda: self._browse_dir(self.pack_var)).grid(row=0, column=2, **pad)
+
+        ttk.Label(frame, text="AI Shop Count").grid(row=1, column=0, sticky="w", **pad)
+        ttk.Entry(frame, textvariable=self.ai_shop_count_var, width=12).grid(row=1, column=1, sticky="w", **pad)
+
+        frame.columnconfigure(1, weight=1)
+
+        actions = ttk.Frame(parent)
+        actions.pack(fill="x", padx=12, pady=(0, 12))
+        ttk.Button(actions, text="AI Pack", command=self._ai_pack).pack(side="left", padx=6)
+        ttk.Button(actions, text="AI Pet", command=self._ai_pet).pack(side="left", padx=6)
+        ttk.Button(actions, text="AI Shop", command=self._ai_shop).pack(side="left", padx=6)
+        ttk.Button(actions, text="AI Levels", command=self._ai_levels).pack(side="left", padx=6)
 
     def _build_log_tab(self, parent: ttk.Frame) -> None:
         log_frame = ttk.LabelFrame(parent, text="Log")
@@ -216,13 +246,7 @@ class App(tk.Tk):
     def _run_cmd(self, cmd: list[str]) -> int:
         self._append_log(" ".join(cmd))
         try:
-            proc = subprocess.run(
-                cmd,
-                cwd=str(ROOT),
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True, check=False)
         except Exception as exc:
             self._append_log(f"[ERR] {exc}")
             messagebox.showerror("TamaCore", str(exc))
@@ -236,20 +260,14 @@ class App(tk.Tk):
         return proc.returncode
 
     def _inspect_pack(self) -> None:
-        rc = self._run_cmd([
-            sys.executable, "-m", "tamacore.cli", "inspect-pack",
-            "--pack", str(Path(self.pack_var.get()))
-        ])
+        rc = self._run_cmd([sys.executable, "-m", "tamacore.cli", "inspect-pack", "--pack", str(Path(self.pack_var.get()))])
         if rc == 0:
             messagebox.showinfo("TamaCore", "Pack inspection passed")
         else:
             messagebox.showerror("TamaCore", f"Pack inspection failed with exit code {rc}")
 
     def _generate_assets(self) -> None:
-        rc = self._run_cmd([
-            sys.executable, "-m", "tamacore.cli", "generate-assets",
-            "--pack", str(Path(self.pack_var.get()))
-        ])
+        rc = self._run_cmd([sys.executable, "-m", "tamacore.cli", "generate-assets", "--pack", str(Path(self.pack_var.get()))])
         if rc == 0:
             messagebox.showinfo("TamaCore", "Assets generated")
         else:
@@ -349,24 +367,69 @@ class App(tk.Tk):
             messagebox.showerror("TamaCore", f"Auto mode failed with exit code {rc}")
 
     def _validate_game(self) -> None:
-        rc = self._run_cmd([
-            sys.executable, "-m", "tamacore.cli", "validate",
-            "--game-dir", str(Path(self.out_var.get()))
-        ])
+        rc = self._run_cmd([sys.executable, "-m", "tamacore.cli", "validate", "--game-dir", str(Path(self.out_var.get()))])
         if rc == 0:
             messagebox.showinfo("TamaCore", "Build validation passed")
         else:
             messagebox.showerror("TamaCore", f"Build validation failed with exit code {rc}")
 
     def _validate_exports(self) -> None:
-        rc = self._run_cmd([
-            sys.executable, "-m", "tamacore.cli", "validate-exports",
-            "--export-dir", str(Path(self.export_var.get()))
-        ])
+        rc = self._run_cmd([sys.executable, "-m", "tamacore.cli", "validate-exports", "--export-dir", str(Path(self.export_var.get()))])
         if rc == 0:
             messagebox.showinfo("TamaCore", "Export validation passed")
         else:
             messagebox.showerror("TamaCore", f"Export validation failed with exit code {rc}")
+
+    def _validate_batch(self) -> None:
+        rc = self._run_cmd([
+            sys.executable, "-m", "tamacore.cli", "validate-batch",
+            "--out-root", str(Path(self.out_root_var.get())),
+            "--export-root", str(Path(self.export_root_var.get())),
+            "--bundle-root", str(Path(self.bundle_root_var.get())),
+        ])
+        if rc == 0:
+            messagebox.showinfo("TamaCore", "Batch validation passed")
+        else:
+            messagebox.showerror("TamaCore", f"Batch validation failed with exit code {rc}")
+
+    def _validate_auto(self) -> None:
+        rc = self._run_cmd([sys.executable, "-m", "tamacore.cli", "validate-auto", "--workspace", str(Path(self.workspace_var.get()))])
+        if rc == 0:
+            messagebox.showinfo("TamaCore", "Auto validation passed")
+        else:
+            messagebox.showerror("TamaCore", f"Auto validation failed with exit code {rc}")
+
+    def _ai_pack(self) -> None:
+        rc = self._run_cmd([sys.executable, "-m", "tamacore.cli", "ai-pack", "--out", str(Path(self.pack_var.get()))])
+        if rc == 0:
+            messagebox.showinfo("TamaCore", "AI pack created")
+        else:
+            messagebox.showerror("TamaCore", f"AI pack failed with exit code {rc}")
+
+    def _ai_pet(self) -> None:
+        rc = self._run_cmd([sys.executable, "-m", "tamacore.cli", "ai-pet", "--pack", str(Path(self.pack_var.get()))])
+        if rc == 0:
+            messagebox.showinfo("TamaCore", "AI pet created")
+        else:
+            messagebox.showerror("TamaCore", f"AI pet failed with exit code {rc}")
+
+    def _ai_shop(self) -> None:
+        rc = self._run_cmd([
+            sys.executable, "-m", "tamacore.cli", "ai-shop",
+            "--pack", str(Path(self.pack_var.get())),
+            "--count", self.ai_shop_count_var.get(),
+        ])
+        if rc == 0:
+            messagebox.showinfo("TamaCore", "AI shop created")
+        else:
+            messagebox.showerror("TamaCore", f"AI shop failed with exit code {rc}")
+
+    def _ai_levels(self) -> None:
+        rc = self._run_cmd([sys.executable, "-m", "tamacore.cli", "ai-levels", "--pack", str(Path(self.pack_var.get()))])
+        if rc == 0:
+            messagebox.showinfo("TamaCore", "AI levels created")
+        else:
+            messagebox.showerror("TamaCore", f"AI levels failed with exit code {rc}")
 
     def _open_path(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
