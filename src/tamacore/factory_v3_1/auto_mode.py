@@ -3,10 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict
 
+from .ai_level_generator import generate_ai_levels
+from .ai_pack_generator import generate_ai_pack
+from .ai_pet_generator import generate_ai_pet
+from .ai_shop_generator import generate_ai_shop
 from .asset_generator import generate_placeholder_assets
 from .auto_report import write_auto_report
 from .batch_factory import run_batch_factory
-from .pack_scaffold import create_pack
 
 
 def run_auto_mode(
@@ -21,9 +24,14 @@ def run_auto_mode(
     bundle_root = workspace_dir / "bundles"
 
     pack_dir = packs_root / pack_name
-    if not (pack_dir / "pack.json").exists():
-        create_pack(pack_dir, pack_name)
+    pack_dir.mkdir(parents=True, exist_ok=True)
 
+    if not (pack_dir / "pack.json").exists():
+        generate_ai_pack(pack_dir)
+
+    generate_ai_pet(pack_dir)
+    generate_ai_shop(pack_dir, upgrade_count=4)
+    generate_ai_levels(pack_dir)
     generate_placeholder_assets(pack_dir)
 
     summary = run_batch_factory(
