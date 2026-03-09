@@ -8,6 +8,7 @@ from .factory_v3.generator import run_factory_v3
 from .factory_v3_1.ai_content_generator import generate_ai_content
 from .factory_v3_1.ai_full_pack_generator import generate_ai_full_pack
 from .factory_v3_1.ai_level_generator import generate_ai_levels
+from .factory_v3_1.ai_make_game import run_ai_make_game
 from .factory_v3_1.ai_pack_generator import generate_ai_pack
 from .factory_v3_1.ai_pet_generator import generate_ai_pet
 from .factory_v3_1.ai_shop_generator import generate_ai_shop
@@ -112,6 +113,20 @@ def main(argv: list[str] | None = None) -> int:
     make_game.add_argument("--bundle-out", default="")
     make_game.add_argument("--bundle-release", action="store_true")
     make_game.add_argument("--generate-assets", action="store_true")
+
+    ai_make = sub.add_parser("ai-make-game")
+    ai_make.add_argument("--out-pack", required=True)
+    ai_make.add_argument("--template", default="templates/gdevelop_template")
+    ai_make.add_argument("--out-game", required=True)
+    ai_make.add_argument("--export-out", default="exports")
+    ai_make.add_argument("--bundle-out", default="release_bundle")
+    ai_make.add_argument("--shop-count", type=int, default=4)
+    ai_make.add_argument("--foods", type=int, default=4)
+    ai_make.add_argument("--cosmetics", type=int, default=4)
+    ai_make.add_argument("--with-demo-layout", action="store_true")
+    ai_make.add_argument("--no-export-web", action="store_true")
+    ai_make.add_argument("--no-export-zip", action="store_true")
+    ai_make.add_argument("--no-bundle", action="store_true")
 
     batch = sub.add_parser("make-batch")
     batch.add_argument("--packs-root", required=True)
@@ -264,6 +279,25 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[OK] release zip created: {bundle_out}.zip")
 
         print("[OK] make-game complete")
+        return 0
+
+    if args.cmd == "ai-make-game":
+        result = run_ai_make_game(
+            pack_dir=Path(args.out_pack),
+            template_dir=Path(args.template),
+            out_dir=Path(args.out_game),
+            export_dir=Path(args.export_out),
+            bundle_dir=Path(args.bundle_out),
+            shop_count=int(args.shop_count),
+            foods_count=int(args.foods),
+            cosmetics_count=int(args.cosmetics),
+            with_demo_layout=bool(args.with_demo_layout),
+            enable_v3_2=True,
+            export_web_enabled=not bool(args.no_export_web),
+            export_zip_enabled=not bool(args.no_export_zip),
+            bundle_enabled=not bool(args.no_bundle),
+        )
+        print(f"[OK] ai-make-game complete: {result['gameDir']}")
         return 0
 
     if args.cmd == "make-batch":
