@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .factory_v3.generator import run_factory_v3
 from .factory_v3_1.ai_content_generator import generate_ai_content
+from .factory_v3_1.ai_full_pack_generator import generate_ai_full_pack
 from .factory_v3_1.ai_level_generator import generate_ai_levels
 from .factory_v3_1.ai_pack_generator import generate_ai_pack
 from .factory_v3_1.ai_pet_generator import generate_ai_pet
@@ -172,6 +173,12 @@ def main(argv: list[str] | None = None) -> int:
     ai_content.add_argument("--pack", required=True)
     ai_content.add_argument("--foods", type=int, default=4)
     ai_content.add_argument("--cosmetics", type=int, default=4)
+
+    ai_full = sub.add_parser("ai-full-pack")
+    ai_full.add_argument("--out", required=True)
+    ai_full.add_argument("--shop-count", type=int, default=4)
+    ai_full.add_argument("--foods", type=int, default=4)
+    ai_full.add_argument("--cosmetics", type=int, default=4)
 
     export = sub.add_parser("export")
     export.add_argument("--game-dir", required=True)
@@ -373,6 +380,21 @@ def main(argv: list[str] | None = None) -> int:
             f"[OK] AI content created: "
             f"{len(result.get('foods', []))} foods, "
             f"{len(result.get('cosmetics', []))} cosmetics"
+        )
+        return 0
+
+    if args.cmd == "ai-full-pack":
+        result = generate_ai_full_pack(
+            Path(args.out),
+            shop_count=int(args.shop_count),
+            foods_count=int(args.foods),
+            cosmetics_count=int(args.cosmetics),
+        )
+        print(
+            f"[OK] AI full pack created: "
+            f"{result.get('pet', '')}, "
+            f"{result.get('shopUpgrades', 0)} upgrades, "
+            f"{result.get('levelCount', 0)} levels"
         )
         return 0
 
