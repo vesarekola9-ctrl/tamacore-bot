@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict
 
+from .ai_content_generator import generate_ai_content
 from .ai_level_generator import generate_ai_levels
 from .ai_pack_generator import generate_ai_pack
 from .ai_pet_generator import generate_ai_pet
@@ -29,9 +30,10 @@ def run_auto_mode(
     if not (pack_dir / "pack.json").exists():
         generate_ai_pack(pack_dir)
 
-    generate_ai_pet(pack_dir)
-    generate_ai_shop(pack_dir, upgrade_count=4)
-    generate_ai_levels(pack_dir)
+    pet = generate_ai_pet(pack_dir)
+    shop = generate_ai_shop(pack_dir, upgrade_count=4)
+    levels = generate_ai_levels(pack_dir)
+    content = generate_ai_content(pack_dir, foods_count=4, cosmetics_count=4)
     generate_placeholder_assets(pack_dir)
 
     summary = run_batch_factory(
@@ -56,6 +58,11 @@ def run_auto_mode(
         "bundleDir": str(bundle_root / pack_name),
         "summary": summary,
         "gameName": game_name,
+        "pet": pet.get("name", ""),
+        "shopUpgrades": len(shop.get("upgrades", [])),
+        "levelCount": levels.get("count", 0),
+        "foodCount": len(content.get("foods", [])),
+        "cosmeticCount": len(content.get("cosmetics", [])),
     }
 
     write_auto_report(workspace_dir, result)
