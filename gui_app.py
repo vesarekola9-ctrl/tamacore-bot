@@ -14,8 +14,8 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("TamaCore Bot")
-        self.geometry("1020x780")
-        self.minsize(1020, 780)
+        self.geometry("1040x800")
+        self.minsize(1040, 800)
 
         self.pack_var = tk.StringVar(value=str(ROOT / "assets" / "packs" / "demo_pack"))
         self.packs_root_var = tk.StringVar(value=str(ROOT / "assets" / "packs"))
@@ -40,6 +40,8 @@ class App(tk.Tk):
         self.generate_assets_var = tk.BooleanVar(value=True)
 
         self.ai_shop_count_var = tk.StringVar(value="4")
+        self.ai_foods_count_var = tk.StringVar(value="4")
+        self.ai_cosmetics_count_var = tk.StringVar(value="4")
 
         self._build_ui()
 
@@ -72,23 +74,23 @@ class App(tk.Tk):
         top.pack(fill="x", padx=12, pady=12)
 
         ttk.Label(top, text="Pack").grid(row=0, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.pack_var, width=86).grid(row=0, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.pack_var, width=88).grid(row=0, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=lambda: self._browse_dir(self.pack_var)).grid(row=0, column=2, **pad)
 
         ttk.Label(top, text="Template").grid(row=1, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.template_var, width=86).grid(row=1, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.template_var, width=88).grid(row=1, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=lambda: self._browse_dir(self.template_var)).grid(row=1, column=2, **pad)
 
         ttk.Label(top, text="Output").grid(row=2, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.out_var, width=86).grid(row=2, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.out_var, width=88).grid(row=2, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=lambda: self._browse_dir(self.out_var)).grid(row=2, column=2, **pad)
 
         ttk.Label(top, text="Exports").grid(row=3, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.export_var, width=86).grid(row=3, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.export_var, width=88).grid(row=3, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=lambda: self._browse_dir(self.export_var)).grid(row=3, column=2, **pad)
 
         ttk.Label(top, text="Bundle").grid(row=4, column=0, sticky="w", **pad)
-        ttk.Entry(top, textvariable=self.bundle_var, width=86).grid(row=4, column=1, sticky="ew", **pad)
+        ttk.Entry(top, textvariable=self.bundle_var, width=88).grid(row=4, column=1, sticky="ew", **pad)
         ttk.Button(top, text="Browse", command=lambda: self._browse_dir(self.bundle_var)).grid(row=4, column=2, **pad)
 
         top.columnconfigure(1, weight=1)
@@ -132,23 +134,23 @@ class App(tk.Tk):
         frame.pack(fill="x", padx=12, pady=12)
 
         ttk.Label(frame, text="Packs Root").grid(row=0, column=0, sticky="w", **pad)
-        ttk.Entry(frame, textvariable=self.packs_root_var, width=86).grid(row=0, column=1, sticky="ew", **pad)
+        ttk.Entry(frame, textvariable=self.packs_root_var, width=88).grid(row=0, column=1, sticky="ew", **pad)
         ttk.Button(frame, text="Browse", command=lambda: self._browse_dir(self.packs_root_var)).grid(row=0, column=2, **pad)
 
         ttk.Label(frame, text="Template").grid(row=1, column=0, sticky="w", **pad)
-        ttk.Entry(frame, textvariable=self.template_var, width=86).grid(row=1, column=1, sticky="ew", **pad)
+        ttk.Entry(frame, textvariable=self.template_var, width=88).grid(row=1, column=1, sticky="ew", **pad)
         ttk.Button(frame, text="Browse", command=lambda: self._browse_dir(self.template_var)).grid(row=1, column=2, **pad)
 
         ttk.Label(frame, text="Out Root").grid(row=2, column=0, sticky="w", **pad)
-        ttk.Entry(frame, textvariable=self.out_root_var, width=86).grid(row=2, column=1, sticky="ew", **pad)
+        ttk.Entry(frame, textvariable=self.out_root_var, width=88).grid(row=2, column=1, sticky="ew", **pad)
         ttk.Button(frame, text="Browse", command=lambda: self._browse_dir(self.out_root_var)).grid(row=2, column=2, **pad)
 
         ttk.Label(frame, text="Export Root").grid(row=3, column=0, sticky="w", **pad)
-        ttk.Entry(frame, textvariable=self.export_root_var, width=86).grid(row=3, column=1, sticky="ew", **pad)
+        ttk.Entry(frame, textvariable=self.export_root_var, width=88).grid(row=3, column=1, sticky="ew", **pad)
         ttk.Button(frame, text="Browse", command=lambda: self._browse_dir(self.export_root_var)).grid(row=3, column=2, **pad)
 
         ttk.Label(frame, text="Bundle Root").grid(row=4, column=0, sticky="w", **pad)
-        ttk.Entry(frame, textvariable=self.bundle_root_var, width=86).grid(row=4, column=1, sticky="ew", **pad)
+        ttk.Entry(frame, textvariable=self.bundle_root_var, width=88).grid(row=4, column=1, sticky="ew", **pad)
         ttk.Button(frame, text="Browse", command=lambda: self._browse_dir(self.bundle_root_var)).grid(row=4, column=2, **pad)
 
         frame.columnconfigure(1, weight=1)
@@ -179,11 +181,11 @@ class App(tk.Tk):
         frame.pack(fill="x", padx=12, pady=12)
 
         ttk.Label(frame, text="Workspace").grid(row=0, column=0, sticky="w", **pad)
-        ttk.Entry(frame, textvariable=self.workspace_var, width=86).grid(row=0, column=1, sticky="ew", **pad)
+        ttk.Entry(frame, textvariable=self.workspace_var, width=88).grid(row=0, column=1, sticky="ew", **pad)
         ttk.Button(frame, text="Browse", command=lambda: self._browse_dir(self.workspace_var)).grid(row=0, column=2, **pad)
 
         ttk.Label(frame, text="Template").grid(row=1, column=0, sticky="w", **pad)
-        ttk.Entry(frame, textvariable=self.template_var, width=86).grid(row=1, column=1, sticky="ew", **pad)
+        ttk.Entry(frame, textvariable=self.template_var, width=88).grid(row=1, column=1, sticky="ew", **pad)
         ttk.Button(frame, text="Browse", command=lambda: self._browse_dir(self.template_var)).grid(row=1, column=2, **pad)
 
         ttk.Label(frame, text="Auto Pack").grid(row=2, column=0, sticky="w", **pad)
@@ -211,11 +213,17 @@ class App(tk.Tk):
         frame.pack(fill="x", padx=12, pady=12)
 
         ttk.Label(frame, text="Pack").grid(row=0, column=0, sticky="w", **pad)
-        ttk.Entry(frame, textvariable=self.pack_var, width=86).grid(row=0, column=1, sticky="ew", **pad)
+        ttk.Entry(frame, textvariable=self.pack_var, width=88).grid(row=0, column=1, sticky="ew", **pad)
         ttk.Button(frame, text="Browse", command=lambda: self._browse_dir(self.pack_var)).grid(row=0, column=2, **pad)
 
         ttk.Label(frame, text="AI Shop Count").grid(row=1, column=0, sticky="w", **pad)
         ttk.Entry(frame, textvariable=self.ai_shop_count_var, width=12).grid(row=1, column=1, sticky="w", **pad)
+
+        ttk.Label(frame, text="Foods").grid(row=2, column=0, sticky="w", **pad)
+        ttk.Entry(frame, textvariable=self.ai_foods_count_var, width=12).grid(row=2, column=1, sticky="w", **pad)
+
+        ttk.Label(frame, text="Cosmetics").grid(row=3, column=0, sticky="w", **pad)
+        ttk.Entry(frame, textvariable=self.ai_cosmetics_count_var, width=12).grid(row=3, column=1, sticky="w", **pad)
 
         frame.columnconfigure(1, weight=1)
 
@@ -225,6 +233,8 @@ class App(tk.Tk):
         ttk.Button(actions, text="AI Pet", command=self._ai_pet).pack(side="left", padx=6)
         ttk.Button(actions, text="AI Shop", command=self._ai_shop).pack(side="left", padx=6)
         ttk.Button(actions, text="AI Levels", command=self._ai_levels).pack(side="left", padx=6)
+        ttk.Button(actions, text="AI Content", command=self._ai_content).pack(side="left", padx=6)
+        ttk.Button(actions, text="AI Full Pack", command=self._ai_full_pack).pack(side="left", padx=6)
 
     def _build_log_tab(self, parent: ttk.Frame) -> None:
         log_frame = ttk.LabelFrame(parent, text="Log")
@@ -430,6 +440,31 @@ class App(tk.Tk):
             messagebox.showinfo("TamaCore", "AI levels created")
         else:
             messagebox.showerror("TamaCore", f"AI levels failed with exit code {rc}")
+
+    def _ai_content(self) -> None:
+        rc = self._run_cmd([
+            sys.executable, "-m", "tamacore.cli", "ai-content",
+            "--pack", str(Path(self.pack_var.get())),
+            "--foods", self.ai_foods_count_var.get(),
+            "--cosmetics", self.ai_cosmetics_count_var.get(),
+        ])
+        if rc == 0:
+            messagebox.showinfo("TamaCore", "AI content created")
+        else:
+            messagebox.showerror("TamaCore", f"AI content failed with exit code {rc}")
+
+    def _ai_full_pack(self) -> None:
+        rc = self._run_cmd([
+            sys.executable, "-m", "tamacore.cli", "ai-full-pack",
+            "--out", str(Path(self.pack_var.get())),
+            "--shop-count", self.ai_shop_count_var.get(),
+            "--foods", self.ai_foods_count_var.get(),
+            "--cosmetics", self.ai_cosmetics_count_var.get(),
+        ])
+        if rc == 0:
+            messagebox.showinfo("TamaCore", "AI full pack created")
+        else:
+            messagebox.showerror("TamaCore", f"AI full pack failed with exit code {rc}")
 
     def _open_path(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
