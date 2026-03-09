@@ -21,6 +21,9 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
     _ensure_global_var(project, "GameComplete", 0)
     _ensure_global_var(project, "SaveLoaded", 0)
 
+    pet_runtime = _load_pet_runtime(game_dir)
+    _ensure_pet_vars(project, pet_runtime)
+
     _ensure_ui_layer(scene)
     _ensure_runtime_labels(scene)
 
@@ -35,6 +38,7 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
         level_count=level_count,
         coin_target=_safe_int(first_level.get("coinCount"), 0),
         enemy_target=_safe_int(first_level.get("enemyCount"), 0),
+        pet_runtime=pet_runtime,
     )
 
 
@@ -48,6 +52,37 @@ def _load_levels(game_dir: Path) -> List[Json]:
         return []
 
     return [item for item in data if isinstance(item, dict)]
+
+
+def _load_pet_runtime(game_dir: Path) -> Json:
+    path = game_dir / "pet_runtime.json"
+    if not path.exists():
+        return {
+            "stats": {"hunger": 60, "energy": 60, "mood": 60, "cleanliness": 60},
+            "actions": {
+                "feed": {"hungerAdd": 18, "moodAdd": 4, "coinsCost": 8},
+                "play": {"moodAdd": 12, "energyAdd": -8, "hungerAdd": -5},
+                "sleep": {"energyAdd": 20, "moodAdd": 3, "cleanlinessAdd": -4},
+                "clean": {"cleanlinessAdd": 20, "moodAdd": 2, "coinsCost": 5},
+            },
+        }
+
+    data = read_json(path)
+    return data if isinstance(data, dict) else {}
+
+
+def _ensure_pet_vars(project: Json, pet_runtime: Json) -> None:
+    stats = pet_runtime.get("stats", {})
+    if not isinstance(stats, dict):
+        stats = {}
+
+    _ensure_global_var(project, "PetHunger", _safe_int(stats.get("hunger"), 60))
+    _ensure_global_var(project, "PetEnergy", _safe_int(stats.get("energy"), 60))
+    _ensure_global_var(project, "PetMood", _safe_int(stats.get("mood"), 60))
+    _ensure_global_var(project, "PetCleanliness", _safe_int(stats.get("cleanliness"), 60))
+    _ensure_global_var(project, "PetState", 0)
+    _ensure_global_var(project, "FeedCost", _safe_int(pet_runtime.get("actions", {}).get("feed", {}).get("coinsCost"), 8))
+    _ensure_global_var(project, "CleanCost", _safe_int(pet_runtime.get("actions", {}).get("clean", {}).get("coinsCost"), 5))
 
 
 def _spawn_level_instances(scene: Json, level: Json) -> None:
@@ -97,13 +132,20 @@ def _random_points(
     return out
 
 
-def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target: int, enemy_target: int) -> None:
+def _inject_runtime_events(
+    scene: Json,
+    cfg: Any,
+    level_count: int,
+    coin_target: int,
+    enemy_target: int,
+    pet_runtime: Json,
+) -> None:
     events = scene.get("events")
     if not isinstance(events, list):
         events = []
         scene["events"] = events
 
-    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_4"
+    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_5"
     for event in events:
         if isinstance(event, dict) and event.get("type") == "BuiltinCommonInstructions::Comment":
             if marker in str(event.get("comment", "")):
@@ -115,35 +157,27 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
     x_max = str(getattr(getattr(cfg, "worldBounds", None), "xMax", 720))
     y_max = str(getattr(getattr(cfg, "worldBounds", None), "yMax", 1280))
 
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Comment",
-            "comment": marker,
-            "comment2": "",
-        }
-    )
+    feed = pet_runtime.get("actions", {}).get("feed", {})
+    play = pet_runtime.get("actions", {}).get("play", {})
+    sleep = pet_runtime.get("actions", {}).get("sleep", {})
+    clean = pet_runtime.get("actions", {}).get("clean", {})
+
+    events.append({"type": "BuiltinCommonInstructions::Comment", "comment": marker, "comment2": ""})
 
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::AtTheBeginningOfTheScene", []),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::AtTheBeginningOfTheScene", [])],
             "actions": [
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelCount", str(max(1, level_count))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinTarget", str(max(0, coin_target))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemyTarget", str(max(0, enemy_target))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["RuntimeReady", "1"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
-                _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
-                _act("TextObject::SetString", ["SpeedLabel", "\"Speed: \" + ToString(Variable(PlayerMaxSpeed))"]),
-                _act("TextObject::SetString", ["LevelLabel", "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))"]),
-                _act("TextObject::SetString", ["GoalLabel", "\"Coins: \" + ToString(Variable(CoinsCollected)) + \"/\" + ToString(Variable(CoinTarget)) + \" | Enemies: \" + ToString(Variable(EnemiesHit)) + \"/\" + ToString(Variable(EnemyTarget))"]),
             ],
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
             "name": "TamaCore Runtime Init",
         }
     )
@@ -155,14 +189,13 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
             "actions": [
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
                 _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
-                _act("TextObject::SetString", ["SpeedLabel", "\"Speed: \" + ToString(Variable(PlayerMaxSpeed))"]),
+                _act("TextObject::SetString", ["SpeedLabel", "\"H:\" + ToString(Variable(PetHunger)) + \" E:\" + ToString(Variable(PetEnergy)) + \" M:\" + ToString(Variable(PetMood)) + \" C:\" + ToString(Variable(PetCleanliness))"]),
                 _act("TextObject::SetString", ["LevelLabel", "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))"]),
                 _act("TextObject::SetString", ["GoalLabel", "\"Coins: \" + ToString(Variable(CoinsCollected)) + \"/\" + ToString(Variable(CoinTarget)) + \" | Enemies: \" + ToString(Variable(EnemiesHit)) + \"/\" + ToString(Variable(EnemyTarget))"]),
             ],
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
             "name": "TamaCore HUD Refresh",
         }
     )
@@ -170,17 +203,17 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(SaveLoaded)", "=", "0"]),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::RepeatEveryXSeconds", ["5"])],
             "actions": [
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveLoaded", "1"]),
+                _act("BuiltinCommonInstructions::SubFromNumberVariable", ["PetHunger", "1"]),
+                _act("BuiltinCommonInstructions::SubFromNumberVariable", ["PetEnergy", "1"]),
+                _act("BuiltinCommonInstructions::SubFromNumberVariable", ["PetMood", "1"]),
+                _act("BuiltinCommonInstructions::SubFromNumberVariable", ["PetCleanliness", "1"]),
             ],
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
-            "name": "Save Load Stub",
+            "name": "Pet Decay Tick",
         }
     )
 
@@ -188,66 +221,211 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
         {
             "type": "BuiltinCommonInstructions::Standard",
             "conditions": [
-                _cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.X()", "<", x_min]),
+                _cond("BuiltinCommonInstructions::CursorOnObject", ["ShopButton", "", ""]),
+                _cond("BuiltinCommonInstructions::MouseButtonReleased", ["Left"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(Coins)", ">=", str(_safe_int(feed.get("coinsCost"), 8))]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelComplete)", "=", "0"]),
             ],
             "actions": [
-                _act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", x_min, "X"]),
+                _act("BuiltinCommonInstructions::SubFromNumberVariable", ["Coins", str(_safe_int(feed.get("coinsCost"), 8))]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetHunger", str(_safe_int(feed.get("hungerAdd"), 18))]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetMood", str(_safe_int(feed.get("moodAdd"), 4))]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["PetState", "1"]),
             ],
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
+            "name": "Pet Feed",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::KeyPressed", ["p"]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetMood", str(_safe_int(play.get("moodAdd"), 12))]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetEnergy", str(_safe_int(play.get("energyAdd"), -8))]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetHunger", str(_safe_int(play.get("hungerAdd"), -5))]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["PetState", "2"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Pet Play",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::KeyPressed", ["s"])],
+            "actions": [
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetEnergy", str(_safe_int(sleep.get("energyAdd"), 20))]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetMood", str(_safe_int(sleep.get("moodAdd"), 3))]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetCleanliness", str(_safe_int(sleep.get("cleanlinessAdd"), -4))]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["PetState", "3"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Pet Sleep",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::KeyPressed", ["c"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(Coins)", ">=", str(_safe_int(clean.get("coinsCost"), 5))]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::SubFromNumberVariable", ["Coins", str(_safe_int(clean.get("coinsCost"), 5))]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetCleanliness", str(_safe_int(clean.get("cleanlinessAdd"), 20))]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetMood", str(_safe_int(clean.get("moodAdd"), 2))]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["PetState", "4"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Pet Clean",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetHunger)", "<", "0"])],
+            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetHunger", "0"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Clamp PetHunger Min",
+        }
+    )
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetEnergy)", "<", "0"])],
+            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetEnergy", "0"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Clamp PetEnergy Min",
+        }
+    )
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetMood)", "<", "0"])],
+            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetMood", "0"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Clamp PetMood Min",
+        }
+    )
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetCleanliness)", "<", "0"])],
+            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetCleanliness", "0"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Clamp PetCleanliness Min",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetHunger)", ">", "100"])],
+            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetHunger", "100"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Clamp PetHunger Max",
+        }
+    )
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetEnergy)", ">", "100"])],
+            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetEnergy", "100"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Clamp PetEnergy Max",
+        }
+    )
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetMood)", ">", "100"])],
+            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetMood", "100"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Clamp PetMood Max",
+        }
+    )
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetCleanliness)", ">", "100"])],
+            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetCleanliness", "100"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Clamp PetCleanliness Max",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.X()", "<", x_min])],
+            "actions": [_act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", x_min, "X"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
             "name": "Clamp Player Left",
         }
     )
-
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.Y()", "<", y_min]),
-            ],
-            "actions": [
-                _act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", y_min, "Y"]),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.Y()", "<", y_min])],
+            "actions": [_act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", y_min, "Y"])],
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
             "name": "Clamp Player Top",
         }
     )
-
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.X()", ">", x_max]),
-            ],
-            "actions": [
-                _act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", x_max, "X"]),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.X()", ">", x_max])],
+            "actions": [_act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", x_max, "X"])],
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
             "name": "Clamp Player Right",
         }
     )
-
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.Y()", ">", y_max]),
-            ],
-            "actions": [
-                _act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", y_max, "Y"]),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", [f"{player_name}.Y()", ">", y_max])],
+            "actions": [_act("BuiltinCommonInstructions::ModVarObjet", [player_name, "=", y_max, "Y"])],
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
             "name": "Clamp Player Bottom",
         }
     )
@@ -255,9 +433,7 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::Collision", [player_name, "Coin", "", ""]),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::Collision", [player_name, "Coin", "", ""])],
             "actions": [
                 _act("BuiltinCommonInstructions::Delete", ["Coin"]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["Coins", "10"]),
@@ -266,7 +442,6 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
             "name": "Collect Coin",
         }
     )
@@ -274,17 +449,15 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::Collision", [player_name, "Enemy", "", ""]),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::Collision", [player_name, "Enemy", "", ""])],
             "actions": [
                 _act("BuiltinCommonInstructions::Delete", ["Enemy"]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["EnemiesHit", "1"]),
+                _act("BuiltinCommonInstructions::SubFromNumberVariable", ["PetMood", "3"]),
             ],
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
             "name": "Hit Enemy",
         }
     )
@@ -304,79 +477,14 @@ def _inject_runtime_events(scene: Json, cfg: Any, level_count: int, coin_target:
             "events": [],
             "disabled": False,
             "folded": False,
-            "infiniteLoopWarning": False,
             "name": "Level Complete",
-        }
-    )
-
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::CursorOnObject", ["ShopButton", "", ""]),
-                _cond("BuiltinCommonInstructions::MouseButtonReleased", ["Left"]),
-                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelComplete)", "=", "1"]),
-                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelIndex)", "<", "Variable(LevelCount)-1"]),
-            ],
-            "actions": [
-                _act("BuiltinCommonInstructions::AddToNumberVariable", ["LevelIndex", "1"]),
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinsCollected", "0"]),
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemiesHit", "0"]),
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelComplete", "0"]),
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["CoinTarget", "Variable(CoinTarget)+2"]),
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemyTarget", "Variable(EnemyTarget)+1"]),
-                _act("TextObject::SetString", ["GoalLabel", "\"NEXT LEVEL\""]),
-            ],
-            "events": [],
-            "disabled": False,
-            "folded": False,
-            "infiniteLoopWarning": False,
-            "name": "Advance Level",
-        }
-    )
-
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::CursorOnObject", ["ShopButton", "", ""]),
-                _cond("BuiltinCommonInstructions::MouseButtonReleased", ["Left"]),
-                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelComplete)", "=", "1"]),
-                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(LevelIndex)", ">=", "Variable(LevelCount)-1"]),
-            ],
-            "actions": [
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["GameComplete", "1"]),
-                _act("TextObject::SetString", ["GoalLabel", "\"GAME COMPLETE\""]),
-            ],
-            "events": [],
-            "disabled": False,
-            "folded": False,
-            "infiniteLoopWarning": False,
-            "name": "Game Complete",
-        }
-    )
-
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(GameComplete)", "=", "1"]),
-            ],
-            "actions": [
-                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveLoaded", "1"]),
-            ],
-            "events": [],
-            "disabled": True,
-            "folded": True,
-            "infiniteLoopWarning": False,
-            "name": "Save Write Stub",
         }
     )
 
 
 def _ensure_runtime_labels(scene: Json) -> None:
     _ensure_layout_object(scene, _obj_text("CoinsLabel", "Coins: 0", 26))
-    _ensure_layout_object(scene, _obj_text("SpeedLabel", "Speed: 0", 26))
+    _ensure_layout_object(scene, _obj_text("SpeedLabel", "H:0 E:0 M:0 C:0", 22))
     _ensure_layout_object(scene, _obj_text("LevelLabel", "Level: 1/1", 26))
     _ensure_layout_object(scene, _obj_text("GoalLabel", "Coins: 0/0 | Enemies: 0/0", 24))
 
@@ -422,14 +530,7 @@ def _ensure_global_var(project: Json, name: str, number_value: float) -> None:
                 var["value"] = number_value
             return
 
-    vars_.append(
-        {
-            "name": name,
-            "type": "number",
-            "value": number_value,
-            "children": [],
-        }
-    )
+    vars_.append({"name": name, "type": "number", "value": number_value, "children": []})
 
 
 def _ensure_layout_object(scene: Json, obj_def: Json) -> None:
