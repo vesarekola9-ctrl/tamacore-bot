@@ -20,6 +20,7 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
     _ensure_global_var(project, "LevelComplete", 0)
     _ensure_global_var(project, "GameComplete", 0)
     _ensure_global_var(project, "SaveLoaded", 0)
+    _ensure_global_var(project, "SaveDirty", 0)
 
     pet_runtime = _load_pet_runtime(game_dir)
     _ensure_pet_vars(project, pet_runtime)
@@ -145,7 +146,7 @@ def _inject_runtime_events(
         events = []
         scene["events"] = events
 
-    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_5"
+    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_6"
     for event in events:
         if isinstance(event, dict) and event.get("type") == "BuiltinCommonInstructions::Comment":
             if marker in str(event.get("comment", "")):
@@ -185,6 +186,21 @@ def _inject_runtime_events(
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(SaveLoaded)", "=", "0"])],
+            "actions": [
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveLoaded", "1"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "0"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Save Load Init Stub",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
             "conditions": [],
             "actions": [
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
@@ -209,6 +225,7 @@ def _inject_runtime_events(
                 _act("BuiltinCommonInstructions::SubFromNumberVariable", ["PetEnergy", "1"]),
                 _act("BuiltinCommonInstructions::SubFromNumberVariable", ["PetMood", "1"]),
                 _act("BuiltinCommonInstructions::SubFromNumberVariable", ["PetCleanliness", "1"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "1"]),
             ],
             "events": [],
             "disabled": False,
@@ -231,6 +248,7 @@ def _inject_runtime_events(
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetHunger", str(_safe_int(feed.get("hungerAdd"), 18))]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetMood", str(_safe_int(feed.get("moodAdd"), 4))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PetState", "1"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "1"]),
             ],
             "events": [],
             "disabled": False,
@@ -242,14 +260,13 @@ def _inject_runtime_events(
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [
-                _cond("BuiltinCommonInstructions::KeyPressed", ["p"]),
-            ],
+            "conditions": [_cond("BuiltinCommonInstructions::KeyPressed", ["p"])],
             "actions": [
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetMood", str(_safe_int(play.get("moodAdd"), 12))]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetEnergy", str(_safe_int(play.get("energyAdd"), -8))]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetHunger", str(_safe_int(play.get("hungerAdd"), -5))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PetState", "2"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "1"]),
             ],
             "events": [],
             "disabled": False,
@@ -267,6 +284,7 @@ def _inject_runtime_events(
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetMood", str(_safe_int(sleep.get("moodAdd"), 3))]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetCleanliness", str(_safe_int(sleep.get("cleanlinessAdd"), -4))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PetState", "3"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "1"]),
             ],
             "events": [],
             "disabled": False,
@@ -287,6 +305,7 @@ def _inject_runtime_events(
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetCleanliness", str(_safe_int(clean.get("cleanlinessAdd"), 20))]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetMood", str(_safe_int(clean.get("moodAdd"), 2))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PetState", "4"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "1"]),
             ],
             "events": [],
             "disabled": False,
@@ -295,93 +314,44 @@ def _inject_runtime_events(
         }
     )
 
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetHunger)", "<", "0"])],
-            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetHunger", "0"])],
-            "events": [],
-            "disabled": False,
-            "folded": False,
-            "name": "Clamp PetHunger Min",
-        }
-    )
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetEnergy)", "<", "0"])],
-            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetEnergy", "0"])],
-            "events": [],
-            "disabled": False,
-            "folded": False,
-            "name": "Clamp PetEnergy Min",
-        }
-    )
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetMood)", "<", "0"])],
-            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetMood", "0"])],
-            "events": [],
-            "disabled": False,
-            "folded": False,
-            "name": "Clamp PetMood Min",
-        }
-    )
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetCleanliness)", "<", "0"])],
-            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetCleanliness", "0"])],
-            "events": [],
-            "disabled": False,
-            "folded": False,
-            "name": "Clamp PetCleanliness Min",
-        }
-    )
+    for var_name in ["PetHunger", "PetEnergy", "PetMood", "PetCleanliness"]:
+        events.append(
+            {
+                "type": "BuiltinCommonInstructions::Standard",
+                "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", [f"Variable({var_name})", "<", "0"])],
+                "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", [var_name, "0"])],
+                "events": [],
+                "disabled": False,
+                "folded": False,
+                "name": f"Clamp {var_name} Min",
+            }
+        )
+        events.append(
+            {
+                "type": "BuiltinCommonInstructions::Standard",
+                "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", [f"Variable({var_name})", ">", "100"])],
+                "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", [var_name, "100"])],
+                "events": [],
+                "disabled": False,
+                "folded": False,
+                "name": f"Clamp {var_name} Max",
+            }
+        )
 
     events.append(
         {
             "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetHunger)", ">", "100"])],
-            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetHunger", "100"])],
+            "conditions": [
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(SaveDirty)", "=", "1"]),
+                _cond("BuiltinCommonInstructions::RepeatEveryXSeconds", ["10"]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "0"]),
+            ],
             "events": [],
             "disabled": False,
             "folded": False,
-            "name": "Clamp PetHunger Max",
-        }
-    )
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetEnergy)", ">", "100"])],
-            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetEnergy", "100"])],
-            "events": [],
-            "disabled": False,
-            "folded": False,
-            "name": "Clamp PetEnergy Max",
-        }
-    )
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetMood)", ">", "100"])],
-            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetMood", "100"])],
-            "events": [],
-            "disabled": False,
-            "folded": False,
-            "name": "Clamp PetMood Max",
-        }
-    )
-    events.append(
-        {
-            "type": "BuiltinCommonInstructions::Standard",
-            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(PetCleanliness)", ">", "100"])],
-            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["PetCleanliness", "100"])],
-            "events": [],
-            "disabled": False,
-            "folded": False,
-            "name": "Clamp PetCleanliness Max",
+            "name": "Save Write Stub",
         }
     )
 
@@ -438,6 +408,7 @@ def _inject_runtime_events(
                 _act("BuiltinCommonInstructions::Delete", ["Coin"]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["Coins", "10"]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["CoinsCollected", "1"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "1"]),
             ],
             "events": [],
             "disabled": False,
@@ -454,6 +425,7 @@ def _inject_runtime_events(
                 _act("BuiltinCommonInstructions::Delete", ["Enemy"]),
                 _act("BuiltinCommonInstructions::AddToNumberVariable", ["EnemiesHit", "1"]),
                 _act("BuiltinCommonInstructions::SubFromNumberVariable", ["PetMood", "3"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "1"]),
             ],
             "events": [],
             "disabled": False,
@@ -473,6 +445,7 @@ def _inject_runtime_events(
             "actions": [
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["LevelComplete", "1"]),
                 _act("TextObject::SetString", ["GoalLabel", "\"LEVEL COMPLETE - TAP SHOP TO CONTINUE\""]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "1"]),
             ],
             "events": [],
             "disabled": False,
