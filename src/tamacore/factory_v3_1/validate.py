@@ -20,6 +20,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
         game_dir / "pet_runtime.json",
         game_dir / "save_runtime.json",
         game_dir / "cosmetics_runtime.json",
+        game_dir / "foods_runtime.json",
         game_dir / "FACTORY_MANIFEST.json",
     ]
 
@@ -38,6 +39,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
     pet_runtime = _load_json(game_dir / "pet_runtime.json", errors, "pet_runtime.json")
     save_runtime = _load_json(game_dir / "save_runtime.json", errors, "save_runtime.json")
     cosmetics_runtime = _load_json(game_dir / "cosmetics_runtime.json", errors, "cosmetics_runtime.json")
+    foods_runtime = _load_json(game_dir / "foods_runtime.json", errors, "foods_runtime.json")
     manifest = _load_json(game_dir / "FACTORY_MANIFEST.json", errors, "FACTORY_MANIFEST.json")
 
     if isinstance(game, dict):
@@ -58,6 +60,8 @@ def validate_build_output(game_dir: Path) -> List[str]:
         _validate_save_runtime(save_runtime, errors)
     if isinstance(cosmetics_runtime, dict):
         _validate_cosmetics_runtime(cosmetics_runtime, errors)
+    if isinstance(foods_runtime, dict):
+        _validate_foods_runtime(foods_runtime, errors)
     if isinstance(manifest, dict):
         _validate_manifest(manifest, errors)
 
@@ -125,8 +129,8 @@ def _validate_game(game: Json, errors: List[str]) -> None:
 
     if not any("TAMACORE_AUTOGEN_PACK_SHOP_V3_3" in marker for marker in markers):
         errors.append("game.json: pack shop events marker missing")
-    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_7" in marker for marker in markers):
-        errors.append("game.json: runtime v3.7 marker missing")
+    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_8" in marker for marker in markers):
+        errors.append("game.json: runtime v3.8 marker missing")
 
     variables = game.get("variables")
     if not isinstance(variables, list):
@@ -139,6 +143,7 @@ def _validate_game(game: Json, errors: List[str]) -> None:
         "CoinsCollected", "EnemiesHit", "LevelComplete", "GameComplete", "SaveLoaded", "SaveDirty",
         "PetHunger", "PetEnergy", "PetMood", "PetCleanliness", "PetState", "FeedCost", "CleanCost",
         "CosmeticIndex", "CosmeticStyleBonus", "CosmeticOwnedCount",
+        "FoodIndex", "FoodOwnedCount", "FoodHungerValue", "FoodEnergyValue", "FoodMoodValue", "FoodPrice",
     ]:
         if name not in variable_names:
             errors.append(f"game.json: missing global variable '{name}'")
@@ -270,8 +275,35 @@ def _validate_cosmetics_runtime(cosmetics_runtime: Json, errors: List[str]) -> N
                 errors.append(f"cosmetics_runtime.json: cosmetic {index} missing '{key}'")
 
 
+def _validate_foods_runtime(foods_runtime: Json, errors: List[str]) -> None:
+    for key in ["selectedFoodIndex", "foods", "activeFood"]:
+        if key not in foods_runtime:
+            errors.append(f"foods_runtime.json: missing '{key}'")
+
+    foods = foods_runtime.get("foods")
+    if not isinstance(foods, list):
+        errors.append("foods_runtime.json: foods missing")
+        return
+
+    for index, item in enumerate(foods):
+        if not isinstance(item, dict):
+            errors.append(f"foods_runtime.json: food {index} invalid")
+            continue
+        for key in ["id", "name", "hunger", "energy", "mood", "price"]:
+            if key not in item:
+                errors.append(f"foods_runtime.json: food {index} missing '{key}'")
+
+    active = foods_runtime.get("activeFood")
+    if not isinstance(active, dict):
+        errors.append("foods_runtime.json: activeFood missing")
+    else:
+        for key in ["id", "name", "hunger", "energy", "mood", "price"]:
+            if key not in active:
+                errors.append(f"foods_runtime.json: activeFood missing '{key}'")
+
+
 def _validate_manifest(manifest: Json, errors: List[str]) -> None:
-    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns", "levels", "shopUpgrades", "catalogSummary", "save", "petRuntime", "saveRuntime", "cosmeticsRuntime"]:
+    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns", "levels", "shopUpgrades", "catalogSummary", "save", "petRuntime", "saveRuntime", "cosmeticsRuntime", "foodsRuntime"]:
         if key not in manifest:
             errors.append(f"FACTORY_MANIFEST.json: missing '{key}'")
 
