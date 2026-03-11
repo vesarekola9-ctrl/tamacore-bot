@@ -17,6 +17,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
         game_dir / "levels.json",
         game_dir / "shop.json",
         game_dir / "save.json",
+        game_dir / "pet_runtime.json",
         game_dir / "FACTORY_MANIFEST.json",
     ]
 
@@ -32,6 +33,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
     levels = _load_json(game_dir / "levels.json", errors, "levels.json")
     shop = _load_json(game_dir / "shop.json", errors, "shop.json")
     save_data = _load_json(game_dir / "save.json", errors, "save.json")
+    pet_runtime = _load_json(game_dir / "pet_runtime.json", errors, "pet_runtime.json")
     manifest = _load_json(game_dir / "FACTORY_MANIFEST.json", errors, "FACTORY_MANIFEST.json")
 
     if isinstance(game, dict):
@@ -50,6 +52,9 @@ def validate_build_output(game_dir: Path) -> List[str]:
 
     if isinstance(save_data, dict):
         _validate_save(save_data, shop if isinstance(shop, dict) else {}, errors)
+
+    if isinstance(pet_runtime, dict):
+        _validate_pet_runtime(pet_runtime, errors)
 
     if isinstance(manifest, dict):
         _validate_manifest(manifest, errors)
@@ -148,8 +153,8 @@ def _validate_game(game: Json, errors: List[str]) -> None:
     if not any("TAMACORE_AUTOGEN_PACK_SHOP_V3_3" in marker for marker in markers):
         errors.append("game.json: pack shop events marker missing")
 
-    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_4" in marker for marker in markers):
-        errors.append("game.json: runtime v3.4 marker missing")
+    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_5" in marker for marker in markers):
+        errors.append("game.json: runtime v3.5 marker missing")
 
     variables = game.get("variables")
     if not isinstance(variables, list):
@@ -171,6 +176,13 @@ def _validate_game(game: Json, errors: List[str]) -> None:
         "LevelComplete",
         "GameComplete",
         "SaveLoaded",
+        "PetHunger",
+        "PetEnergy",
+        "PetMood",
+        "PetCleanliness",
+        "PetState",
+        "FeedCost",
+        "CleanCost",
     ]:
         if name not in variable_names:
             errors.append(f"game.json: missing global variable '{name}'")
@@ -262,8 +274,38 @@ def _validate_save(save_data: Json, shop: Json, errors: List[str]) -> None:
                 errors.append(f"save.json: ownedUpgrades missing '{owned_var}'")
 
 
+def _validate_pet_runtime(pet_runtime: Json, errors: List[str]) -> None:
+    for key in ["name", "species", "temperament", "stats", "behavior", "actions", "decay"]:
+        if key not in pet_runtime:
+            errors.append(f"pet_runtime.json: missing '{key}'")
+
+    stats = pet_runtime.get("stats")
+    if not isinstance(stats, dict):
+        errors.append("pet_runtime.json: stats missing")
+    else:
+        for key in ["hunger", "energy", "mood", "cleanliness"]:
+            if key not in stats:
+                errors.append(f"pet_runtime.json: stats missing '{key}'")
+
+    actions = pet_runtime.get("actions")
+    if not isinstance(actions, dict):
+        errors.append("pet_runtime.json: actions missing")
+    else:
+        for key in ["feed", "play", "sleep", "clean"]:
+            if key not in actions:
+                errors.append(f"pet_runtime.json: actions missing '{key}'")
+
+    decay = pet_runtime.get("decay")
+    if not isinstance(decay, dict):
+        errors.append("pet_runtime.json: decay missing")
+    else:
+        for key in ["hungerPerTick", "energyPerTick", "moodPerTick", "cleanlinessPerTick"]:
+            if key not in decay:
+                errors.append(f"pet_runtime.json: decay missing '{key}'")
+
+
 def _validate_manifest(manifest: Json, errors: List[str]) -> None:
-    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns", "levels", "shopUpgrades", "catalogSummary", "save"]:
+    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns", "levels", "shopUpgrades", "catalogSummary", "save", "petRuntime"]:
         if key not in manifest:
             errors.append(f"FACTORY_MANIFEST.json: missing '{key}'")
 
