@@ -23,7 +23,9 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
     _ensure_global_var(project, "SaveDirty", 0)
 
     pet_runtime = _load_pet_runtime(game_dir)
+    cosmetics_runtime = _load_cosmetics_runtime(game_dir)
     _ensure_pet_vars(project, pet_runtime)
+    _ensure_cosmetic_vars(project, cosmetics_runtime)
 
     _ensure_ui_layer(scene)
     _ensure_runtime_labels(scene)
@@ -40,6 +42,7 @@ def apply_v3_2_runtime(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any,
         coin_target=_safe_int(first_level.get("coinCount"), 0),
         enemy_target=_safe_int(first_level.get("enemyCount"), 0),
         pet_runtime=pet_runtime,
+        cosmetics_runtime=cosmetics_runtime,
     )
 
 
@@ -72,6 +75,15 @@ def _load_pet_runtime(game_dir: Path) -> Json:
     return data if isinstance(data, dict) else {}
 
 
+def _load_cosmetics_runtime(game_dir: Path) -> Json:
+    path = game_dir / "cosmetics_runtime.json"
+    if not path.exists():
+        return {"selectedCosmeticId": "", "cosmetics": []}
+
+    data = read_json(path)
+    return data if isinstance(data, dict) else {"selectedCosmeticId": "", "cosmetics": []}
+
+
 def _ensure_pet_vars(project: Json, pet_runtime: Json) -> None:
     stats = pet_runtime.get("stats", {})
     if not isinstance(stats, dict):
@@ -84,6 +96,38 @@ def _ensure_pet_vars(project: Json, pet_runtime: Json) -> None:
     _ensure_global_var(project, "PetState", 0)
     _ensure_global_var(project, "FeedCost", _safe_int(pet_runtime.get("actions", {}).get("feed", {}).get("coinsCost"), 8))
     _ensure_global_var(project, "CleanCost", _safe_int(pet_runtime.get("actions", {}).get("clean", {}).get("coinsCost"), 5))
+
+
+def _ensure_cosmetic_vars(project: Json, cosmetics_runtime: Json) -> None:
+    cosmetics = cosmetics_runtime.get("cosmetics", [])
+    selected = str(cosmetics_runtime.get("selectedCosmeticId", ""))
+
+    _ensure_global_var(project, "CosmeticIndex", 0)
+    _ensure_global_var(project, "CosmeticStyleBonus", 0)
+    _ensure_global_var(project, "CosmeticOwnedCount", len(cosmetics) if isinstance(cosmetics, list) else 0)
+
+    if isinstance(cosmetics, list):
+        for idx, item in enumerate(cosmetics):
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("id", "")) == selected:
+                _set_global_var(project, "CosmeticIndex", idx)
+                _set_global_var(project, "CosmeticStyleBonus", _safe_int(item.get("styleBonus"), 0))
+                break
+
+
+def _set_global_var(project: Json, name: str, number_value: float) -> None:
+    vars_ = project.get("variables")
+    if not isinstance(vars_, list):
+        vars_ = []
+        project["variables"] = vars_
+
+    for var in vars_:
+        if isinstance(var, dict) and var.get("name") == name:
+            var["value"] = number_value
+            return
+
+    vars_.append({"name": name, "type": "number", "value": number_value, "children": []})
 
 
 def _spawn_level_instances(scene: Json, level: Json) -> None:
@@ -140,13 +184,14 @@ def _inject_runtime_events(
     coin_target: int,
     enemy_target: int,
     pet_runtime: Json,
+    cosmetics_runtime: Json,
 ) -> None:
     events = scene.get("events")
     if not isinstance(events, list):
         events = []
         scene["events"] = events
 
-    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_6"
+    marker = "TAMACORE_AUTOGEN_RUNTIME_V3_7"
     for event in events:
         if isinstance(event, dict) and event.get("type") == "BuiltinCommonInstructions::Comment":
             if marker in str(event.get("comment", "")):
@@ -163,6 +208,13 @@ def _inject_runtime_events(
     sleep = pet_runtime.get("actions", {}).get("sleep", {})
     clean = pet_runtime.get("actions", {}).get("clean", {})
 
+    cosmetics = cosmetics_runtime.get("cosmetics", [])
+    cosmetic_bonus = 0
+    if isinstance(cosmetics, list) and cosmetics:
+        first = cosmetics[0]
+        if isinstance(first, dict):
+            cosmetic_bonus = _safe_int(first.get("styleBonus"), 0)
+
     events.append({"type": "BuiltinCommonInstructions::Comment", "comment": marker, "comment2": ""})
 
     events.append(
@@ -175,6 +227,7 @@ def _inject_runtime_events(
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["EnemyTarget", str(max(0, enemy_target))]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["RuntimeReady", "1"]),
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["CosmeticStyleBonus", str(cosmetic_bonus)]),
             ],
             "events": [],
             "disabled": False,
@@ -205,7 +258,7 @@ def _inject_runtime_events(
             "actions": [
                 _act("BuiltinCommonInstructions::SetNumberVariable", ["PlayerMaxSpeed", "Variable(Speed)"]),
                 _act("TextObject::SetString", ["CoinsLabel", "\"Coins: \" + ToString(Variable(Coins))"]),
-                _act("TextObject::SetString", ["SpeedLabel", "\"H:\" + ToString(Variable(PetHunger)) + \" E:\" + ToString(Variable(PetEnergy)) + \" M:\" + ToString(Variable(PetMood)) + \" C:\" + ToString(Variable(PetCleanliness))"]),
+                _act("TextObject::SetString", ["SpeedLabel", "\"H:\" + ToString(Variable(PetHunger)) + \" E:\" + ToString(Variable(PetEnergy)) + \" M:\" + ToString(Variable(PetMood)) + \" C:\" + ToString(Variable(PetCleanliness)) + \" Style:\" + ToString(Variable(CosmeticStyleBonus))"]),
                 _act("TextObject::SetString", ["LevelLabel", "\"Level: \" + ToString(Variable(LevelIndex)+1) + \"/\" + ToString(Variable(LevelCount))"]),
                 _act("TextObject::SetString", ["GoalLabel", "\"Coins: \" + ToString(Variable(CoinsCollected)) + \"/\" + ToString(Variable(CoinTarget)) + \" | Enemies: \" + ToString(Variable(EnemiesHit)) + \"/\" + ToString(Variable(EnemyTarget))"]),
             ],
@@ -231,6 +284,38 @@ def _inject_runtime_events(
             "disabled": False,
             "folded": False,
             "name": "Pet Decay Tick",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [
+                _cond("BuiltinCommonInstructions::KeyPressed", ["x"]),
+                _cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(CosmeticOwnedCount)", ">", "0"]),
+            ],
+            "actions": [
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["CosmeticIndex", "1"]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["CosmeticStyleBonus", "1"]),
+                _act("BuiltinCommonInstructions::AddToNumberVariable", ["PetMood", "2"]),
+                _act("BuiltinCommonInstructions::SetNumberVariable", ["SaveDirty", "1"]),
+            ],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Cycle Cosmetic",
+        }
+    )
+
+    events.append(
+        {
+            "type": "BuiltinCommonInstructions::Standard",
+            "conditions": [_cond("BuiltinCommonInstructions::CompareNumbers", ["Variable(CosmeticIndex)", ">=", "Variable(CosmeticOwnedCount)"])],
+            "actions": [_act("BuiltinCommonInstructions::SetNumberVariable", ["CosmeticIndex", "0"])],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+            "name": "Clamp CosmeticIndex",
         }
     )
 
@@ -457,7 +542,7 @@ def _inject_runtime_events(
 
 def _ensure_runtime_labels(scene: Json) -> None:
     _ensure_layout_object(scene, _obj_text("CoinsLabel", "Coins: 0", 26))
-    _ensure_layout_object(scene, _obj_text("SpeedLabel", "H:0 E:0 M:0 C:0", 22))
+    _ensure_layout_object(scene, _obj_text("SpeedLabel", "H:0 E:0 M:0 C:0 Style:0", 20))
     _ensure_layout_object(scene, _obj_text("LevelLabel", "Level: 1/1", 26))
     _ensure_layout_object(scene, _obj_text("GoalLabel", "Coins: 0/0 | Enemies: 0/0", 24))
 
