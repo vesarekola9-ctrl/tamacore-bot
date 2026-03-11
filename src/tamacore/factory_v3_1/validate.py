@@ -18,6 +18,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
         game_dir / "shop.json",
         game_dir / "save.json",
         game_dir / "pet_runtime.json",
+        game_dir / "save_runtime.json",
         game_dir / "FACTORY_MANIFEST.json",
     ]
 
@@ -34,6 +35,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
     shop = _load_json(game_dir / "shop.json", errors, "shop.json")
     save_data = _load_json(game_dir / "save.json", errors, "save.json")
     pet_runtime = _load_json(game_dir / "pet_runtime.json", errors, "pet_runtime.json")
+    save_runtime = _load_json(game_dir / "save_runtime.json", errors, "save_runtime.json")
     manifest = _load_json(game_dir / "FACTORY_MANIFEST.json", errors, "FACTORY_MANIFEST.json")
 
     if isinstance(game, dict):
@@ -50,6 +52,8 @@ def validate_build_output(game_dir: Path) -> List[str]:
         _validate_save(save_data, shop if isinstance(shop, dict) else {}, errors)
     if isinstance(pet_runtime, dict):
         _validate_pet_runtime(pet_runtime, errors)
+    if isinstance(save_runtime, dict):
+        _validate_save_runtime(save_runtime, errors)
     if isinstance(manifest, dict):
         _validate_manifest(manifest, errors)
 
@@ -222,33 +226,28 @@ def _validate_pet_runtime(pet_runtime: Json, errors: List[str]) -> None:
         if key not in pet_runtime:
             errors.append(f"pet_runtime.json: missing '{key}'")
 
-    stats = pet_runtime.get("stats")
-    if not isinstance(stats, dict):
-        errors.append("pet_runtime.json: stats missing")
-    else:
-        for key in ["hunger", "energy", "mood", "cleanliness"]:
-            if key not in stats:
-                errors.append(f"pet_runtime.json: stats missing '{key}'")
 
-    actions = pet_runtime.get("actions")
-    if not isinstance(actions, dict):
-        errors.append("pet_runtime.json: actions missing")
-    else:
-        for key in ["feed", "play", "sleep", "clean"]:
-            if key not in actions:
-                errors.append(f"pet_runtime.json: actions missing '{key}'")
+def _validate_save_runtime(save_runtime: Json, errors: List[str]) -> None:
+    for key in ["storageKey", "defaults"]:
+        if key not in save_runtime:
+            errors.append(f"save_runtime.json: missing '{key}'")
 
-    decay = pet_runtime.get("decay")
-    if not isinstance(decay, dict):
-        errors.append("pet_runtime.json: decay missing")
-    else:
-        for key in ["hungerPerTick", "energyPerTick", "moodPerTick", "cleanlinessPerTick"]:
-            if key not in decay:
-                errors.append(f"pet_runtime.json: decay missing '{key}'")
+    defaults = save_runtime.get("defaults")
+    if not isinstance(defaults, dict):
+        errors.append("save_runtime.json: defaults missing")
+        return
+
+    for key in [
+        "Coins", "Speed", "PlayerMaxSpeed", "LevelIndex", "LevelCount", "CoinTarget", "EnemyTarget",
+        "CoinsCollected", "EnemiesHit", "LevelComplete", "GameComplete", "SaveLoaded",
+        "PetHunger", "PetEnergy", "PetMood", "PetCleanliness", "PetState", "ownedUpgrades",
+    ]:
+        if key not in defaults:
+            errors.append(f"save_runtime.json: defaults missing '{key}'")
 
 
 def _validate_manifest(manifest: Json, errors: List[str]) -> None:
-    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns", "levels", "shopUpgrades", "catalogSummary", "save", "petRuntime"]:
+    for key in ["factory", "pack", "display", "worldBounds", "camera", "ui", "spawns", "levels", "shopUpgrades", "catalogSummary", "save", "petRuntime", "saveRuntime"]:
         if key not in manifest:
             errors.append(f"FACTORY_MANIFEST.json: missing '{key}'")
 
