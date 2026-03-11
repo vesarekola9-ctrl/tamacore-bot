@@ -38,24 +38,18 @@ def validate_build_output(game_dir: Path) -> List[str]:
 
     if isinstance(game, dict):
         _validate_game(game, errors)
-
     if isinstance(catalog, dict):
         _validate_catalog(catalog, errors)
-
     if isinstance(levels, list):
         _validate_levels(levels, errors)
     else:
         errors.append("levels.json: must be a list")
-
     if isinstance(shop, dict):
         _validate_shop(shop, errors)
-
     if isinstance(save_data, dict):
         _validate_save(save_data, shop if isinstance(shop, dict) else {}, errors)
-
     if isinstance(pet_runtime, dict):
         _validate_pet_runtime(pet_runtime, errors)
-
     if isinstance(manifest, dict):
         _validate_manifest(manifest, errors)
 
@@ -96,50 +90,21 @@ def _validate_game(game: Json, errors: List[str]) -> None:
     if not isinstance(objects, list):
         errors.append("game.json: scene objects missing")
         return
-
     if not isinstance(instances, list):
         errors.append("game.json: scene instances missing")
         return
-
     if not isinstance(events, list):
         errors.append("game.json: scene events missing")
         return
 
     object_names = {obj.get("name") for obj in objects if isinstance(obj, dict)}
-    instance_names = {
-        (inst.get("objectName") or inst.get("name"))
-        for inst in instances
-        if isinstance(inst, dict)
-    }
+    instance_names = {(inst.get("objectName") or inst.get("name")) for inst in instances if isinstance(inst, dict)}
 
-    required_objects = {
-        "Player",
-        "Coin",
-        "Enemy",
-        "TouchJoystick",
-        "ShopButton",
-        "ShopPanel",
-        "CoinsLabel",
-        "SpeedLabel",
-        "LevelLabel",
-        "GoalLabel",
-    }
-
-    for name in required_objects:
+    for name in {"Player", "Coin", "Enemy", "TouchJoystick", "ShopButton", "ShopPanel", "CoinsLabel", "SpeedLabel", "LevelLabel", "GoalLabel"}:
         if name not in object_names:
             errors.append(f"game.json: missing object '{name}'")
 
-    required_instances = {
-        "Player",
-        "TouchJoystick",
-        "ShopButton",
-        "ShopPanel",
-        "CoinsLabel",
-        "SpeedLabel",
-        "LevelLabel",
-        "GoalLabel",
-    }
-    for name in required_instances:
+    for name in {"Player", "TouchJoystick", "ShopButton", "ShopPanel", "CoinsLabel", "SpeedLabel", "LevelLabel", "GoalLabel"}:
         if name not in instance_names:
             errors.append(f"game.json: missing instance '{name}'")
 
@@ -152,9 +117,8 @@ def _validate_game(game: Json, errors: List[str]) -> None:
 
     if not any("TAMACORE_AUTOGEN_PACK_SHOP_V3_3" in marker for marker in markers):
         errors.append("game.json: pack shop events marker missing")
-
-    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_5" in marker for marker in markers):
-        errors.append("game.json: runtime v3.5 marker missing")
+    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_6" in marker for marker in markers):
+        errors.append("game.json: runtime v3.6 marker missing")
 
     variables = game.get("variables")
     if not isinstance(variables, list):
@@ -163,26 +127,9 @@ def _validate_game(game: Json, errors: List[str]) -> None:
 
     variable_names = {var.get("name") for var in variables if isinstance(var, dict)}
     for name in [
-        "Coins",
-        "Speed",
-        "PlayerMaxSpeed",
-        "ShopOpen",
-        "LevelIndex",
-        "LevelCount",
-        "CoinTarget",
-        "EnemyTarget",
-        "CoinsCollected",
-        "EnemiesHit",
-        "LevelComplete",
-        "GameComplete",
-        "SaveLoaded",
-        "PetHunger",
-        "PetEnergy",
-        "PetMood",
-        "PetCleanliness",
-        "PetState",
-        "FeedCost",
-        "CleanCost",
+        "Coins", "Speed", "PlayerMaxSpeed", "ShopOpen", "LevelIndex", "LevelCount", "CoinTarget", "EnemyTarget",
+        "CoinsCollected", "EnemiesHit", "LevelComplete", "GameComplete", "SaveLoaded", "SaveDirty",
+        "PetHunger", "PetEnergy", "PetMood", "PetCleanliness", "PetState", "FeedCost", "CleanCost",
     ]:
         if name not in variable_names:
             errors.append(f"game.json: missing global variable '{name}'")
@@ -214,12 +161,10 @@ def _validate_levels(levels: List[Json], errors: List[str]) -> None:
     if not levels:
         errors.append("levels.json: empty")
         return
-
     for index, item in enumerate(levels):
         if not isinstance(item, dict):
             errors.append(f"levels.json: level {index} invalid")
             continue
-
         for key in ["id", "coinCount", "enemyCount", "coinObjectName", "enemyObjectName", "worldBounds", "seed"]:
             if key not in item:
                 errors.append(f"levels.json: level {index} missing '{key}'")
@@ -230,7 +175,6 @@ def _validate_shop(shop: Json, errors: List[str]) -> None:
     if not isinstance(upgrades, list):
         errors.append("shop.json: upgrades missing")
         return
-
     if not upgrades:
         errors.append("shop.json: upgrades empty")
         return
@@ -239,7 +183,6 @@ def _validate_shop(shop: Json, errors: List[str]) -> None:
         if not isinstance(item, dict):
             errors.append(f"shop.json: upgrade {index} invalid")
             continue
-
         for key in ["id", "name", "cost", "effect", "ownedVariable", "uiText"]:
             if key not in item:
                 errors.append(f"shop.json: upgrade {index} missing '{key}'")
