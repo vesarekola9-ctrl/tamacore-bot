@@ -11,6 +11,8 @@ from .build_report import write_build_report
 from .character_builder import apply_character_animations
 from .levels import generate_levels
 from .patch_rules import apply_v3_1_rules
+from .pet_runtime import write_pet_runtime
+from .save_runtime import write_save_runtime
 from .save_system import write_save_schema
 from .schema import PackCfg, load_pack_cfg
 from .shop import write_shop
@@ -45,6 +47,8 @@ def run_factory_v3_1(
     levels = generate_levels(cfg, game_dir)
     shop = write_shop(cfg, game_dir)
     save_data = write_save_schema(game_dir, shop)
+    pet_runtime = write_pet_runtime(pack_dir, game_dir)
+    save_runtime = write_save_runtime(game_dir)
 
     project = read_json(game_json)
     if not isinstance(project, dict):
@@ -63,7 +67,7 @@ def run_factory_v3_1(
 
     write_json(game_json, project)
 
-    manifest = _build_manifest(cfg, levels, shop, catalog, save_data, enable_v3_2)
+    manifest = _build_manifest(cfg, levels, shop, catalog, save_data, pet_runtime, save_runtime, enable_v3_2)
     write_json(game_dir / "FACTORY_MANIFEST.json", manifest)
 
     errors = validate_build_output(game_dir)
@@ -111,14 +115,7 @@ def _ensure_global_var(project: Dict[str, Any], name: str, value: float) -> None
                 item["value"] = value
             return
 
-    vars_.append(
-        {
-            "name": name,
-            "type": "number",
-            "value": value,
-            "children": [],
-        }
-    )
+    vars_.append({"name": name, "type": "number", "value": value, "children": []})
 
 
 def _ensure_shop_owned_vars(project: Dict[str, Any], shop: Dict[str, Any]) -> None:
@@ -140,6 +137,8 @@ def _build_manifest(
     shop: Dict[str, Any],
     catalog: Dict[str, Any],
     save_data: Dict[str, Any],
+    pet_runtime: Dict[str, Any],
+    save_runtime: Dict[str, Any],
     enable_v3_2: bool,
 ) -> Dict[str, Any]:
     return {
@@ -199,6 +198,8 @@ def _build_manifest(
         "shopUpgrades": [u.get("id", f"upgrade_{i + 1}") for i, u in enumerate(shop.get("upgrades", []))],
         "catalogSummary": _catalog_summary(catalog),
         "save": save_data,
+        "petRuntime": pet_runtime,
+        "saveRuntime": save_runtime,
     }
 
 
