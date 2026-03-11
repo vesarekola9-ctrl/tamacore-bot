@@ -9,6 +9,7 @@ from ..template_ops import copy_template, ensure_template_exists
 from ..utils import read_json, write_json
 from .build_report import write_build_report
 from .character_builder import apply_character_animations
+from .cosmetics_runtime import write_cosmetics_runtime
 from .levels import generate_levels
 from .patch_rules import apply_v3_1_rules
 from .pet_runtime import write_pet_runtime
@@ -49,6 +50,7 @@ def run_factory_v3_1(
     save_data = write_save_schema(game_dir, shop)
     pet_runtime = write_pet_runtime(pack_dir, game_dir)
     save_runtime = write_save_runtime(game_dir)
+    cosmetics_runtime = write_cosmetics_runtime(pack_dir, game_dir)
 
     project = read_json(game_json)
     if not isinstance(project, dict):
@@ -67,7 +69,17 @@ def run_factory_v3_1(
 
     write_json(game_json, project)
 
-    manifest = _build_manifest(cfg, levels, shop, catalog, save_data, pet_runtime, save_runtime, enable_v3_2)
+    manifest = _build_manifest(
+        cfg,
+        levels,
+        shop,
+        catalog,
+        save_data,
+        pet_runtime,
+        save_runtime,
+        cosmetics_runtime,
+        enable_v3_2,
+    )
     write_json(game_dir / "FACTORY_MANIFEST.json", manifest)
 
     errors = validate_build_output(game_dir)
@@ -139,6 +151,7 @@ def _build_manifest(
     save_data: Dict[str, Any],
     pet_runtime: Dict[str, Any],
     save_runtime: Dict[str, Any],
+    cosmetics_runtime: Dict[str, Any],
     enable_v3_2: bool,
 ) -> Dict[str, Any]:
     return {
@@ -200,6 +213,7 @@ def _build_manifest(
         "save": save_data,
         "petRuntime": pet_runtime,
         "saveRuntime": save_runtime,
+        "cosmeticsRuntime": cosmetics_runtime,
     }
 
 
