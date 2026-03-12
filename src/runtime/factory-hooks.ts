@@ -21,6 +21,7 @@ import {
   createBridgeSnapshot,
   type TamaBridgeSnapshot,
 } from "./bridge";
+import { pruneNotifications, pruneSessionEvents } from "./pruning";
 import type { TamaRuntimeBootstrapConfigFile } from "./runtime-config";
 import type { TamaSessionState } from "./session";
 
@@ -88,17 +89,48 @@ function cloneRuntimeConfig(
   };
 }
 
-function replaceRuntimeSession(
-  runtime: TamaFactoryRuntime,
-  session: TamaSessionState,
-): TamaFactoryRuntime {
+function enforceRuntimeLimits(runtime: TamaFactoryRuntime, now: number): TamaFactoryRuntime {
+  const session: TamaSessionState = {
+    ...runtime.loop.session,
+    notifications: runtime.loop.session.notifications.map((entry) => ({ ...entry })),
+    events: runtime.loop.session.events.map((entry) => ({
+      ...entry,
+      payload:
+        entry.payload && typeof entry.payload === "object"
+          ? { ...(entry.payload as Record<string, unknown>) }
+          : entry.payload,
+    })),
+  };
+
+  pruneNotifications(session, runtime.loop.config.loop.notificationLimit, now);
+  pruneSessionEvents(session, runtime.loop.config.loop.eventQueueLimit, now);
+
   return {
     ...runtime,
     loop: {
       ...runtime.loop,
       session,
+      updatedAt: now,
     },
   };
+}
+
+function replaceRuntimeSession(
+  runtime: TamaFactoryRuntime,
+  session: TamaSessionState,
+  now: number,
+): TamaFactoryRuntime {
+  return enforceRuntimeLimits(
+    {
+      ...runtime,
+      loop: {
+        ...runtime.loop,
+        session,
+        updatedAt: now,
+      },
+    },
+    now,
+  );
 }
 
 export function createFactoryRuntime(
@@ -107,19 +139,22 @@ export function createFactoryRuntime(
 ): TamaFactoryRuntime {
   const cloned = cloneRuntimeConfig(input);
 
-  return {
-    loop: createLiveLoop({
-      pet: cloned?.pet,
-      inventory: cloned?.inventory,
-      items: cloned?.items,
-      quests: cloned?.quests,
-      coins: cloned?.coins,
-      decay: cloned?.decay,
-      loop: cloned?.loop,
-      now,
-    }),
-    bundle: createFactoryExportBundle(cloned, now),
-  };
+  return enforceRuntimeLimits(
+    {
+      loop: createLiveLoop({
+        pet: cloned?.pet,
+        inventory: cloned?.inventory,
+        items: cloned?.items,
+        quests: cloned?.quests,
+        coins: cloned?.coins,
+        decay: cloned?.decay,
+        loop: cloned?.loop,
+        now,
+      }),
+      bundle: createFactoryExportBundle(cloned, now),
+    },
+    now,
+  );
 }
 
 export function tickFactoryRuntime(
@@ -127,15 +162,22 @@ export function tickFactoryRuntime(
   now = Date.now(),
 ): TamaFactoryTickResult {
   const tick = tickLiveLoop(runtime.loop, now);
-  const nextRuntime: TamaFactoryRuntime = {
-    ...runtime,
-    loop: tick.state,
-  };
+  const nextRuntime = enforceRuntimeLimits(
+    {
+      ...runtime,
+      loop: tick.state,
+    },
+    now,
+  );
 
   return {
     runtime: nextRuntime,
-    tick,
-    gdevelop: exportSnapshotToGDevelop(tick.snapshot),
+    tick: {
+      ...tick,
+      state: nextRuntime.loop,
+      snapshot: createBridgeSnapshot(nextRuntime.loop.session),
+    },
+    gdevelop: exportSnapshotToGDevelop(createBridgeSnapshot(nextRuntime.loop.session)),
   };
 }
 
@@ -158,12 +200,21 @@ export function dispatchFactoryRuntime(
     };
   }
 
-  const nextRuntime = replaceRuntimeSession(runtime, response.session);
-  const snapshot = createBridgeSnapshot(response.session);
+  const now =
+    "payload" in action && action.payload && typeof action.payload === "object" && "now" in action.payload
+      ? (action.payload as { now?: number }).now ?? Date.now()
+      : Date.now();
+
+  const nextRuntime = replaceRuntimeSession(runtime, response.session, now);
+  const snapshot = createBridgeSnapshot(nextRuntime.loop.session);
 
   return {
     runtime: nextRuntime,
-    response,
+    response: {
+      ...response,
+      session: nextRuntime.loop.session,
+      snapshot,
+    },
     snapshot,
     gdevelop: exportSnapshotToGDevelop(snapshot),
   };
