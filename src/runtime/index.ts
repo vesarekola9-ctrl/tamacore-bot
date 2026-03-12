@@ -1,3 +1,4 @@
+export * from "./bridge";
 export * from "./catalog";
 export * from "./effects";
 export * from "./inventory";
