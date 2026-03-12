@@ -1,4 +1,11 @@
 import {
+  getCatalogItem,
+  listCatalogItems,
+  registerCatalogItems,
+  type TamaCatalogItem,
+  type TamaCatalogLike,
+} from "./catalog";
+import {
   addItem,
   hasItem,
   listInventory,
@@ -32,16 +39,21 @@ import {
   type TamaQuestLogLike,
   type TamaQuestState,
 } from "./quests";
+import { buyCatalogItem, getCoins, grantCoins, type TamaWalletLike } from "./shop";
 import { useItem, type TamaUsableItem } from "./use-item";
 
 export interface TamaSessionState
   extends TamaInventoryLike,
     TamaNotificationsLike,
-    TamaQuestLogLike {
+    TamaQuestLogLike,
+    TamaCatalogLike,
+    TamaWalletLike {
   pet: TamaPetState;
   inventory: TamaInventoryEntry[];
   notifications: TamaNotification[];
   quests: TamaQuestState[];
+  items: TamaCatalogItem[];
+  coins: number;
   createdAt: number;
   updatedAt: number;
   lastActionAt: number;
@@ -60,6 +72,15 @@ export interface TamaGrantItemResult {
   itemId: string;
   quantity: number;
   nextQuantity: number;
+}
+
+export interface TamaBuyItemResult {
+  session: TamaSessionState;
+  success: boolean;
+  reason?: "ITEM_NOT_FOUND" | "ITEM_HAS_NO_PRICE" | "NOT_ENOUGH_COINS";
+  itemId?: string;
+  remainingCoins?: number;
+  nextQuantity?: number;
 }
 
 function cloneInventory(entries?: TamaInventoryEntry[]): TamaInventoryEntry[] {
@@ -82,6 +103,18 @@ function cloneQuests(entries?: TamaQuestState[]): TamaQuestState[] {
     objectives: entry.objectives.map((objective) => ({ ...objective })),
     progress: entry.progress.map((progress) => ({ ...progress })),
     rewards: entry.rewards.map((reward) => ({ ...reward })),
+  }));
+}
+
+function cloneCatalog(entries?: TamaCatalogItem[]): TamaCatalogItem[] {
+  if (!Array.isArray(entries)) return [];
+  return entries.map((entry) => ({
+    ...entry,
+    changes: Array.isArray(entry.changes) ? entry.changes.map((change) => ({ ...change })) : [],
+    timedEffects: Array.isArray(entry.timedEffects)
+      ? entry.timedEffects.map((effect) => ({ ...effect }))
+      : [],
+    tags: Array.isArray(entry.tags) ? [...entry.tags] : [],
   }));
 }
 
@@ -109,6 +142,11 @@ export function createSessionState(
     inventory: cloneInventory(initial?.inventory),
     notifications: cloneNotifications(initial?.notifications),
     quests: cloneQuests(initial?.quests),
+    items: cloneCatalog(initial?.items),
+    coins:
+      typeof initial?.coins === "number" && Number.isFinite(initial.coins)
+        ? Math.max(0, Math.floor(initial.coins))
+        : 0,
     createdAt: typeof initial?.createdAt === "number" ? initial.createdAt : now,
     updatedAt: now,
     lastActionAt: typeof initial?.lastActionAt === "number" ? initial.lastActionAt : now,
@@ -131,6 +169,8 @@ export function tickSessionState(
     inventory: cloneInventory(session.inventory),
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(session.quests),
+    items: cloneCatalog(session.items),
+    coins: getCoins(session),
     updatedAt: now,
   };
 
@@ -148,6 +188,96 @@ export function tickSessionState(
   return {
     ...tick,
     session: nextSession,
+  };
+}
+
+export function registerSessionCatalog(
+  sessionInput: TamaSessionState,
+  items: TamaCatalogItem[],
+  now = Date.now(),
+): TamaSessionState {
+  const session = createSessionState(sessionInput, now);
+  registerCatalogItems(session, items, now);
+
+  return {
+    ...session,
+    items: cloneCatalog(listCatalogItems(session)),
+    updatedAt: now,
+  };
+}
+
+export function getSessionCatalog(
+  sessionInput: TamaSessionState,
+): TamaCatalogItem[] {
+  const session = createSessionState(sessionInput);
+  return listCatalogItems(session);
+}
+
+export function grantSessionCoins(
+  sessionInput: TamaSessionState,
+  amount: number,
+  now = Date.now(),
+): TamaSessionState {
+  const session = createSessionState(sessionInput, now);
+  grantCoins(session, amount, now);
+
+  return {
+    ...session,
+    coins: getCoins(session),
+    updatedAt: now,
+    lastActionAt: now,
+  };
+}
+
+export function getSessionCoins(sessionInput: TamaSessionState): number {
+  const session = createSessionState(sessionInput);
+  return getCoins(session);
+}
+
+export function buySessionItem(
+  sessionInput: TamaSessionState,
+  itemId: string,
+  now = Date.now(),
+): TamaBuyItemResult {
+  let session = createSessionState(sessionInput, now);
+
+  const result = buyCatalogItem(session, itemId, now);
+
+  if (!result.success) {
+    return {
+      session,
+      success: false,
+      reason: result.reason,
+      remainingCoins: result.remainingCoins ?? getCoins(session),
+    };
+  }
+
+  const tracked = trackQuestEvent(
+    session,
+    { type: "gain-item", target: itemId, amount: 1 },
+    now,
+    { pet: session.pet },
+  );
+
+  session = {
+    ...session,
+    inventory: cloneInventory(session.inventory),
+    notifications: cloneNotifications(session.notifications),
+    quests: cloneQuests(tracked.quests),
+    items: cloneCatalog(session.items),
+    coins: getCoins(session),
+    updatedAt: now,
+    lastActionAt: now,
+  };
+
+  const entry = session.inventory.find((item) => item.itemId === itemId);
+
+  return {
+    session,
+    success: true,
+    itemId,
+    remainingCoins: getCoins(session),
+    nextQuantity: entry ? entry.quantity : 0,
   };
 }
 
@@ -172,6 +302,8 @@ export function grantInventoryItem(
     inventory: cloneInventory(session.inventory),
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(tracked.quests),
+    items: cloneCatalog(session.items),
+    coins: getCoins(session),
     updatedAt: now,
     lastActionAt: now,
   };
@@ -233,6 +365,8 @@ export function useInventoryItem(
     inventory: cloneInventory(session.inventory),
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(session.quests),
+    items: cloneCatalog(session.items),
+    coins: getCoins(session),
     updatedAt: now,
     lastActionAt: now,
   };
@@ -258,6 +392,25 @@ export function useInventoryItem(
     usedItemId: item.id,
     remainingQuantity: removal.nextQuantity,
   };
+}
+
+export function useSessionCatalogItem(
+  sessionInput: TamaSessionState,
+  itemId: string,
+  now = Date.now(),
+): TamaUseInventoryItemResult {
+  const session = createSessionState(sessionInput, now);
+  const item = getCatalogItem(session, itemId);
+
+  if (!item) {
+    return {
+      session,
+      success: false,
+      reason: "ITEM_NOT_USABLE",
+    };
+  }
+
+  return useInventoryItem(session, item, now);
 }
 
 export function getSessionInventory(
@@ -293,6 +446,8 @@ export function readSessionNotification(
     ...session,
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(tracked.quests),
+    items: cloneCatalog(session.items),
+    coins: getCoins(session),
     updatedAt: now,
   };
 
@@ -319,6 +474,8 @@ export function readAllSessionNotifications(
     ...session,
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(tracked.quests),
+    items: cloneCatalog(session.items),
+    coins: getCoins(session),
     updatedAt: now,
   };
 
@@ -335,6 +492,8 @@ export function clearSessionReadNotifications(
   return {
     ...session,
     notifications: cloneNotifications(session.notifications),
+    items: cloneCatalog(session.items),
+    coins: getCoins(session),
     updatedAt: now,
   };
 }
@@ -351,6 +510,8 @@ export function registerSessionQuests(
     {
       ...session,
       quests: cloneQuests(session.quests),
+      items: cloneCatalog(session.items),
+      coins: getCoins(session),
       updatedAt: now,
     },
     now,
@@ -385,6 +546,8 @@ export function claimSessionQuest(
       ...session,
       inventory: cloneInventory(session.inventory),
       quests: cloneQuests(session.quests),
+      items: cloneCatalog(session.items),
+      coins: getCoins(session),
       updatedAt: now,
       lastActionAt: now,
     },
