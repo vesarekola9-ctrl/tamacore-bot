@@ -13,6 +13,7 @@ export * from "./inventory";
 export * from "./live-loop";
 export * from "./notifications";
 export * from "./pet-state";
+export * from "./pruning";
 export * from "./quests";
 export * from "./runtime-config";
 export * from "./runtime-manifest";
