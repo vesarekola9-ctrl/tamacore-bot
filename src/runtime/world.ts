@@ -51,9 +51,11 @@ export function updateWorldFlags(world: WorldState): WorldState {
 }
 
 export function tickWorld(world: WorldState): WorldState {
-  world.clock.time = normalizeWorldTime(world.clock.time + world.clock.speed);
+  const previousTime = normalizeWorldTime(world.clock.time);
 
-  if (world.clock.time === 0) {
+  world.clock.time = normalizeWorldTime(previousTime + world.clock.speed);
+
+  if (world.clock.time < previousTime) {
     world.clock.day += 1;
   }
 
@@ -61,13 +63,18 @@ export function tickWorld(world: WorldState): WorldState {
 }
 
 export function setZone(world: WorldState, zone: string): WorldState {
-  world.zone = typeof zone === "string" && zone.trim() ? zone : world.zone;
+  if (typeof zone === "string" && zone.trim()) {
+    world.zone = zone.trim();
+  }
+
   return world;
 }
 
 export function setWeather(world: WorldState, weather: string): WorldState {
-  world.weather =
-    typeof weather === "string" && weather.trim() ? weather : world.weather;
+  if (typeof weather === "string" && weather.trim()) {
+    world.weather = weather.trim();
+  }
+
   return world;
 }
 
