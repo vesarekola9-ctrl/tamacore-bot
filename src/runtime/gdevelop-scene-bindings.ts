@@ -3,9 +3,7 @@ import {
   dispatchSessionActionForGDevelop,
   type TamaGDevelopDispatchResponse,
 } from "./gdevelop-actions";
-import {
-  exportLiveLoopStateToGDevelop,
-} from "./gdevelop-state";
+import { exportLiveLoopStateToGDevelop } from "./gdevelop-state";
 import {
   createSceneStateFromSnapshotExport,
   findSceneRowById,
