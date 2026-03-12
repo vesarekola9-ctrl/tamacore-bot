@@ -5,5 +5,6 @@ export * from "./notifications";
 export * from "./pet-state";
 export * from "./quests";
 export * from "./session";
+export * from "./session-events";
 export * from "./shop";
 export * from "./use-item";
