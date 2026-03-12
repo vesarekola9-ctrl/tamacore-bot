@@ -1,4 +1,3 @@
-export * from "./runtime-bootstrap";
 export * from "./ai-bot-controller";
 export * from "./bridge";
 export * from "./catalog";
@@ -23,6 +22,7 @@ export * from "./notifications";
 export * from "./pet-state";
 export * from "./pruning";
 export * from "./quests";
+export * from "./runtime-bootstrap";
 export * from "./runtime-config";
 export * from "./runtime-manifest";
 export * from "./session";
