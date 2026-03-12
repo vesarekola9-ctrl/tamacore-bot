@@ -11,10 +11,12 @@ import { getSessionEvents, type TamaSessionState } from "./session";
 import {
   resolveRuntimeConfig,
   type TamaResolvedRuntimeConfig,
+  type TamaRuntimeBootstrapConfigFile,
 } from "./runtime-config";
 import {
-  createWorldState,
+  createWorldStateFromInput,
   tickWorld,
+  type TamaWorldBootstrapInput,
   type WorldState,
 } from "./world";
 
@@ -40,7 +42,9 @@ function enforceEventLimit(
   now: number,
 ): { session: TamaSessionState; removedCount: number } {
   const before = getSessionEvents(session).length;
+
   pruneSessionEvents(session, limit, now);
+
   const after = getSessionEvents(session).length;
 
   return {
@@ -86,10 +90,10 @@ function autoClaimCompletedQuests(
 }
 
 export function createLiveLoop(
-  input?: TamaBridgeBootstrapInput & {
-    decay?: Partial<TamaResolvedRuntimeConfig["decay"]>;
-    loop?: Partial<TamaResolvedRuntimeConfig["loop"]>;
-  },
+  input?: TamaBridgeBootstrapInput &
+    TamaRuntimeBootstrapConfigFile & {
+      world?: TamaWorldBootstrapInput;
+    },
 ): TamaLiveLoopState {
   const now = typeof input?.now === "number" ? input.now : Date.now();
 
@@ -128,7 +132,7 @@ export function createLiveLoop(
 
   return {
     session,
-    world: createWorldState(),
+    world: createWorldStateFromInput(input?.world),
     config: resolved.config,
     startedAt: now,
     updatedAt: now,
