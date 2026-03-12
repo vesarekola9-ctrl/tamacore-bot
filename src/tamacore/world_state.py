@@ -26,6 +26,7 @@ class WorldState:
 class WorldSystem:
 
     def __init__(self):
+
         self.world = WorldState()
 
     def tick(self):
@@ -33,6 +34,7 @@ class WorldSystem:
         self.world.clock.time += self.world.clock.speed
 
         if self.world.clock.time >= 1440:
+
             self.world.clock.time = 0
             self.world.clock.day += 1
 
@@ -46,13 +48,16 @@ class WorldSystem:
         self.world.flags.isMorning = 6 <= hour < 12
         self.world.flags.isEvening = 17 <= hour < 20
 
-    def set_zone(self, zone: str):
+    def set_zone(self, zone):
+
         self.world.zone = zone
 
-    def set_weather(self, weather: str):
+    def set_weather(self, weather):
+
         self.world.weather = weather
 
     def export(self):
+
         return {
             "world": {
                 "day": self.world.clock.day,
