@@ -39,6 +39,14 @@ import {
   type TamaQuestLogLike,
   type TamaQuestState,
 } from "./quests";
+import {
+  clearSessionEvents,
+  listSessionEvents,
+  pushSessionEvent,
+  shiftSessionEvents,
+  type TamaSessionEvent,
+  type TamaSessionEventsLike,
+} from "./session-events";
 import { buyCatalogItem, getCoins, grantCoins, type TamaWalletLike } from "./shop";
 import { useItem, type TamaUsableItem } from "./use-item";
 
@@ -47,12 +55,14 @@ export interface TamaSessionState
     TamaNotificationsLike,
     TamaQuestLogLike,
     TamaCatalogLike,
-    TamaWalletLike {
+    TamaWalletLike,
+    TamaSessionEventsLike {
   pet: TamaPetState;
   inventory: TamaInventoryEntry[];
   notifications: TamaNotification[];
   quests: TamaQuestState[];
   items: TamaCatalogItem[];
+  events: TamaSessionEvent[];
   coins: number;
   createdAt: number;
   updatedAt: number;
@@ -118,6 +128,17 @@ function cloneCatalog(entries?: TamaCatalogItem[]): TamaCatalogItem[] {
   }));
 }
 
+function cloneEvents(entries?: TamaSessionEvent[]): TamaSessionEvent[] {
+  if (!Array.isArray(entries)) return [];
+  return entries.map((entry) => ({
+    ...entry,
+    payload:
+      entry.payload && typeof entry.payload === "object"
+        ? { ...(entry.payload as Record<string, unknown>) }
+        : entry.payload,
+  }));
+}
+
 function syncSessionDerivedState(
   session: TamaSessionState,
   now: number,
@@ -143,6 +164,7 @@ export function createSessionState(
     notifications: cloneNotifications(initial?.notifications),
     quests: cloneQuests(initial?.quests),
     items: cloneCatalog(initial?.items),
+    events: cloneEvents(initial?.events),
     coins:
       typeof initial?.coins === "number" && Number.isFinite(initial.coins)
         ? Math.max(0, Math.floor(initial.coins))
@@ -152,7 +174,22 @@ export function createSessionState(
     lastActionAt: typeof initial?.lastActionAt === "number" ? initial.lastActionAt : now,
   };
 
-  return syncSessionDerivedState(session, now);
+  const next = syncSessionDerivedState(session, now);
+
+  if (!initial) {
+    pushSessionEvent(
+      next,
+      {
+        type: "session-created",
+        payload: {
+          createdAt: next.createdAt,
+        },
+      },
+      now,
+    );
+  }
+
+  return next;
 }
 
 export function tickSessionState(
@@ -170,6 +207,7 @@ export function tickSessionState(
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(session.quests),
     items: cloneCatalog(session.items),
+    events: cloneEvents(session.events),
     coins: getCoins(session),
     updatedAt: now,
   };
@@ -185,9 +223,26 @@ export function tickSessionState(
 
   nextSession.quests = cloneQuests(tracked.quests);
 
+  pushSessionEvent(
+    nextSession,
+    {
+      type: "session-ticked",
+      payload: {
+        elapsedMs: tick.elapsedMs,
+        elapsedMinutes: tick.elapsedMinutes,
+        changedNeeds: [...tick.changedNeeds],
+        mood: nextSession.pet.mood,
+      },
+    },
+    now,
+  );
+
   return {
     ...tick,
-    session: nextSession,
+    session: {
+      ...nextSession,
+      events: cloneEvents(nextSession.events),
+    },
   };
 }
 
@@ -202,6 +257,7 @@ export function registerSessionCatalog(
   return {
     ...session,
     items: cloneCatalog(listCatalogItems(session)),
+    events: cloneEvents(session.events),
     updatedAt: now,
   };
 }
@@ -219,11 +275,27 @@ export function grantSessionCoins(
   now = Date.now(),
 ): TamaSessionState {
   const session = createSessionState(sessionInput, now);
+  const before = getCoins(session);
   grantCoins(session, amount, now);
+  const after = getCoins(session);
+
+  pushSessionEvent(
+    session,
+    {
+      type: "coins-granted",
+      payload: {
+        amount: Math.max(0, after - before),
+        coinsBefore: before,
+        coinsAfter: after,
+      },
+    },
+    now,
+  );
 
   return {
     ...session,
     coins: getCoins(session),
+    events: cloneEvents(session.events),
     updatedAt: now,
     lastActionAt: now,
   };
@@ -265,6 +337,7 @@ export function buySessionItem(
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(tracked.quests),
     items: cloneCatalog(session.items),
+    events: cloneEvents(session.events),
     coins: getCoins(session),
     updatedAt: now,
     lastActionAt: now,
@@ -272,8 +345,25 @@ export function buySessionItem(
 
   const entry = session.inventory.find((item) => item.itemId === itemId);
 
-  return {
+  pushSessionEvent(
     session,
+    {
+      type: "item-bought",
+      payload: {
+        itemId,
+        paidCoins: result.paidCoins ?? 0,
+        remainingCoins: getCoins(session),
+        nextQuantity: entry ? entry.quantity : 0,
+      },
+    },
+    now,
+  );
+
+  return {
+    session: {
+      ...session,
+      events: cloneEvents(session.events),
+    },
     success: true,
     itemId,
     remainingCoins: getCoins(session),
@@ -303,13 +393,30 @@ export function grantInventoryItem(
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(tracked.quests),
     items: cloneCatalog(session.items),
+    events: cloneEvents(session.events),
     coins: getCoins(session),
     updatedAt: now,
     lastActionAt: now,
   };
 
-  return {
+  pushSessionEvent(
     session,
+    {
+      type: "item-granted",
+      payload: {
+        itemId,
+        quantity,
+        nextQuantity: result.nextQuantity,
+      },
+    },
+    now,
+  );
+
+  return {
+    session: {
+      ...session,
+      events: cloneEvents(session.events),
+    },
     itemId,
     quantity,
     nextQuantity: result.nextQuantity,
@@ -366,6 +473,7 @@ export function useInventoryItem(
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(session.quests),
     items: cloneCatalog(session.items),
+    events: cloneEvents(session.events),
     coins: getCoins(session),
     updatedAt: now,
     lastActionAt: now,
@@ -386,8 +494,24 @@ export function useInventoryItem(
     updatedAt: now,
   };
 
-  return {
+  pushSessionEvent(
     session,
+    {
+      type: "item-used",
+      payload: {
+        itemId: item.id,
+        remainingQuantity: removal.nextQuantity,
+        mood: session.pet.mood,
+      },
+    },
+    now,
+  );
+
+  return {
+    session: {
+      ...session,
+      events: cloneEvents(session.events),
+    },
     success: true,
     usedItemId: item.id,
     remainingQuantity: removal.nextQuantity,
@@ -447,11 +571,26 @@ export function readSessionNotification(
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(tracked.quests),
     items: cloneCatalog(session.items),
+    events: cloneEvents(session.events),
     coins: getCoins(session),
     updatedAt: now,
   };
 
-  return session;
+  pushSessionEvent(
+    session,
+    {
+      type: "notification-read",
+      payload: {
+        notificationId: id,
+      },
+    },
+    now,
+  );
+
+  return {
+    ...session,
+    events: cloneEvents(session.events),
+  };
 }
 
 export function readAllSessionNotifications(
@@ -475,11 +614,26 @@ export function readAllSessionNotifications(
     notifications: cloneNotifications(session.notifications),
     quests: cloneQuests(tracked.quests),
     items: cloneCatalog(session.items),
+    events: cloneEvents(session.events),
     coins: getCoins(session),
     updatedAt: now,
   };
 
-  return session;
+  pushSessionEvent(
+    session,
+    {
+      type: "notifications-read-all",
+      payload: {
+        count: beforeUnread,
+      },
+    },
+    now,
+  );
+
+  return {
+    ...session,
+    events: cloneEvents(session.events),
+  };
 }
 
 export function clearSessionReadNotifications(
@@ -487,12 +641,26 @@ export function clearSessionReadNotifications(
   now = Date.now(),
 ): TamaSessionState {
   const session = createSessionState(sessionInput, now);
+  const before = session.notifications.length;
   clearReadNotifications(session, now);
+  const after = session.notifications.length;
+
+  pushSessionEvent(
+    session,
+    {
+      type: "notifications-cleared-read",
+      payload: {
+        removedCount: Math.max(0, before - after),
+      },
+    },
+    now,
+  );
 
   return {
     ...session,
     notifications: cloneNotifications(session.notifications),
     items: cloneCatalog(session.items),
+    events: cloneEvents(session.events),
     coins: getCoins(session),
     updatedAt: now,
   };
@@ -504,13 +672,27 @@ export function registerSessionQuests(
   now = Date.now(),
 ): TamaSessionState {
   const session = createSessionState(sessionInput, now);
+  const before = session.quests.length;
   registerQuests(session, definitions, now);
+  const after = session.quests.length;
+
+  pushSessionEvent(
+    session,
+    {
+      type: "quests-registered",
+      payload: {
+        addedCount: Math.max(0, after - before),
+      },
+    },
+    now,
+  );
 
   return syncSessionDerivedState(
     {
       ...session,
       quests: cloneQuests(session.quests),
       items: cloneCatalog(session.items),
+      events: cloneEvents(session.events),
       coins: getCoins(session),
       updatedAt: now,
     },
@@ -547,6 +729,7 @@ export function claimSessionQuest(
       inventory: cloneInventory(session.inventory),
       quests: cloneQuests(session.quests),
       items: cloneCatalog(session.items),
+      events: cloneEvents(session.events),
       coins: getCoins(session),
       updatedAt: now,
       lastActionAt: now,
@@ -554,5 +737,59 @@ export function claimSessionQuest(
     now,
   );
 
-  return session;
+  pushSessionEvent(
+    session,
+    {
+      type: "quest-claimed",
+      payload: {
+        questId,
+        rewards: claimed.rewards.map((reward) => ({
+          itemId: reward.itemId,
+          quantity: reward.quantity,
+        })),
+      },
+    },
+    now,
+  );
+
+  return {
+    ...session,
+    events: cloneEvents(session.events),
+  };
+}
+
+export function getSessionEvents(
+  sessionInput: TamaSessionState,
+): TamaSessionEvent[] {
+  const session = createSessionState(sessionInput);
+  return listSessionEvents(session);
+}
+
+export function clearAllSessionEvents(
+  sessionInput: TamaSessionState,
+  now = Date.now(),
+): TamaSessionState {
+  const session = createSessionState(sessionInput, now);
+  clearSessionEvents(session, now);
+
+  return {
+    ...session,
+    events: cloneEvents(session.events),
+    updatedAt: now,
+  };
+}
+
+export function consumeSessionEvents(
+  sessionInput: TamaSessionState,
+  count = 1,
+  now = Date.now(),
+): TamaSessionState {
+  const session = createSessionState(sessionInput, now);
+  shiftSessionEvents(session, count, now);
+
+  return {
+    ...session,
+    events: cloneEvents(session.events),
+    updatedAt: now,
+  };
 }
