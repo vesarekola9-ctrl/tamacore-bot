@@ -1,3 +1,4 @@
+export * from "./factory-runner";
 export * from "./ai-bot-controller";
 export * from "./bridge";
 export * from "./catalog";
