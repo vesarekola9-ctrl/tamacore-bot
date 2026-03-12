@@ -4,6 +4,9 @@ import {
   type TamaGDevelopDispatchResponse,
 } from "./gdevelop-actions";
 import {
+  exportLiveLoopStateToGDevelop,
+} from "./gdevelop-state";
+import {
   createSceneStateFromSnapshotExport,
   findSceneRowById,
   getSceneRowsByCollection,
@@ -12,6 +15,7 @@ import {
   type TamaGDevelopSceneState,
 } from "./gdevelop-scene";
 import type { TamaDispatchAction, TamaDispatchState } from "./dispatcher";
+import type { TamaLiveLoopState } from "./live-loop";
 import type { TamaSessionState } from "./session";
 
 export interface TamaSceneBindingResult {
@@ -24,6 +28,13 @@ export function buildSceneStateFromSession(
 ): TamaGDevelopSceneState | undefined {
   const exported = createGDevelopState(session);
   return exported ? createSceneStateFromSnapshotExport(exported) : undefined;
+}
+
+export function buildSceneStateFromLiveLoop(
+  state?: TamaLiveLoopState,
+): TamaGDevelopSceneState | undefined {
+  if (!state) return undefined;
+  return createSceneStateFromSnapshotExport(exportLiveLoopStateToGDevelop(state));
 }
 
 export function dispatchSceneAction(
@@ -54,6 +65,21 @@ export function readSceneSessionValue(
   key: "Coins" | "CreatedAt" | "UpdatedAt" | "LastActionAt",
 ): string | number | boolean | undefined {
   return getSceneVariableValue(scene, `Session.${key}`);
+}
+
+export function readSceneWorldValue(
+  scene: TamaGDevelopSceneState,
+  key:
+    | "Day"
+    | "Time"
+    | "Speed"
+    | "Zone"
+    | "Weather"
+    | "IsNight"
+    | "IsMorning"
+    | "IsEvening",
+): string | number | boolean | undefined {
+  return getSceneVariableValue(scene, `World.${key}`);
 }
 
 export function listSceneInventoryRows(
