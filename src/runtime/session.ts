@@ -13,11 +13,21 @@ import {
   type TamaPetState,
   type TamaTickResult,
 } from "./pet-state";
+import {
+  clearReadNotifications,
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  syncPetNotifications,
+  type TamaNotification,
+  type TamaNotificationsLike,
+} from "./notifications";
 import { useItem, type TamaUsableItem } from "./use-item";
 
-export interface TamaSessionState extends TamaInventoryLike {
+export interface TamaSessionState extends TamaInventoryLike, TamaNotificationsLike {
   pet: TamaPetState;
   inventory: TamaInventoryEntry[];
+  notifications: TamaNotification[];
   createdAt: number;
   updatedAt: number;
   lastActionAt: number;
@@ -46,16 +56,30 @@ function cloneInventory(entries?: TamaInventoryEntry[]): TamaInventoryEntry[] {
   }));
 }
 
+function cloneNotifications(entries?: TamaNotification[]): TamaNotification[] {
+  if (!Array.isArray(entries)) return [];
+  return entries.map((entry) => ({ ...entry }));
+}
+
 export function createSessionState(
   initial?: Partial<TamaSessionState>,
   now = Date.now(),
 ): TamaSessionState {
-  return {
+  const session: TamaSessionState = {
     pet: createPetState(initial?.pet, now),
     inventory: cloneInventory(initial?.inventory),
+    notifications: cloneNotifications(initial?.notifications),
     createdAt: typeof initial?.createdAt === "number" ? initial.createdAt : now,
     updatedAt: now,
     lastActionAt: typeof initial?.lastActionAt === "number" ? initial.lastActionAt : now,
+  };
+
+  const sync = syncPetNotifications(session, session.pet, now);
+
+  return {
+    ...session,
+    notifications: cloneNotifications(sync.notifications),
+    updatedAt: now,
   };
 }
 
@@ -71,8 +95,12 @@ export function tickSessionState(
     ...session,
     pet: tick.pet,
     inventory: cloneInventory(session.inventory),
+    notifications: cloneNotifications(session.notifications),
     updatedAt: now,
   };
+
+  const sync = syncPetNotifications(nextSession, nextSession.pet, now);
+  nextSession.notifications = cloneNotifications(sync.notifications);
 
   return {
     ...tick,
@@ -93,6 +121,7 @@ export function grantInventoryItem(
     session: {
       ...session,
       inventory: cloneInventory(session.inventory),
+      notifications: cloneNotifications(session.notifications),
       updatedAt: now,
       lastActionAt: now,
     },
@@ -149,9 +178,13 @@ export function useInventoryItem(
     ...session,
     pet: createPetState(useResult.pet as TamaPetState, now),
     inventory: cloneInventory(session.inventory),
+    notifications: cloneNotifications(session.notifications),
     updatedAt: now,
     lastActionAt: now,
   };
+
+  const sync = syncPetNotifications(nextSession, nextSession.pet, now);
+  nextSession.notifications = cloneNotifications(sync.notifications);
 
   return {
     session: nextSession,
@@ -166,4 +199,54 @@ export function getSessionInventory(
 ): TamaInventoryEntry[] {
   const session = createSessionState(sessionInput);
   return listInventory(session);
+}
+
+export function getSessionNotifications(
+  sessionInput: TamaSessionState,
+): TamaNotification[] {
+  const session = createSessionState(sessionInput);
+  return listNotifications(session);
+}
+
+export function readSessionNotification(
+  sessionInput: TamaSessionState,
+  id: string,
+  now = Date.now(),
+): TamaSessionState {
+  const session = createSessionState(sessionInput, now);
+  markNotificationRead(session, id, now);
+
+  return {
+    ...session,
+    notifications: cloneNotifications(session.notifications),
+    updatedAt: now,
+  };
+}
+
+export function readAllSessionNotifications(
+  sessionInput: TamaSessionState,
+  now = Date.now(),
+): TamaSessionState {
+  const session = createSessionState(sessionInput, now);
+  markAllNotificationsRead(session, now);
+
+  return {
+    ...session,
+    notifications: cloneNotifications(session.notifications),
+    updatedAt: now,
+  };
+}
+
+export function clearSessionReadNotifications(
+  sessionInput: TamaSessionState,
+  now = Date.now(),
+): TamaSessionState {
+  const session = createSessionState(sessionInput, now);
+  clearReadNotifications(session, now);
+
+  return {
+    ...session,
+    notifications: cloneNotifications(session.notifications),
+    updatedAt: now,
+  };
 }
