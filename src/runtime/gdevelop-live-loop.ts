@@ -28,19 +28,7 @@ export type TamaLiveLoopActionType =
   | "LIVE_SNAPSHOT"
   | "WORLD_SET_ZONE"
   | "WORLD_SET_WEATHER"
-  | "BOOTSTRAP"
-  | "TICK"
-  | "GRANT_COINS"
-  | "GRANT_ITEM"
-  | "BUY_ITEM"
-  | "USE_ITEM"
-  | "READ_NOTIFICATION"
-  | "READ_ALL_NOTIFICATIONS"
-  | "CLEAR_READ_NOTIFICATIONS"
-  | "CLAIM_QUEST"
-  | "CONSUME_EVENTS"
-  | "CLEAR_EVENTS"
-  | "SNAPSHOT";
+  | TamaDispatchAction["type"];
 
 export interface TamaLiveLoopBootstrapAction {
   type: "LIVE_BOOTSTRAP";
@@ -264,7 +252,7 @@ function applySessionDispatchToLiveLoop(
   return success(
     response.action as TamaLiveLoopActionType,
     next,
-    response.result,
+    response.result as Record<string, never>,
   );
 }
 
@@ -275,6 +263,7 @@ export function dispatchLiveLoopAction(
   switch (action.type) {
     case "LIVE_BOOTSTRAP": {
       const liveLoop = createLiveLoop(action.payload);
+
       return success("LIVE_BOOTSTRAP", liveLoop, {});
     }
 
