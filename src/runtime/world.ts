@@ -22,6 +22,13 @@ export type TamaWorldBootstrapInput = Partial<WorldState> & {
   flags?: Partial<WorldFlags>;
 };
 
+export function normalizeWorldTime(time: number): number {
+  if (!Number.isFinite(time)) return 0;
+
+  const normalized = Math.floor(time) % 1440;
+  return normalized < 0 ? normalized + 1440 : normalized;
+}
+
 export function createWorldState(): WorldState {
   const world: WorldState = {
     clock: {
@@ -41,13 +48,6 @@ export function createWorldState(): WorldState {
   return updateWorldFlags(world);
 }
 
-export function normalizeWorldTime(time: number): number {
-  if (!Number.isFinite(time)) return 0;
-
-  const normalized = Math.floor(time) % 1440;
-  return normalized < 0 ? normalized + 1440 : normalized;
-}
-
 export function updateWorldFlags(world: WorldState): WorldState {
   const hour = Math.floor(normalizeWorldTime(world.clock.time) / 60);
 
@@ -61,10 +61,11 @@ export function updateWorldFlags(world: WorldState): WorldState {
 export function tickWorld(world: WorldState): WorldState {
   const previousTime = normalizeWorldTime(world.clock.time);
   const speed = Number.isFinite(world.clock.speed) ? world.clock.speed : 1;
+  const nextRawTime = previousTime + speed;
 
-  world.clock.time = normalizeWorldTime(previousTime + speed);
+  world.clock.time = normalizeWorldTime(nextRawTime);
 
-  if (world.clock.time < previousTime || previousTime + speed >= 1440) {
+  if (world.clock.time < previousTime || nextRawTime >= 1440) {
     world.clock.day = Math.max(1, Math.floor(world.clock.day) + 1);
   }
 
