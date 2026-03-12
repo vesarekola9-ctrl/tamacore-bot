@@ -1,0 +1,9 @@
+{
+  "commands": [
+    { "name": "WORLD_SET_ZONE" },
+    { "name": "WORLD_SET_WEATHER" },
+    { "name": "WORLD_NEW_DAY" },
+    { "name": "WORLD_ZONE_CHANGED" },
+    { "name": "WORLD_WEATHER_CHANGED" }
+  ]
+}
