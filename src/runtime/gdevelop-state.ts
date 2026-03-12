@@ -1,10 +1,12 @@
+import type { TamaBridgeSnapshot } from "./bridge";
 import type { TamaCatalogItem } from "./catalog";
 import type { TamaInventoryEntry } from "./inventory";
+import type { TamaLiveLoopState } from "./live-loop";
 import type { TamaNotification } from "./notifications";
 import type { TamaPetState } from "./pet-state";
 import type { TamaQuestState } from "./quests";
-import type { TamaBridgeSnapshot } from "./bridge";
 import type { TamaSessionEvent } from "./session-events";
+import type { WorldState } from "./world";
 
 export interface TamaGDevelopVariableMap {
   [key: string]: string | number | boolean;
@@ -74,7 +76,25 @@ function exportPetVariables(
   target["Pet.CreatedAt"] = safeNumber(pet.createdAt);
   target["Pet.UpdatedAt"] = safeNumber(pet.updatedAt);
   target["Pet.LastTickAt"] = safeNumber(pet.lastTickAt);
-  target["Pet.ActiveEffectsCount"] = Array.isArray(pet.activeEffects) ? pet.activeEffects.length : 0;
+  target["Pet.ActiveEffectsCount"] = Array.isArray(pet.activeEffects)
+    ? pet.activeEffects.length
+    : 0;
+}
+
+function exportWorldVariables(
+  target: TamaGDevelopVariableMap,
+  world?: WorldState,
+): void {
+  if (!world) return;
+
+  target["World.Day"] = safeNumber(world.clock.day, 1);
+  target["World.Time"] = safeNumber(world.clock.time);
+  target["World.Speed"] = safeNumber(world.clock.speed, 1);
+  target["World.Zone"] = safeString(world.zone, "home");
+  target["World.Weather"] = safeString(world.weather, "clear");
+  target["World.IsNight"] = safeBoolean(world.flags.isNight);
+  target["World.IsMorning"] = safeBoolean(world.flags.isMorning);
+  target["World.IsEvening"] = safeBoolean(world.flags.isEvening);
 }
 
 function exportInventoryRows(entries: TamaInventoryEntry[]): TamaGDevelopArrayItem[] {
@@ -189,10 +209,16 @@ export function exportSnapshotToGDevelop(
 
   variables["Counts.Inventory"] = snapshot.inventory.length;
   variables["Counts.Notifications"] = snapshot.notifications.length;
-  variables["Counts.NotificationsUnread"] = snapshot.notifications.filter((item) => !item.read).length;
+  variables["Counts.NotificationsUnread"] = snapshot.notifications.filter(
+    (item) => !item.read,
+  ).length;
   variables["Counts.Quests"] = snapshot.quests.length;
-  variables["Counts.QuestsCompleted"] = snapshot.quests.filter((item) => item.status === "completed").length;
-  variables["Counts.QuestsClaimed"] = snapshot.quests.filter((item) => item.status === "claimed").length;
+  variables["Counts.QuestsCompleted"] = snapshot.quests.filter(
+    (item) => item.status === "completed",
+  ).length;
+  variables["Counts.QuestsClaimed"] = snapshot.quests.filter(
+    (item) => item.status === "claimed",
+  ).length;
   variables["Counts.Catalog"] = snapshot.items.length;
   variables["Counts.Events"] = snapshot.events.length;
 
@@ -204,4 +230,50 @@ export function exportSnapshotToGDevelop(
     catalog: exportCatalogRows(snapshot.items),
     events: exportEventRows(snapshot.events),
   };
+}
+
+export function exportLiveLoopStateToGDevelop(
+  liveLoop: TamaLiveLoopState,
+): TamaGDevelopExport {
+  const exported = exportSnapshotToGDevelop({
+    pet: {
+      ...liveLoop.session.pet,
+      activeEffects: Array.isArray(liveLoop.session.pet.activeEffects)
+        ? [...liveLoop.session.pet.activeEffects]
+        : [],
+    },
+    inventory: liveLoop.session.inventory.map((entry) => ({ ...entry })),
+    notifications: liveLoop.session.notifications.map((entry) => ({ ...entry })),
+    quests: liveLoop.session.quests.map((entry) => ({
+      ...entry,
+      objectives: entry.objectives.map((objective) => ({ ...objective })),
+      progress: entry.progress.map((progress) => ({ ...progress })),
+      rewards: entry.rewards.map((reward) => ({ ...reward })),
+    })),
+    items: liveLoop.session.items.map((entry) => ({
+      ...entry,
+      changes: Array.isArray(entry.changes)
+        ? entry.changes.map((change) => ({ ...change }))
+        : [],
+      timedEffects: Array.isArray(entry.timedEffects)
+        ? entry.timedEffects.map((effect) => ({ ...effect }))
+        : [],
+      tags: Array.isArray(entry.tags) ? [...entry.tags] : [],
+    })),
+    events: liveLoop.session.events.map((entry) => ({
+      ...entry,
+      payload:
+        entry.payload && typeof entry.payload === "object"
+          ? { ...(entry.payload as Record<string, unknown>) }
+          : entry.payload,
+    })),
+    coins: liveLoop.session.coins,
+    createdAt: liveLoop.session.createdAt,
+    updatedAt: liveLoop.session.updatedAt,
+    lastActionAt: liveLoop.session.lastActionAt,
+  });
+
+  exportWorldVariables(exported.variables, liveLoop.world);
+
+  return exported;
 }
