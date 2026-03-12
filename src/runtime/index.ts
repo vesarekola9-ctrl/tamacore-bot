@@ -8,6 +8,8 @@ export * from "./factory-scenario";
 export * from "./gdevelop-actions";
 export * from "./gdevelop-commands";
 export * from "./gdevelop-json";
+export * from "./gdevelop-live-loop";
+export * from "./gdevelop-live-loop-commands";
 export * from "./gdevelop-scene";
 export * from "./gdevelop-scene-bindings";
 export * from "./gdevelop-state";
