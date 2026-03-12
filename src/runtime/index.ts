@@ -1,5 +1,6 @@
 export * from "./bridge";
 export * from "./catalog";
+export * from "./dispatcher";
 export * from "./effects";
 export * from "./inventory";
 export * from "./notifications";
