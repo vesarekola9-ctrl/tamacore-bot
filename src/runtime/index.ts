@@ -12,3 +12,4 @@ export * from "./session";
 export * from "./session-events";
 export * from "./shop";
 export * from "./use-item";
+export * from "./validator";
