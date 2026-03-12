@@ -2,6 +2,8 @@ export * from "./bridge";
 export * from "./catalog";
 export * from "./dispatcher";
 export * from "./effects";
+export * from "./gdevelop-actions";
+export * from "./gdevelop-state";
 export * from "./inventory";
 export * from "./notifications";
 export * from "./pet-state";
