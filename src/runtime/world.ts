@@ -29,6 +29,16 @@ export function normalizeWorldTime(time: number): number {
   return normalized < 0 ? normalized + 1440 : normalized;
 }
 
+export function updateWorldFlags(world: WorldState): WorldState {
+  const hour = Math.floor(normalizeWorldTime(world.clock.time) / 60);
+
+  world.flags.isNight = hour >= 20 || hour < 6;
+  world.flags.isMorning = hour >= 6 && hour < 12;
+  world.flags.isEvening = hour >= 17 && hour < 20;
+
+  return world;
+}
+
 export function createWorldState(): WorldState {
   const world: WorldState = {
     clock: {
@@ -46,16 +56,6 @@ export function createWorldState(): WorldState {
   };
 
   return updateWorldFlags(world);
-}
-
-export function updateWorldFlags(world: WorldState): WorldState {
-  const hour = Math.floor(normalizeWorldTime(world.clock.time) / 60);
-
-  world.flags.isNight = hour >= 20 || hour < 6;
-  world.flags.isMorning = hour >= 6 && hour < 12;
-  world.flags.isEvening = hour >= 17 && hour < 20;
-
-  return world;
 }
 
 export function tickWorld(world: WorldState): WorldState {
