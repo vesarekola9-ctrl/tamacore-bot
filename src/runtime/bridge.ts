@@ -32,6 +32,10 @@ import {
 import type { TamaQuestDefinition } from "./quests";
 import type { TamaSessionEvent } from "./session-events";
 import type { TamaNeedDecayRates, TamaTickResult } from "./pet-state";
+import {
+  validateRuntimeBootstrapConfig,
+  type TamaRuntimeValidationIssue,
+} from "./validator";
 
 export interface TamaBridgeBootstrapInput {
   pet?: Partial<TamaPetState>;
@@ -59,6 +63,12 @@ export interface TamaBridgeResult<T = Record<string, unknown>> {
   session: TamaSessionState;
   snapshot: TamaBridgeSnapshot;
   result: T;
+}
+
+export interface TamaBridgeBootstrapResult {
+  bootstrapped: boolean;
+  valid: boolean;
+  issues: TamaRuntimeValidationIssue[];
 }
 
 function cloneInventory(entries: TamaInventoryEntry[]): TamaInventoryEntry[] {
@@ -119,8 +129,15 @@ export function createBridgeSnapshot(session: TamaSessionState): TamaBridgeSnaps
 
 export function bootstrapBridgeSession(
   input?: TamaBridgeBootstrapInput,
-): TamaBridgeResult<{ bootstrapped: true }> {
+): TamaBridgeResult<TamaBridgeBootstrapResult> {
   const now = typeof input?.now === "number" ? input.now : Date.now();
+  const validation = validateRuntimeBootstrapConfig({
+    pet: input?.pet,
+    items: input?.items,
+    quests: input?.quests,
+    inventory: input?.inventory,
+    coins: input?.coins,
+  });
 
   let session = createSessionState(
     {
@@ -144,6 +161,8 @@ export function bootstrapBridgeSession(
     snapshot: createBridgeSnapshot(session),
     result: {
       bootstrapped: true,
+      valid: validation.ok,
+      issues: validation.issues,
     },
   };
 }
