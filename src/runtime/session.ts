@@ -7,13 +7,6 @@ import {
   type TamaInventoryLike,
 } from "./inventory";
 import {
-  createPetState,
-  tickPetState,
-  type TamaNeedDecayRates,
-  type TamaPetState,
-  type TamaTickResult,
-} from "./pet-state";
-import {
   clearReadNotifications,
   listNotifications,
   markAllNotificationsRead,
@@ -22,12 +15,33 @@ import {
   type TamaNotification,
   type TamaNotificationsLike,
 } from "./notifications";
+import {
+  createPetState,
+  tickPetState,
+  type TamaNeedDecayRates,
+  type TamaPetState,
+  type TamaTickResult,
+} from "./pet-state";
+import {
+  claimQuest,
+  listQuests,
+  registerQuests,
+  syncQuestSnapshot,
+  trackQuestEvent,
+  type TamaQuestDefinition,
+  type TamaQuestLogLike,
+  type TamaQuestState,
+} from "./quests";
 import { useItem, type TamaUsableItem } from "./use-item";
 
-export interface TamaSessionState extends TamaInventoryLike, TamaNotificationsLike {
+export interface TamaSessionState
+  extends TamaInventoryLike,
+    TamaNotificationsLike,
+    TamaQuestLogLike {
   pet: TamaPetState;
   inventory: TamaInventoryEntry[];
   notifications: TamaNotification[];
+  quests: TamaQuestState[];
   createdAt: number;
   updatedAt: number;
   lastActionAt: number;
@@ -61,6 +75,31 @@ function cloneNotifications(entries?: TamaNotification[]): TamaNotification[] {
   return entries.map((entry) => ({ ...entry }));
 }
 
+function cloneQuests(entries?: TamaQuestState[]): TamaQuestState[] {
+  if (!Array.isArray(entries)) return [];
+  return entries.map((entry) => ({
+    ...entry,
+    objectives: entry.objectives.map((objective) => ({ ...objective })),
+    progress: entry.progress.map((progress) => ({ ...progress })),
+    rewards: entry.rewards.map((reward) => ({ ...reward })),
+  }));
+}
+
+function syncSessionDerivedState(
+  session: TamaSessionState,
+  now: number,
+): TamaSessionState {
+  const notificationSync = syncPetNotifications(session, session.pet, now);
+  const questSync = syncQuestSnapshot(session, now, { pet: session.pet });
+
+  return {
+    ...session,
+    notifications: cloneNotifications(notificationSync.notifications),
+    quests: cloneQuests(questSync.quests),
+    updatedAt: now,
+  };
+}
+
 export function createSessionState(
   initial?: Partial<TamaSessionState>,
   now = Date.now(),
@@ -69,18 +108,13 @@ export function createSessionState(
     pet: createPetState(initial?.pet, now),
     inventory: cloneInventory(initial?.inventory),
     notifications: cloneNotifications(initial?.notifications),
+    quests: cloneQuests(initial?.quests),
     createdAt: typeof initial?.createdAt === "number" ? initial.createdAt : now,
     updatedAt: now,
     lastActionAt: typeof initial?.lastActionAt === "number" ? initial.lastActionAt : now,
   };
 
-  const sync = syncPetNotifications(session, session.pet, now);
-
-  return {
-    ...session,
-    notifications: cloneNotifications(sync.notifications),
-    updatedAt: now,
-  };
+  return syncSessionDerivedState(session, now);
 }
 
 export function tickSessionState(
@@ -91,16 +125,25 @@ export function tickSessionState(
   const session = createSessionState(sessionInput, now);
   const tick = tickPetState(session.pet, now, decayRates);
 
-  const nextSession: TamaSessionState = {
+  let nextSession: TamaSessionState = {
     ...session,
     pet: tick.pet,
     inventory: cloneInventory(session.inventory),
     notifications: cloneNotifications(session.notifications),
+    quests: cloneQuests(session.quests),
     updatedAt: now,
   };
 
-  const sync = syncPetNotifications(nextSession, nextSession.pet, now);
-  nextSession.notifications = cloneNotifications(sync.notifications);
+  nextSession = syncSessionDerivedState(nextSession, now);
+
+  const tracked = trackQuestEvent(
+    nextSession,
+    { type: "tick-session", amount: 1 },
+    now,
+    { pet: nextSession.pet },
+  );
+
+  nextSession.quests = cloneQuests(tracked.quests);
 
   return {
     ...tick,
@@ -114,17 +157,27 @@ export function grantInventoryItem(
   quantity = 1,
   now = Date.now(),
 ): TamaGrantItemResult {
-  const session = createSessionState(sessionInput, now);
+  let session = createSessionState(sessionInput, now);
   const result = addItem(session, itemId, quantity, now);
 
+  const tracked = trackQuestEvent(
+    session,
+    { type: "gain-item", target: itemId, amount: quantity },
+    now,
+    { pet: session.pet },
+  );
+
+  session = {
+    ...session,
+    inventory: cloneInventory(session.inventory),
+    notifications: cloneNotifications(session.notifications),
+    quests: cloneQuests(tracked.quests),
+    updatedAt: now,
+    lastActionAt: now,
+  };
+
   return {
-    session: {
-      ...session,
-      inventory: cloneInventory(session.inventory),
-      notifications: cloneNotifications(session.notifications),
-      updatedAt: now,
-      lastActionAt: now,
-    },
+    session,
     itemId,
     quantity,
     nextQuantity: result.nextQuantity,
@@ -144,7 +197,7 @@ export function useInventoryItem(
   item: TamaUsableItem,
   now = Date.now(),
 ): TamaUseInventoryItemResult {
-  const session = createSessionState(sessionInput, now);
+  let session = createSessionState(sessionInput, now);
 
   if (!item || typeof item.id !== "string" || item.id.length === 0) {
     return {
@@ -174,20 +227,33 @@ export function useInventoryItem(
 
   const removal = removeItem(session, item.id, 1, now);
 
-  const nextSession: TamaSessionState = {
+  session = {
     ...session,
     pet: createPetState(useResult.pet as TamaPetState, now),
     inventory: cloneInventory(session.inventory),
     notifications: cloneNotifications(session.notifications),
+    quests: cloneQuests(session.quests),
     updatedAt: now,
     lastActionAt: now,
   };
 
-  const sync = syncPetNotifications(nextSession, nextSession.pet, now);
-  nextSession.notifications = cloneNotifications(sync.notifications);
+  session = syncSessionDerivedState(session, now);
+
+  const tracked = trackQuestEvent(
+    session,
+    { type: "use-item", target: item.id, amount: 1 },
+    now,
+    { pet: session.pet },
+  );
+
+  session = {
+    ...session,
+    quests: cloneQuests(tracked.quests),
+    updatedAt: now,
+  };
 
   return {
-    session: nextSession,
+    session,
     success: true,
     usedItemId: item.id,
     remainingQuantity: removal.nextQuantity,
@@ -213,28 +279,50 @@ export function readSessionNotification(
   id: string,
   now = Date.now(),
 ): TamaSessionState {
-  const session = createSessionState(sessionInput, now);
+  let session = createSessionState(sessionInput, now);
   markNotificationRead(session, id, now);
 
-  return {
+  const tracked = trackQuestEvent(
+    session,
+    { type: "read-notification", amount: 1 },
+    now,
+    { pet: session.pet },
+  );
+
+  session = {
     ...session,
     notifications: cloneNotifications(session.notifications),
+    quests: cloneQuests(tracked.quests),
     updatedAt: now,
   };
+
+  return session;
 }
 
 export function readAllSessionNotifications(
   sessionInput: TamaSessionState,
   now = Date.now(),
 ): TamaSessionState {
-  const session = createSessionState(sessionInput, now);
+  let session = createSessionState(sessionInput, now);
+  const beforeUnread = session.notifications.filter((item) => item.read === false).length;
+
   markAllNotificationsRead(session, now);
 
-  return {
+  const tracked = trackQuestEvent(
+    session,
+    { type: "read-notification", amount: beforeUnread },
+    now,
+    { pet: session.pet },
+  );
+
+  session = {
     ...session,
     notifications: cloneNotifications(session.notifications),
+    quests: cloneQuests(tracked.quests),
     updatedAt: now,
   };
+
+  return session;
 }
 
 export function clearSessionReadNotifications(
@@ -249,4 +337,59 @@ export function clearSessionReadNotifications(
     notifications: cloneNotifications(session.notifications),
     updatedAt: now,
   };
+}
+
+export function registerSessionQuests(
+  sessionInput: TamaSessionState,
+  definitions: TamaQuestDefinition[],
+  now = Date.now(),
+): TamaSessionState {
+  const session = createSessionState(sessionInput, now);
+  registerQuests(session, definitions, now);
+
+  return syncSessionDerivedState(
+    {
+      ...session,
+      quests: cloneQuests(session.quests),
+      updatedAt: now,
+    },
+    now,
+  );
+}
+
+export function getSessionQuests(
+  sessionInput: TamaSessionState,
+): TamaQuestState[] {
+  const session = createSessionState(sessionInput);
+  return listQuests(session);
+}
+
+export function claimSessionQuest(
+  sessionInput: TamaSessionState,
+  questId: string,
+  now = Date.now(),
+): TamaSessionState {
+  let session = createSessionState(sessionInput, now);
+  const claimed = claimQuest(session, questId, now);
+
+  if (!claimed) {
+    return session;
+  }
+
+  for (const reward of claimed.rewards) {
+    addItem(session, reward.itemId, reward.quantity, now);
+  }
+
+  session = syncSessionDerivedState(
+    {
+      ...session,
+      inventory: cloneInventory(session.inventory),
+      quests: cloneQuests(session.quests),
+      updatedAt: now,
+      lastActionAt: now,
+    },
+    now,
+  );
+
+  return session;
 }
