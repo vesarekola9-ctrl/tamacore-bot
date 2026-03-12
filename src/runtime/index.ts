@@ -3,6 +3,8 @@ export * from "./catalog";
 export * from "./dispatcher";
 export * from "./effects";
 export * from "./gdevelop-actions";
+export * from "./gdevelop-commands";
+export * from "./gdevelop-json";
 export * from "./gdevelop-state";
 export * from "./inventory";
 export * from "./live-loop";
