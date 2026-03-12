@@ -1,12 +1,12 @@
 import {
   bootstrapBridgeSession,
   bridgeClaimQuest,
-  bridgeConsumeEvents,
   bridgeTickSession,
   createBridgeSnapshot,
   type TamaBridgeBootstrapInput,
   type TamaBridgeSnapshot,
 } from "./bridge";
+import { pruneNotifications, pruneSessionEvents } from "./pruning";
 import { getSessionEvents, type TamaSessionState } from "./session";
 import { resolveRuntimeConfig, type TamaResolvedRuntimeConfig } from "./runtime-config";
 
@@ -29,12 +29,24 @@ function enforceEventLimit(
   session: TamaSessionState,
   limit: number,
   now: number,
-): TamaSessionState {
-  const events = getSessionEvents(session);
-  if (events.length <= limit) return session;
+): { session: TamaSessionState; removedCount: number } {
+  const before = getSessionEvents(session).length;
+  pruneSessionEvents(session, limit, now);
+  const after = getSessionEvents(session).length;
 
-  const overflow = events.length - limit;
-  return bridgeConsumeEvents(session, overflow, now).session;
+  return {
+    session,
+    removedCount: Math.max(0, before - after),
+  };
+}
+
+function enforceNotificationLimit(
+  session: TamaSessionState,
+  limit: number,
+  now: number,
+): TamaSessionState {
+  pruneNotifications(session, limit, now);
+  return session;
 }
 
 function autoClaimCompletedQuests(
@@ -89,8 +101,12 @@ export function createLiveLoop(
     now,
   });
 
+  let session = boot.session;
+  session = enforceNotificationLimit(session, resolved.config.loop.notificationLimit, now);
+  session = enforceEventLimit(session, resolved.config.loop.eventQueueLimit, now).session;
+
   return {
-    session: boot.session,
+    session,
     config: resolved.config,
     startedAt: now,
     updatedAt: now,
@@ -113,7 +129,10 @@ export function tickLiveLoop(
   );
 
   session = autoClaim.session;
-  session = enforceEventLimit(session, input.config.loop.eventQueueLimit, now);
+  session = enforceNotificationLimit(session, input.config.loop.notificationLimit, now);
+
+  const pruned = enforceEventLimit(session, input.config.loop.eventQueueLimit, now);
+  session = pruned.session;
 
   const state: TamaLiveLoopState = {
     ...input,
@@ -125,7 +144,7 @@ export function tickLiveLoop(
   return {
     state,
     snapshot: createBridgeSnapshot(session),
-    consumedEventCount: Math.max(0, getSessionEvents(session).length - input.config.loop.eventQueueLimit),
+    consumedEventCount: pruned.removedCount,
     claimedQuestIds: autoClaim.claimedQuestIds,
   };
 }
