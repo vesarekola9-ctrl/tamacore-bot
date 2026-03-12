@@ -19,9 +19,7 @@ import {
   exportLiveLoopStateToGDevelop,
   type TamaGDevelopExport,
 } from "./gdevelop-state";
-import {
-  buildSceneStateFromLiveLoop,
-} from "./gdevelop-scene-bindings";
+import { buildSceneStateFromLiveLoop } from "./gdevelop-scene-bindings";
 import type { TamaGDevelopSceneState } from "./gdevelop-scene";
 import type { TamaBridgeBootstrapInput } from "./bridge";
 import type { TamaRuntimeBootstrapConfigFile } from "./runtime-config";
