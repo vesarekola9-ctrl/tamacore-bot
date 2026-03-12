@@ -2,5 +2,6 @@ export * from "./effects";
 export * from "./inventory";
 export * from "./notifications";
 export * from "./pet-state";
+export * from "./quests";
 export * from "./session";
 export * from "./use-item";
