@@ -275,7 +275,6 @@ export function dispatchLiveLoopAction(
   switch (action.type) {
     case "LIVE_BOOTSTRAP": {
       const liveLoop = createLiveLoop(action.payload);
-
       return success("LIVE_BOOTSTRAP", liveLoop, {});
     }
 
