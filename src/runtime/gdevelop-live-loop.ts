@@ -12,12 +12,12 @@ import {
   tickLiveLoop,
   type TamaLiveLoopState,
   type TamaLiveLoopTickResult,
-  type TamaWorldBootstrapInput,
 } from "./live-loop";
 import {
   cloneWorldState,
   setWeather,
   setZone,
+  type TamaWorldBootstrapInput,
 } from "./world";
 import type { TamaBridgeBootstrapInput } from "./bridge";
 import type { TamaRuntimeBootstrapConfigFile } from "./runtime-config";
@@ -226,20 +226,32 @@ function copyLiveLoopState(input: TamaLiveLoopState): TamaLiveLoopState {
   };
 }
 
+function mapDispatchErrorCode(
+  response: TamaDispatchResponse,
+): TamaLiveLoopDispatchFailure["code"] {
+  if (response.code === "SESSION_REQUIRED") {
+    return "LIVE_LOOP_REQUIRED";
+  }
+
+  if (response.code === "INVALID_PAYLOAD") {
+    return "INVALID_PAYLOAD";
+  }
+
+  if (response.code === "INVALID_ACTION") {
+    return "INVALID_ACTION";
+  }
+
+  return "UNKNOWN_ACTION";
+}
+
 function applySessionDispatchToLiveLoop(
   liveLoop: TamaLiveLoopState,
   response: TamaDispatchResponse,
 ): TamaLiveLoopDispatchResponse {
   if (!response.ok) {
     return fail(
-      response.action,
-      response.code === "SESSION_REQUIRED"
-        ? "LIVE_LOOP_REQUIRED"
-        : response.code === "INVALID_PAYLOAD"
-          ? "INVALID_PAYLOAD"
-          : response.code === "INVALID_ACTION"
-            ? "INVALID_ACTION"
-            : "UNKNOWN_ACTION",
+      response.action as TamaLiveLoopActionType,
+      mapDispatchErrorCode(response),
       response.error,
       liveLoop,
     );
@@ -249,7 +261,11 @@ function applySessionDispatchToLiveLoop(
   next.session = response.session;
   next.updatedAt = Date.now();
 
-  return success(response.action, next, response.result);
+  return success(
+    response.action as TamaLiveLoopActionType,
+    next,
+    response.result,
+  );
 }
 
 export function dispatchLiveLoopAction(
@@ -259,6 +275,7 @@ export function dispatchLiveLoopAction(
   switch (action.type) {
     case "LIVE_BOOTSTRAP": {
       const liveLoop = createLiveLoop(action.payload);
+
       return success("LIVE_BOOTSTRAP", liveLoop, {});
     }
 
@@ -363,7 +380,7 @@ export function dispatchLiveLoopAction(
 
     default: {
       return fail(
-        (action as TamaAnyLiveLoopAction).type,
+        (action as { type: string }).type as TamaLiveLoopActionType,
         "UNKNOWN_ACTION",
         "Unknown live loop action type.",
         hasLiveLoop(state) ? state.liveLoop : undefined,
