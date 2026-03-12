@@ -5,6 +5,7 @@ import {
   type TamaLiveLoopDispatchResponse,
   type TamaLiveLoopDispatchState,
 } from "./gdevelop-live-loop";
+import { exportLiveLoopStateToGDevelop } from "./gdevelop-state";
 
 export interface TamaGDevelopLiveLoopCommand {
   action: TamaLiveLoopActionType | string;
@@ -212,7 +213,9 @@ export function runGDevelopLiveLoopCommand(
       code: "INVALID_ACTION",
       error: "Could not map GDevelop live loop command to runtime action.",
       liveLoop: state.liveLoop,
-      gdevelop: state.liveLoop ? undefined : undefined,
+      gdevelop: state.liveLoop
+        ? exportLiveLoopStateToGDevelop(state.liveLoop)
+        : undefined,
     };
   }
 
