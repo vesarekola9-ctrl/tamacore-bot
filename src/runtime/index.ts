@@ -1,3 +1,4 @@
+export * from "./runtime-bootstrap";
 export * from "./ai-bot-controller";
 export * from "./bridge";
 export * from "./catalog";
