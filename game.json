@@ -177,50 +177,6 @@
             "g": 215,
             "b": 0
           }
-        },
-        {
-          "name": "Decor_Bed",
-          "type": "Sprite",
-          "variables": [],
-          "behaviors": [],
-          "animations": [
-            {
-              "name": "Default",
-              "directions": [
-                {
-                  "timeBetweenFrames": 1.0,
-                  "loops": true,
-                  "sprites": [
-                    {
-                      "image": "pet_bed.png"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Decor_Plant",
-          "type": "Sprite",
-          "variables": [],
-          "behaviors": [],
-          "animations": [
-            {
-              "name": "Default",
-              "directions": [
-                {
-                  "timeBetweenFrames": 1.0,
-                  "loops": true,
-                  "sprites": [
-                    {
-                      "image": "plant.png"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
         }
       ],
       "events": [
@@ -363,28 +319,6 @@
           "zOrder": 10,
           "layer": "",
           "customSize": false
-        },
-        {
-          "name": "Decor_Bed",
-          "x": 100,
-          "y": 280,
-          "angle": 0,
-          "zOrder": 1,
-          "layer": "",
-          "customSize": true,
-          "width": 96,
-          "height": 64
-        },
-        {
-          "name": "Decor_Plant",
-          "x": 420,
-          "y": 260,
-          "angle": 0,
-          "zOrder": 1,
-          "layer": "",
-          "customSize": true,
-          "width": 48,
-          "height": 80
         }
       ]
     },
@@ -621,7 +555,55 @@
       "value": "0"
     },
     {
+      "name": "Cosmetic_Has_PartyHat",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_CatEars",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_PirateHat",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_WizardHat",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_ChefHat",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Glasses",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Sunglasses",
+      "value": "0"
+    },
+    {
       "name": "Cosmetic_Has_Hoodie",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Tuxedo",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Dress",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Cape",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Sailor",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Pajamas",
       "value": "0"
     },
     {
@@ -629,11 +611,23 @@
       "value": "0"
     },
     {
-      "name": "Cosmetic_Has_Halo",
+      "name": "Cosmetic_Has_GoldSkin",
       "value": "0"
     },
     {
-      "name": "Cosmetic_Has_420Glasses",
+      "name": "Cosmetic_Has_GalaxySkin",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_MatchaSkin",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_BlackSkin",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_SakuraSkin",
       "value": "0"
     },
     {
@@ -641,24 +635,72 @@
       "value": "5"
     },
     {
-      "name": "Food_Apple_Nutrition",
-      "value": "20"
-    },
-    {
       "name": "Food_Cake_Count",
       "value": "2"
     },
     {
-      "name": "Food_Cake_Nutrition",
-      "value": "50"
+      "name": "Food_Pizza_Count",
+      "value": "1"
+    },
+    {
+      "name": "Food_IceCream_Count",
+      "value": "0"
+    },
+    {
+      "name": "Food_Donut_Count",
+      "value": "3"
+    },
+    {
+      "name": "Food_Burger_Count",
+      "value": "0"
+    },
+    {
+      "name": "Food_Sushi_Count",
+      "value": "0"
+    },
+    {
+      "name": "Food_Strawberry_Count",
+      "value": "4"
+    },
+    {
+      "name": "Food_Pancake_Count",
+      "value": "1"
+    },
+    {
+      "name": "Food_Cookie_Count",
+      "value": "5"
+    },
+    {
+      "name": "Drink_Water_Count",
+      "value": "5"
+    },
+    {
+      "name": "Drink_Milk_Count",
+      "value": "2"
+    },
+    {
+      "name": "Drink_Boba_Count",
+      "value": "0"
+    },
+    {
+      "name": "Drink_Juice_Count",
+      "value": "3"
+    },
+    {
+      "name": "Drink_Soda_Count",
+      "value": "1"
+    },
+    {
+      "name": "Drink_Cocoa_Count",
+      "value": "0"
+    },
+    {
+      "name": "Drink_Coffee_Count",
+      "value": "0"
     },
     {
       "name": "Patch_v3_2_Applied",
       "value": "1"
-    },
-    {
-      "name": "Shop_Coins",
-      "value": "600"
     },
     {
       "name": "Shop_Price_Apple",
@@ -669,24 +711,92 @@
       "value": "25"
     },
     {
-      "name": "Shop_Price_CoolHat",
+      "name": "Shop_Price_Pizza",
+      "value": "30"
+    },
+    {
+      "name": "Shop_Price_Donut",
+      "value": "15"
+    },
+    {
+      "name": "Shop_Price_Burger",
+      "value": "35"
+    },
+    {
+      "name": "Shop_Price_Strawberry",
+      "value": "12"
+    },
+    {
+      "name": "Shop_Price_Water",
+      "value": "10"
+    },
+    {
+      "name": "Shop_Price_Milk",
+      "value": "25"
+    },
+    {
+      "name": "Shop_Price_Juice",
+      "value": "18"
+    },
+    {
+      "name": "Shop_Price_TopHat",
+      "value": "150"
+    },
+    {
+      "name": "Shop_Price_PinkBow",
       "value": "100"
+    },
+    {
+      "name": "Shop_Price_PartyHat",
+      "value": "80"
+    },
+    {
+      "name": "Shop_Price_CatEars",
+      "value": "120"
+    },
+    {
+      "name": "Shop_Price_CuteHoodie",
+      "value": "250"
+    },
+    {
+      "name": "Shop_Price_Pajamas",
+      "value": "180"
+    },
+    {
+      "name": "Shop_GemsPrice_IceCream",
+      "value": "20"
+    },
+    {
+      "name": "Shop_GemsPrice_Sushi",
+      "value": "25"
+    },
+    {
+      "name": "Shop_GemsPrice_Boba",
+      "value": "15"
+    },
+    {
+      "name": "Shop_GemsPrice_Crown",
+      "value": "100"
+    },
+    {
+      "name": "Shop_GemsPrice_Cape",
+      "value": "50"
     },
     {
       "name": "Shop_GemsPrice_RainbowSkin",
       "value": "600"
     },
     {
-      "name": "Shop_GemsPrice_Halo",
-      "value": "400"
+      "name": "Shop_GemsPrice_GoldSkin",
+      "value": "500"
     },
     {
-      "name": "Shop_GemsPrice_420Glasses",
-      "value": "150"
+      "name": "Shop_GemsPrice_GalaxySkin",
+      "value": "750"
     },
     {
-      "name": "Shop_GemsPrice_MemeFrog",
-      "value": "150"
+      "name": "Shop_GemsPrice_SakuraSkin",
+      "value": "300"
     },
     {
       "name": "Level_Current",
@@ -925,7 +1035,11 @@
       "value": "BasicPlant"
     },
     {
-      "name": "Home_EquippedFurniture",
+      "name": "Home_EquippedDesk",
+      "value": "None"
+    },
+    {
+      "name": "Home_EquippedLamp",
       "value": "None"
     },
     {
@@ -933,11 +1047,47 @@
       "value": "1"
     },
     {
+      "name": "Home_Has_PrincessBed",
+      "value": "0"
+    },
+    {
+      "name": "Home_Has_BasicPlant",
+      "value": "1"
+    },
+    {
+      "name": "Home_Has_Cactus",
+      "value": "0"
+    },
+    {
+      "name": "Home_Has_Bonsai",
+      "value": "0"
+    },
+    {
+      "name": "Home_Has_Mushroom",
+      "value": "0"
+    },
+    {
       "name": "Home_Has_PastelSofa",
       "value": "0"
     },
     {
+      "name": "Home_Has_GamingDesk",
+      "value": "0"
+    },
+    {
+      "name": "Home_Has_Bookcase",
+      "value": "0"
+    },
+    {
+      "name": "Home_Has_FloorLamp",
+      "value": "0"
+    },
+    {
       "name": "Home_Has_StarryWallpaper",
+      "value": "0"
+    },
+    {
+      "name": "Home_Has_PlushRug",
       "value": "0"
     }
   ],
@@ -1019,6 +1169,42 @@
       },
       {
         "kind": "image",
+        "name": "donut.png",
+        "file": "assets/donut.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "burger.png",
+        "file": "assets/burger.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "sushi.png",
+        "file": "assets/sushi.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "strawberry.png",
+        "file": "assets/strawberry.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "pancake.png",
+        "file": "assets/pancake.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "cookie.png",
+        "file": "assets/cookie.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
         "name": "water.png",
         "file": "assets/water.png",
         "origin": ""
@@ -1037,8 +1223,26 @@
       },
       {
         "kind": "image",
-        "name": "coin.png",
-        "file": "assets/coin.png",
+        "name": "juice.png",
+        "file": "assets/juice.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "soda.png",
+        "file": "assets/soda.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "cocoa.png",
+        "file": "assets/cocoa.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "coffee.png",
+        "file": "assets/coffee.png",
         "origin": ""
       },
       {
@@ -1061,8 +1265,32 @@
       },
       {
         "kind": "image",
+        "name": "party_hat.png",
+        "file": "assets/party_hat.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "cat_ears.png",
+        "file": "assets/cat_ears.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
         "name": "hoodie.png",
         "file": "assets/hoodie.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "tuxedo.png",
+        "file": "assets/tuxedo.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "dress.png",
+        "file": "assets/dress.png",
         "origin": ""
       },
       {
@@ -1073,14 +1301,38 @@
       },
       {
         "kind": "image",
+        "name": "princess_bed.png",
+        "file": "assets/princess_bed.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
         "name": "plant.png",
         "file": "assets/plant.png",
         "origin": ""
       },
       {
         "kind": "image",
+        "name": "cactus.png",
+        "file": "assets/cactus.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
         "name": "sofa.png",
         "file": "assets/sofa.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "desk.png",
+        "file": "assets/desk.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "coin.png",
+        "file": "assets/coin.png",
         "origin": ""
       }
     ]
