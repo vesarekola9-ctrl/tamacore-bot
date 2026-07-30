@@ -177,6 +177,50 @@
             "g": 215,
             "b": 0
           }
+        },
+        {
+          "name": "Decor_Bed",
+          "type": "Sprite",
+          "variables": [],
+          "behaviors": [],
+          "animations": [
+            {
+              "name": "Default",
+              "directions": [
+                {
+                  "timeBetweenFrames": 1.0,
+                  "loops": true,
+                  "sprites": [
+                    {
+                      "image": "pet_bed.png"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Decor_Plant",
+          "type": "Sprite",
+          "variables": [],
+          "behaviors": [],
+          "animations": [
+            {
+              "name": "Default",
+              "directions": [
+                {
+                  "timeBetweenFrames": 1.0,
+                  "loops": true,
+                  "sprites": [
+                    {
+                      "image": "plant.png"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ],
       "events": [
@@ -319,6 +363,28 @@
           "zOrder": 10,
           "layer": "",
           "customSize": false
+        },
+        {
+          "name": "Decor_Bed",
+          "x": 100,
+          "y": 280,
+          "angle": 0,
+          "zOrder": 1,
+          "layer": "",
+          "customSize": true,
+          "width": 96,
+          "height": 64
+        },
+        {
+          "name": "Decor_Plant",
+          "x": 420,
+          "y": 260,
+          "angle": 0,
+          "zOrder": 1,
+          "layer": "",
+          "customSize": true,
+          "width": 48,
+          "height": 80
         }
       ]
     },
@@ -535,8 +601,28 @@
       "value": "None"
     },
     {
+      "name": "Cosmetic_EquippedOutfit",
+      "value": "None"
+    },
+    {
       "name": "Cosmetic_EquippedSkin",
       "value": "PinkFluff"
+    },
+    {
+      "name": "Cosmetic_Has_TopHat",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_PinkBow",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Crown",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Hoodie",
+      "value": "0"
     },
     {
       "name": "Cosmetic_Has_RainbowSkin",
@@ -548,14 +634,6 @@
     },
     {
       "name": "Cosmetic_Has_420Glasses",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_CoolHat",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_MemeFrog",
       "value": "0"
     },
     {
@@ -829,6 +907,38 @@
     {
       "name": "IAP_Product_VIPPass_ID",
       "value": "com.tamacore.vippass"
+    },
+    {
+      "name": "Home_Wallpaper",
+      "value": "PastelPink"
+    },
+    {
+      "name": "Home_Flooring",
+      "value": "Wood"
+    },
+    {
+      "name": "Home_EquippedBed",
+      "value": "CozyBed"
+    },
+    {
+      "name": "Home_EquippedPlant",
+      "value": "BasicPlant"
+    },
+    {
+      "name": "Home_EquippedFurniture",
+      "value": "None"
+    },
+    {
+      "name": "Home_Has_CozyBed",
+      "value": "1"
+    },
+    {
+      "name": "Home_Has_PastelSofa",
+      "value": "0"
+    },
+    {
+      "name": "Home_Has_StarryWallpaper",
+      "value": "0"
     }
   ],
   "androidConfig": {
@@ -879,6 +989,12 @@
       },
       {
         "kind": "image",
+        "name": "pet_dead.png",
+        "file": "assets/pet_dead.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
         "name": "apple.png",
         "file": "assets/apple.png",
         "origin": ""
@@ -891,8 +1007,80 @@
       },
       {
         "kind": "image",
+        "name": "pizza.png",
+        "file": "assets/pizza.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "icecream.png",
+        "file": "assets/icecream.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "water.png",
+        "file": "assets/water.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "milk.png",
+        "file": "assets/milk.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "boba.png",
+        "file": "assets/boba.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
         "name": "coin.png",
         "file": "assets/coin.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "top_hat.png",
+        "file": "assets/top_hat.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "pink_bow.png",
+        "file": "assets/pink_bow.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "crown.png",
+        "file": "assets/crown.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "hoodie.png",
+        "file": "assets/hoodie.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "pet_bed.png",
+        "file": "assets/pet_bed.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "plant.png",
+        "file": "assets/plant.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "sofa.png",
+        "file": "assets/sofa.png",
         "origin": ""
       }
     ]
