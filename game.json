@@ -24,7 +24,11 @@
                 {
                   "timeBetweenFrames": 0.2,
                   "loops": true,
-                  "sprites": []
+                  "sprites": [
+                    {
+                      "image": "stage1.png"
+                    }
+                  ]
                 }
               ]
             },
@@ -34,7 +38,11 @@
                 {
                   "timeBetweenFrames": 0.15,
                   "loops": false,
-                  "sprites": []
+                  "sprites": [
+                    {
+                      "image": "apple.png"
+                    }
+                  ]
                 }
               ]
             },
@@ -44,7 +52,11 @@
                 {
                   "timeBetweenFrames": 0.5,
                   "loops": true,
-                  "sprites": []
+                  "sprites": [
+                    {
+                      "image": "stage1.png"
+                    }
+                  ]
                 }
               ]
             },
@@ -54,7 +66,11 @@
                 {
                   "timeBetweenFrames": 0.1,
                   "loops": false,
-                  "sprites": []
+                  "sprites": [
+                    {
+                      "image": "ultimate.png"
+                    }
+                  ]
                 }
               ]
             }
@@ -65,7 +81,7 @@
           "type": "TextObject::Text",
           "variables": [],
           "behaviors": [],
-          "string": "Coins: 600 \ud83e\ude99",
+          "string": "Coins: 600",
           "characterSize": 22,
           "fontName": "",
           "bold": true,
@@ -82,7 +98,7 @@
           "type": "TextObject::Text",
           "variables": [],
           "behaviors": [],
-          "string": "Gems: 50 \ud83d\udc8e",
+          "string": "Gems: 50",
           "characterSize": 22,
           "fontName": "",
           "bold": true,
@@ -116,7 +132,7 @@
           "type": "TextObject::Text",
           "variables": [],
           "behaviors": [],
-          "string": "[ \ud83c\udf4e SY\u00d6T\u00c4 ]",
+          "string": "[ SYOTA ]",
           "characterSize": 20,
           "fontName": "",
           "bold": true,
@@ -133,7 +149,7 @@
           "type": "TextObject::Text",
           "variables": [],
           "behaviors": [],
-          "string": "[ \ud83c\udf19 NUKU ]",
+          "string": "[ NUKU ]",
           "characterSize": 20,
           "fontName": "",
           "bold": true,
@@ -150,7 +166,7 @@
           "type": "TextObject::Text",
           "variables": [],
           "behaviors": [],
-          "string": "[ \ud83d\uded2 KAUPPA (PLAY IAP) ]",
+          "string": "[ KAUPPA ]",
           "characterSize": 20,
           "fontName": "",
           "bold": true,
@@ -205,503 +221,6 @@
           "conditions": [
             {
               "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Food_Apple_Count",
-                ">",
-                "0"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Pet_Hunger",
-                "<",
-                "100"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Pet_Hunger",
-                "+",
-                "GlobalVariable(Food_Apple_Nutrition)"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Food_Apple_Count",
-                "-",
-                "1"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Quest_FeedCount",
-                ">=",
-                "GlobalVariable(Quest_FeedTarget)"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Quest_Completed",
-                "=",
-                "0"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Quest_Completed",
-                "=",
-                "1"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Shop_Coins",
-                "+",
-                "GlobalVariable(Quest_RewardCoins)"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Inventory_UsedSlots",
-                "=",
-                "GlobalVariable(Food_Apple_Count) + GlobalVariable(Food_Cake_Count)"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Audio_Muted",
-                "=",
-                "1"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "SetGlobalVolume"
-              },
-              "parameters": [
-                "0"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Food_Apple_Count",
-                "<",
-                "5"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Ach_FirstFeed_Unlocked",
-                "=",
-                "0"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Ach_FirstFeed_Unlocked",
-                "=",
-                "1"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Shop_Coins",
-                "+",
-                "20"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Minigame_IsActive",
-                "=",
-                "1"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Minigame_Timer",
-                "<=",
-                "0"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Minigame_IsActive",
-                "=",
-                "0"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Shop_Coins",
-                "+",
-                "GlobalVariable(Minigame_CoinsEarned)"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "Timer"
-              },
-              "parameters": [
-                "",
-                "60",
-                "RealTimeDecayTimer"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "RealTime_IsLiveActive",
-                "=",
-                "1"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Pet_Hunger",
-                "-",
-                "GlobalVariable(RealTime_HungerDecayRate)"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Pet_Energy",
-                "-",
-                "GlobalVariable(RealTime_EnergyDecayRate)"
-              ]
-            },
-            {
-              "type": {
-                "value": "ResetTimer"
-              },
-              "parameters": [
-                "",
-                "RealTimeDecayTimer"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Pet_AgeDays",
-                ">=",
-                "1"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalStringCompare"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Egg"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobalString"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Stage 1"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Pet_AgeDays",
-                ">=",
-                "3"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalStringCompare"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Stage 1"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobalString"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Stage 2"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Pet_AgeDays",
-                ">=",
-                "6"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalStringCompare"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Stage 2"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobalString"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Stage 3"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Pet_AgeDays",
-                ">=",
-                "10"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalStringCompare"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Stage 3"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobalString"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Stage 4"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Pet_AgeDays",
-                ">=",
-                "15"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalStringCompare"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Stage 4"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobalString"
-              },
-              "parameters": [
-                "Pet_GrowthStage",
-                "=",
-                "Ultimate"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "IAP_IsVIPActive",
-                "=",
-                "1"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "RealTime_HungerDecayRate",
-                "=",
-                "0.5"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
                 "value": "CursorOnObject"
               },
               "parameters": [
@@ -728,7 +247,7 @@
               },
               "parameters": [
                 "",
-                "'ShopScene'",
+                "ShopScene",
                 ""
               ]
             }
@@ -738,14 +257,14 @@
       "instances": [
         {
           "name": "PetObject",
-          "x": 340,
-          "y": 220,
+          "x": 200,
+          "y": 200,
           "angle": 0,
           "zOrder": 1,
           "layer": "",
           "customSize": true,
-          "width": 128,
-          "height": 128
+          "width": 140,
+          "height": 140
         },
         {
           "name": "HUD_CoinsText",
@@ -776,8 +295,8 @@
         },
         {
           "name": "Button_Feed",
-          "x": 80,
-          "y": 480,
+          "x": 40,
+          "y": 800,
           "angle": 0,
           "zOrder": 10,
           "layer": "",
@@ -785,8 +304,8 @@
         },
         {
           "name": "Button_Sleep",
-          "x": 280,
-          "y": 480,
+          "x": 200,
+          "y": 800,
           "angle": 0,
           "zOrder": 10,
           "layer": "",
@@ -794,8 +313,8 @@
         },
         {
           "name": "Button_ShopIAP",
-          "x": 460,
-          "y": 480,
+          "x": 360,
+          "y": 800,
           "angle": 0,
           "zOrder": 10,
           "layer": "",
@@ -809,7 +328,7 @@
         {
           "name": "Shop_Title",
           "type": "TextObject::Text",
-          "string": "\u2728 PASTEL SHOP \u2728",
+          "string": "PASTEL SHOP",
           "characterSize": 28,
           "fontName": "",
           "bold": true,
@@ -824,7 +343,7 @@
         {
           "name": "Card_RainbowSkin_Btn",
           "type": "TextObject::Text",
-          "string": "[ Rainbow Skin - 600 \ud83d\udc8e ]",
+          "string": "[ Rainbow Skin - 600 Gems ]",
           "characterSize": 20,
           "fontName": "",
           "bold": true,
@@ -839,7 +358,7 @@
         {
           "name": "Card_Halo_Btn",
           "type": "TextObject::Text",
-          "string": "[ Angel Halo - 400 \ud83d\udc8e ]",
+          "string": "[ Angel Halo - 400 Gems ]",
           "characterSize": 20,
           "fontName": "",
           "bold": true,
@@ -854,7 +373,7 @@
         {
           "name": "Card_DailyReward_Btn",
           "type": "TextObject::Text",
-          "string": "[ Daily Chest \u20ac3.99 ]",
+          "string": "[ Daily Chest EUR 3.99 ]",
           "characterSize": 20,
           "fontName": "",
           "bold": true,
@@ -961,7 +480,7 @@
               },
               "parameters": [
                 "",
-                "'MainScene'",
+                "MainScene",
                 ""
               ]
             }
@@ -1298,10 +817,6 @@
     {
       "name": "IAP_RemoveAdsOwned",
       "value": "0"
-    },
-    {
-      "name": "IAP_LastPurchaseID",
-      "value": ""
     },
     {
       "name": "IAP_Product_Gems250_ID",

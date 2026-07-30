@@ -1,5 +1,6 @@
 # type: ignore
 """TamaCore Factory v3.1 - Save Runtime"""
+
 def apply_save_runtime(game_data: dict) -> dict:
     if "globalVariables" not in game_data:
         game_data["globalVariables"] = []

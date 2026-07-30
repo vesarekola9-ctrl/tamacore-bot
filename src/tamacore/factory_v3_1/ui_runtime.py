@@ -1,5 +1,5 @@
 # type: ignore
-"""TamaCore Factory v3.1 - Enhanced Pastel & IAP UI Runtime"""
+"""TamaCore Factory v3.1 - UI Runtime"""
 
 def apply_ui_runtime(game_data: dict) -> dict:
     layouts = game_data.get("layouts", [])
@@ -16,7 +16,7 @@ def apply_ui_runtime(game_data: dict) -> dict:
                     "type": "TextObject::Text",
                     "variables": [],
                     "behaviors": [],
-                    "string": "Coins: 600 🪙",
+                    "string": "Coins: 600",
                     "characterSize": 22,
                     "fontName": "",
                     "bold": True,
@@ -29,7 +29,7 @@ def apply_ui_runtime(game_data: dict) -> dict:
                     "type": "TextObject::Text",
                     "variables": [],
                     "behaviors": [],
-                    "string": "Gems: 50 💎",
+                    "string": "Gems: 50",
                     "characterSize": 22,
                     "fontName": "",
                     "bold": True,
@@ -55,7 +55,7 @@ def apply_ui_runtime(game_data: dict) -> dict:
                     "type": "TextObject::Text",
                     "variables": [],
                     "behaviors": [],
-                    "string": "[ 🍎 SYÖTÄ ]",
+                    "string": "[ SYOTA ]",
                     "characterSize": 20,
                     "fontName": "",
                     "bold": True,
@@ -68,7 +68,7 @@ def apply_ui_runtime(game_data: dict) -> dict:
                     "type": "TextObject::Text",
                     "variables": [],
                     "behaviors": [],
-                    "string": "[ 🌙 NUKU ]",
+                    "string": "[ NUKU ]",
                     "characterSize": 20,
                     "fontName": "",
                     "bold": True,
@@ -81,7 +81,7 @@ def apply_ui_runtime(game_data: dict) -> dict:
                     "type": "TextObject::Text",
                     "variables": [],
                     "behaviors": [],
-                    "string": "[ 🛒 KAUPPA (PLAY IAP) ]",
+                    "string": "[ KAUPPA ]",
                     "characterSize": 20,
                     "fontName": "",
                     "bold": True,
@@ -96,13 +96,13 @@ def apply_ui_runtime(game_data: dict) -> dict:
                     objects.append(hud_obj)
 
             default_instances = [
-                {"name": "PetObject", "x": 340, "y": 220, "angle": 0, "zOrder": 1, "layer": "", "customSize": True, "width": 128, "height": 128},
+                {"name": "PetObject", "x": 200, "y": 200, "angle": 0, "zOrder": 1, "layer": "", "customSize": True, "width": 140, "height": 140},
                 {"name": "HUD_CoinsText", "x": 20, "y": 20, "angle": 0, "zOrder": 10, "layer": "", "customSize": False},
                 {"name": "HUD_GemsText", "x": 200, "y": 20, "angle": 0, "zOrder": 10, "layer": "", "customSize": False},
                 {"name": "HUD_StatusText", "x": 20, "y": 60, "angle": 0, "zOrder": 10, "layer": "", "customSize": False},
-                {"name": "Button_Feed", "x": 80, "y": 480, "angle": 0, "zOrder": 10, "layer": "", "customSize": False},
-                {"name": "Button_Sleep", "x": 280, "y": 480, "angle": 0, "zOrder": 10, "layer": "", "customSize": False},
-                {"name": "Button_ShopIAP", "x": 460, "y": 480, "angle": 0, "zOrder": 10, "layer": "", "customSize": False}
+                {"name": "Button_Feed", "x": 40, "y": 800, "angle": 0, "zOrder": 10, "layer": "", "customSize": False},
+                {"name": "Button_Sleep", "x": 200, "y": 800, "angle": 0, "zOrder": 10, "layer": "", "customSize": False},
+                {"name": "Button_ShopIAP", "x": 360, "y": 800, "angle": 0, "zOrder": 10, "layer": "", "customSize": False}
             ]
 
             for inst in default_instances:

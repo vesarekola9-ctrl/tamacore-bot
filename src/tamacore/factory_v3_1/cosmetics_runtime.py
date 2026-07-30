@@ -1,5 +1,5 @@
 # type: ignore
-"""TamaCore Factory v3.1 - Concept Cosmetics Runtime"""
+"""TamaCore Factory v3.1 - Cosmetics Runtime"""
 
 def apply_cosmetics_runtime(game_data: dict) -> dict:
     if "globalVariables" not in game_data:

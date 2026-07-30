@@ -32,10 +32,22 @@ def apply_pet_runtime(game_data: dict) -> dict:
                     "variables": [],
                     "behaviors": [],
                     "animations": [
-                        {"name": "Idle", "directions": [{"timeBetweenFrames": 0.2, "loops": True, "sprites": []}]},
-                        {"name": "Feed", "directions": [{"timeBetweenFrames": 0.15, "loops": False, "sprites": []}]},
-                        {"name": "Sleep", "directions": [{"timeBetweenFrames": 0.5, "loops": True, "sprites": []}]},
-                        {"name": "Evolve", "directions": [{"timeBetweenFrames": 0.1, "loops": False, "sprites": []}]}
+                        {
+                            "name": "Idle",
+                            "directions": [{"timeBetweenFrames": 0.2, "loops": True, "sprites": [{"image": "stage1.png"}]}]
+                        },
+                        {
+                            "name": "Feed",
+                            "directions": [{"timeBetweenFrames": 0.15, "loops": False, "sprites": [{"image": "apple.png"}]}]
+                        },
+                        {
+                            "name": "Sleep",
+                            "directions": [{"timeBetweenFrames": 0.5, "loops": True, "sprites": [{"image": "stage1.png"}]}]
+                        },
+                        {
+                            "name": "Evolve",
+                            "directions": [{"timeBetweenFrames": 0.1, "loops": False, "sprites": [{"image": "ultimate.png"}]}]
+                        }
                     ]
                 })
 

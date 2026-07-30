@@ -12,7 +12,7 @@ def apply_shop_scene_runtime(game_data: dict) -> dict:
                 {
                     "name": "Shop_Title",
                     "type": "TextObject::Text",
-                    "string": "✨ PASTEL SHOP ✨",
+                    "string": "PASTEL SHOP",
                     "characterSize": 28,
                     "fontName": "",
                     "bold": True,
@@ -23,7 +23,7 @@ def apply_shop_scene_runtime(game_data: dict) -> dict:
                 {
                     "name": "Card_RainbowSkin_Btn",
                     "type": "TextObject::Text",
-                    "string": "[ Rainbow Skin - 600 💎 ]",
+                    "string": "[ Rainbow Skin - 600 Gems ]",
                     "characterSize": 20,
                     "fontName": "",
                     "bold": True,
@@ -34,7 +34,7 @@ def apply_shop_scene_runtime(game_data: dict) -> dict:
                 {
                     "name": "Card_Halo_Btn",
                     "type": "TextObject::Text",
-                    "string": "[ Angel Halo - 400 💎 ]",
+                    "string": "[ Angel Halo - 400 Gems ]",
                     "characterSize": 20,
                     "fontName": "",
                     "bold": True,
@@ -45,7 +45,7 @@ def apply_shop_scene_runtime(game_data: dict) -> dict:
                 {
                     "name": "Card_DailyReward_Btn",
                     "type": "TextObject::Text",
-                    "string": "[ Daily Chest €3.99 ]",
+                    "string": "[ Daily Chest EUR 3.99 ]",
                     "characterSize": 20,
                     "fontName": "",
                     "bold": True,
@@ -80,7 +80,7 @@ def apply_shop_scene_runtime(game_data: dict) -> dict:
                         {"type": {"value": "MouseButtonPressed"}, "parameters": ["", "Left"]}
                     ],
                     "actions": [
-                        {"type": {"value": "ChangeScene"}, "parameters": ["", "'MainScene'", ""]}
+                        {"type": {"value": "ChangeScene"}, "parameters": ["", "MainScene", ""]}
                     ]
                 }
             ]
@@ -97,7 +97,7 @@ def apply_shop_scene_runtime(game_data: dict) -> dict:
                     {"type": {"value": "MouseButtonPressed"}, "parameters": ["", "Left"]}
                 ],
                 "actions": [
-                    {"type": {"value": "ChangeScene"}, "parameters": ["", "'ShopScene'", ""]}
+                    {"type": {"value": "ChangeScene"}, "parameters": ["", "ShopScene", ""]}
                 ]
             })
 

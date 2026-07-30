@@ -1,5 +1,5 @@
 # type: ignore
-"""TamaCore Factory v3.1 - Dual-Monetization Shop Runtime"""
+"""TamaCore Factory v3.1 - Shop Runtime"""
 
 def apply_shop_runtime(game_data: dict) -> dict:
     if "globalVariables" not in game_data:
