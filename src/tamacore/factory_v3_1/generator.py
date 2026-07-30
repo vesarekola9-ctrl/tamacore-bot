@@ -18,6 +18,7 @@ from .achievements_runtime import apply_achievements_runtime
 from .minigames_runtime import apply_minigames_runtime
 from .daily_rewards_runtime import apply_daily_rewards_runtime
 from .settings_runtime import apply_settings_runtime
+from .notifications_runtime import apply_notifications_runtime
 
 def build_game_jcon(base_game_data: dict) -> dict:
     game_data = base_game_data.copy()
@@ -37,5 +38,6 @@ def build_game_jcon(base_game_data: dict) -> dict:
     game_data = apply_minigames_runtime(game_data)
     game_data = apply_daily_rewards_runtime(game_data)
     game_data = apply_settings_runtime(game_data)
+    game_data = apply_notifications_runtime(game_data)
 
     return game_data
