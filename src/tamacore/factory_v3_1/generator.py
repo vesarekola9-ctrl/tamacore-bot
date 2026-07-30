@@ -1,8 +1,4 @@
-"""
-TamaCore Factory v3.1 - Generator
-Assembles game.json for GDevelop by integrating all runtime systems.
-"""
-
+"""TamaCore Factory v3.1 - Generator"""
 from .pet_runtime import apply_pet_runtime
 from .save_runtime import apply_save_runtime
 from .cosmetics_runtime import apply_cosmetics_runtime
@@ -41,7 +37,7 @@ def build_game_json(base_game_data: dict) -> dict:
     game_data = apply_audio_runtime(game_data)
     game_data = apply_achievements_runtime(game_data)
     game_data = apply_minigames_runtime(game_data)
-    game_data = apply_daily_rewarDs_runtime(game_data)
+    game_data = apply_daily_rewards_runtime(game_data)
     game_data = apply_settings_runtime(game_data)
     game_data = apply_notifications_runtime(game_data)
     game_data = apply_ads_runtime(game_data)

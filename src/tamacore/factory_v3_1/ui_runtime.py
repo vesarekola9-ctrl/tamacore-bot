@@ -1,16 +1,11 @@
-#type: ignore
-&"""
-TamaCore Factory v3.1 - UI Runtime
-Generates Mobile UIHUD elements (coin counter, stat displays) for GDevelop.
-"""
-
+# type: ignore
+"""TamaCore Factory v3.1 - UI Runtime"""
 def apply_ui_runtime(game_data: dict) -> dict:
     layouts = game_data.get("layouts", [])
     for layout in layouts:
         if layout.get("name") == "MainScene":
             objects = layout.setdefault("objects", [])
             existing_names = {obj.get("name") for obj in objects}
-            
             hud_objects = [
                 {
                     "name": "HUD_CoinsText",
@@ -39,9 +34,7 @@ def apply_ui_runtime(game_data: dict) -> dict:
                     "color": {"r": 255, "g": 255, "b": 255}
                 }
             ]
-            
             for hud_obj in hud_objects:
                 if hud_obj["name"] not in existing_names:
                     objects.append(hud_obj)
-                    
     return game_data

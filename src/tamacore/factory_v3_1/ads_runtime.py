@@ -1,21 +1,15 @@
-"""
-TamaCore Factory v3.1 - Ads Runtime
-Geverates ad monetization tracking variables for GDevelop.
-"""
-
+# type: ignore
+"""TamaCore Factory v3.1 - Ads Runtime"""
 def apply_ads_runtime(game_data: dict) -> dict:
     if "globalVariables" not in game_data:
         game_data["globalVariables"] = []
-
-    ads_variables = [
+    vars_list = [
         {"name": "Ads_RewardedWatchCount", "value": "0"},
         {"name": "Ads_AdFreeActive", "value": "0"},
-        {name": "Ads_LastAdTimestamp", "value": "0"}
+        {"name": "Ads_LastAdTimestamp", "value": "0"}
     ]
-
-    existing_names = {v[(name"] for v in game_data["lobalVariables"]}
-    for ad_var in ads_variables:
-        if ad_var["name"] not in existing_names:
-            game_data["lobalVariables"].append(ad_var)
-
+    existing = {v["name"] for v in game_data["globalVariables"]}
+    for item in vars_list:
+        if item["name"] not in existing:
+            game_data["globalVariables"].append(item)
     return game_data

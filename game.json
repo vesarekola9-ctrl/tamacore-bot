@@ -1,0 +1,512 @@
+{
+  "properties": {
+    "name": "TamaCore Game"
+  },
+  "layouts": [
+    {
+      "name": "MainScene",
+      "objects": [
+        {
+          "name": "HUD_CoinsText",
+          "type": "TextObject::Text",
+          "variables": [],
+          "behaviors": [],
+          "string": "Coins: 100",
+          "characterSize": 24,
+          "fontName": "",
+          "bold": true,
+          "italic": false,
+          "smoothed": true,
+          "color": {
+            "r": 255,
+            "g": 215,
+            "b": 0
+          }
+        },
+        {
+          "name": "HUD_StatusText",
+          "type": "TextObject::Text",
+          "variables": [],
+          "behaviors": [],
+          "string": "Pet Status: Normal",
+          "characterSize": 20,
+          "fontName": "",
+          "bold": false,
+          "italic": false,
+          "smoothed": true,
+          "color": {
+            "r": 255,
+            "g": 255,
+            "b": 255
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Food_Apple_Count",
+                ">",
+                "0"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Pet_Hunger",
+                "<",
+                "100"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Pet_Hunger",
+                "+",
+                "GlobalVariable(Food_Apple_Nutrition)"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Food_Apple_Count",
+                "-",
+                "1"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "Timer"
+              },
+              "parameters": [
+                "",
+                "60",
+                "RealTimeDecayTimer"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "RealTime_IsLiveActive",
+                "=",
+                "1"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Pet_Hunger",
+                "-",
+                "GlobalVariable(RealTime_HungerDecayRate)"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Pet_Energy",
+                "-",
+                "GlobalVariable(RealTime_EnergyDecayRate)"
+              ]
+            },
+            {
+              "type": {
+                "value": "ResetTimer"
+              },
+              "parameters": [
+                "",
+                "RealTimeDecayTimer"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Pet_AgeDays",
+                ">=",
+                "2"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalStringCompare"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Baby"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobalString"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Child"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Pet_AgeDays",
+                "==",
+                "5"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalStringCompare"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Child"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobalString"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Teen"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Pet_AgeDays",
+                "==",
+                "10"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalStringCompare"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Teen"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobalString"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Adult"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "globalVariables": [
+    {
+      "name": "Pet_Name",
+      "value": "Tama"
+    },
+    {
+      "name": "Pet_Hunger",
+      "value": "100"
+    },
+    {
+      "name": "Pet_Energy",
+      "value": "100"
+    },
+    {
+      "name": "Pet_Happiness",
+      "value": "100"
+    },
+    {
+      "name": "Pet_Health",
+      "value": "100"
+    },
+    {
+      "name": "Save_AutoSaveEnabled",
+      "value": "1"
+    },
+    {
+      "name": "Save_LastSaveTimestamp",
+      "value": "0"
+    },
+    {
+      "name": "Save_Version",
+      "value": "3.1"
+    },
+    {
+      "name": "Cosmetic_EquippedHat",
+      "value": "None"
+    },
+    {
+      "name": "Cosmetic_EquippedSkin",
+      "value": "Default"
+    },
+    {
+      "name": "Food_Apple_Count",
+      "value": "5"
+    },
+    {
+      "name": "Food_Apple_Nutrition",
+      "value": "20"
+    },
+    {
+      "name": "Food_Cake_Count",
+      "value": "2"
+    },
+    {
+      "name": "Food_Cake_Nutrition",
+      "value": "50"
+    },
+    {
+      "name": "Patch_v3_2_Applied",
+      "value": "1"
+    },
+    {
+      "name": "Shop_Coins",
+      "value": "100"
+    },
+    {
+      "name": "Shop_ItemPrice_Apple",
+      "value": "10"
+    },
+    {
+      "name": "Level_Current",
+      "value": "1"
+    },
+    {
+      "name": "Level_XP",
+      "value": "0"
+    },
+    {
+      "name": "Level_XPToNext",
+      "value": "100"
+    },
+    {
+      "name": "Quest_FeedCount",
+      "value": "0"
+    },
+    {
+      "name": "Quest_FeedTarget",
+      "value": "5"
+    },
+    {
+      "name": "Quest_Completed",
+      "value": "0"
+    },
+    {
+      "name": "Inventory_MaxSlots",
+      "value": "20"
+    },
+    {
+      "name": "Inventory_UsedSlots",
+      "value": "0"
+    },
+    {
+      "name": "Audio_MusicVolume",
+      "value": "100"
+    },
+    {
+      "name": "Audio_SFXVolume",
+      "value": "100"
+    },
+    {
+      "name": "Audio_Muted",
+      "value": "0"
+    },
+    {
+      "name": "Ach_FirstFeed_Unlocked",
+      "value": "0"
+    },
+    {
+      "name": "Ach_Collector_Unlocked",
+      "value": "0"
+    },
+    {
+      "name": "Ach_MaxLevel_Unlocked",
+      "value": "0"
+    },
+    {
+      "name": "Minigame_HighScore",
+      "value": "0"
+    },
+    {
+      "name": "Minigame_LastScore",
+      "value": "0"
+    },
+    {
+      "name": "Minigame_CoinsEarned",
+      "value": "0"
+    },
+    {
+      "name": "Daily_StreakCount",
+      "value": "0"
+    },
+    {
+      "name": "Daily_LastClaimTimestamp",
+      "value": "0"
+    },
+    {
+      "name": "Daily_RewardClaimedToday",
+      "value": "0"
+    },
+    {
+      "name": "Setting_Language",
+      "value": "fi"
+    },
+    {
+      "name": "Setting_NotificationsEnabled",
+      "value": "1"
+    },
+    {
+      "name": "Setting_FPSLimit",
+      "value": "60"
+    },
+    {
+      "name": "Setting_VibrationEnabled",
+      "value": "1"
+    },
+    {
+      "name": "Notif_HungerAlertSent",
+      "value": "0"
+    },
+    {
+      "name": "Notif_EnergyAlertSent",
+      "value": "0"
+    },
+    {
+      "name": "Notif_DailyReminderSent",
+      "value": "0"
+    },
+    {
+      "name": "Ads_RewardedWatchCount",
+      "value": "0"
+    },
+    {
+      "name": "Ads_AdFreeActive",
+      "value": "0"
+    },
+    {
+      "name": "Ads_LastAdTimestamp",
+      "value": "0"
+    },
+    {
+      "name": "Analytics_SessionCount",
+      "value": "0"
+    },
+    {
+      "name": "Analytics_TotalPlayTime",
+      "value": "0"
+    },
+    {
+      "name": "Analytics_FirstLaunchDate",
+      "value": "0"
+    },
+    {
+      "name": "CloudSave_UserID",
+      "value": ""
+    },
+    {
+      "name": "CloudSave_LastSyncTimestamp",
+      "value": "0"
+    },
+    {
+      "name": "CloudSave_SyncStatus",
+      "value": "idle"
+    },
+    {
+      "name": "RealTime_LastTickTimestamp",
+      "value": "0"
+    },
+    {
+      "name": "RealTime_DecayIntervalSeconds",
+      "value": "60"
+    },
+    {
+      "name": "RealTime_HungerDecayRate",
+      "value": "1"
+    },
+    {
+      "name": "RealTime_EnergyDecayRate",
+      "value": "1"
+    },
+    {
+      "name": "RealTime_IsLiveActive",
+      "value": "1"
+    },
+    {
+      "name": "Pet_AgeDays",
+      "value": "0"
+    },
+    {
+      "name": "Pet_GrowthStage",
+      "value": "Baby"
+    },
+    {
+      "name": "Pet_EvolutionBranch",
+      "value": "Normal"
+    },
+    {
+      "name": "Pet_CareScore",
+      "value": "100"
+    }
+  ]
+}

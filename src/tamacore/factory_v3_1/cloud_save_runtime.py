@@ -1,12 +1,12 @@
 # type: ignore
-"""TamaCore Factory v3.1 - Save Runtime"""
-def apply_save_runtime(game_data: dict) -> dict:
+"""TamaCore Factory v3.1 - Cloud Save Runtime"""
+def apply_cloud_save_runtime(game_data: dict) -> dict:
     if "globalVariables" not in game_data:
         game_data["globalVariables"] = []
     vars_list = [
-        {"name": "Save_AutoSaveEnabled", "value": "1"},
-        {"name": "Save_LastSaveTimestamp", "value": "0"},
-        {"name": "Save_Version", "value": "3.1"}
+        {"name": "CloudSave_UserID", "value": ""},
+        {"name": "CloudSave_LastSyncTimestamp", "value": "0"},
+        {"name": "CloudSave_SyncStatus", "value": "idle"}
     ]
     existing = {v["name"] for v in game_data["globalVariables"]}
     for item in vars_list:

@@ -1,37 +1,15 @@
-from __future__ import annotations
-
-from pathlib import Path
-from typing import Any, Dict, List
-
-from ..utils import write_json
-from .schema import PackCfg
-
-
-def generate_levels(cfg: PackCfg, game_dir: Path) -> List[Dict[str, Any]]:
-    levels: List[Dict[str, Any]] = []
-
-    for index in range(cfg.levels.count):
-        level_id = f"level_{index + 1}"
-        coin_count = max(0, cfg.levels.coinBase + index * cfg.levels.coinStep)
-        enemy_count = max(0, cfg.levels.enemyBase + index * cfg.levels.enemyStep)
-
-        levels.append(
-            {
-                "id": level_id,
-                "index": index,
-                "coinCount": coin_count if cfg.coinSpawn.enabled else 0,
-                "enemyCount": enemy_count if cfg.enemySpawn.enabled else 0,
-                "coinObjectName": cfg.coinSpawn.objectName,
-                "enemyObjectName": cfg.enemySpawn.objectName,
-                "worldBounds": {
-                    "xMin": cfg.worldBounds.xMin,
-                    "yMin": cfg.worldBounds.yMin,
-                    "xMax": cfg.worldBounds.xMax,
-                    "yMax": cfg.worldBounds.yMax,
-                },
-                "seed": cfg.levels.seed + index,
-            }
-        )
-
-    write_json(game_dir / "levels.json", levels)
-    return levels
+# type: ignore
+"""TamaCore Factory v3.1 - Levels Runtime"""
+def apply_levels_runtime(game_data: dict) -> dict:
+    if "globalVariables" not in game_data:
+        game_data["globalVariables"] = []
+    vars_list = [
+        {"name": "Level_Current", "value": "1"},
+        {"name": "Level_XP", "value": "0"},
+        {"name": "Level_XPToNext", "value": "100"}
+    ]
+    existing = {v["name"] for v in game_data["globalVariables"]}
+    for item in vars_list:
+        if item["name"] not in existing:
+            game_data["globalVariables"].append(item)
+    return game_data
