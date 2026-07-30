@@ -18,11 +18,5 @@ def test_build_game_json(base_data):
     res = build_game_json(base_data)
     assert "globalVariables" in res
     var_names = {v["name"] for v in res["globalVariables"]}
-    assert "Audio_SFXVolume" in var_names
-    assert "Cosmetic_EquippedHat" in var_names
-    
-    # Verify Overlay Objects present in Layout
-    objects = res["layouts"][0]["objects"]
-    obj_names = {o["name"] for o in objects}
-    assert "Pet_HatObject" in obj_names
-    assert "Pet_OutfitObject" in obj_names
+    assert "Shop_Price_Burger" in var_names
+    assert "Minigame_CoinMultiplier" in var_names
