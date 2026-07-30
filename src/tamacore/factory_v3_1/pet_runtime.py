@@ -1,7 +1,7 @@
-#type: ignore
-&"""
+﻿# type: ignore
+"""
 TamaCore Factory v3.1 - Pet Runtime
-Geverates core pet status variables for GDevelop.
+Generates core pet status variables for GDevelop.
 """
 
 def apply_pet_runtime(game_data: dict) -> dict:
@@ -10,10 +10,10 @@ def apply_pet_runtime(game_data: dict) -> dict:
 
     pet_variables = [
         {"name": "Pet_Name", "value": "Tama"},
-        {name": "Pet_Hunger", "value": "100"},
-        {name": "Pet_Energy", "value": "100"},
-        {name": "Pet_Happiness", "value": "100"},
-        {name": "Pet_Health", "value": "100"}
+        {"name": "Pet_Hunger", "value": "100"},
+        {"name": "Pet_Energy", "value": "100"},
+        {"name": "Pet_Happiness", "value": "100"},
+        {"name": "Pet_Health", "value": "100"}
     ]
 
     existing_names = {v["name"] for v in game_data["globalVariables"]}
