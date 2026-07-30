@@ -1,16 +1,39 @@
 {
+  "gdVersion": {
+    "build": 99,
+    "major": 4,
+    "minor": 0,
+    "revision": 0
+  },
   "properties": {
     "name": "TamaCore Virtual Pet",
-    "packageName": "com.tamacore.virtualpet",
+    "author": "TamaCore Team",
     "version": "1.0.0",
+    "packageName": "com.tamacore.virtualpet",
     "windowWidth": 540,
     "windowHeight": 960,
     "orientation": "portrait",
-    "adaptWindowSizeCustomToTargetSize": true
+    "adaptWindowSizeCustomToTargetSize": true,
+    "sizeOnStartupMode": "adaptWidth",
+    "projectFileLayoutVersion": 1
   },
+  "firstLayout": "MainScene",
+  "objects": [],
+  "eventsFunctionsExtensions": [],
   "layouts": [
     {
       "name": "MainScene",
+      "uiSettings": {
+        "grid": false,
+        "gridR": 255,
+        "gridG": 255,
+        "gridB": 255,
+        "gridWidth": 32,
+        "gridHeight": 32,
+        "gridOffsetX": 0,
+        "gridOffsetY": 0,
+        "snap": false
+      },
       "objects": [
         {
           "name": "PetObject",
@@ -238,6 +261,104 @@
             "g": 206,
             "b": 250
           }
+        }
+      ],
+      "instances": [
+        {
+          "name": "Pet_HatObject",
+          "x": 200,
+          "y": 160,
+          "angle": 0,
+          "zOrder": 5,
+          "layer": "",
+          "customSize": true,
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "Pet_OutfitObject",
+          "x": 200,
+          "y": 230,
+          "angle": 0,
+          "zOrder": 4,
+          "layer": "",
+          "customSize": true,
+          "width": 64,
+          "height": 64
+        },
+        {
+          "name": "PetObject",
+          "x": 200,
+          "y": 200,
+          "angle": 0,
+          "zOrder": 1,
+          "layer": "",
+          "customSize": true,
+          "width": 140,
+          "height": 140
+        },
+        {
+          "name": "HUD_CoinsText",
+          "x": 20,
+          "y": 20,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "HUD_GemsText",
+          "x": 200,
+          "y": 20,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "HUD_StatusText",
+          "x": 20,
+          "y": 60,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "Button_Feed",
+          "x": 40,
+          "y": 800,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "Button_Sleep",
+          "x": 200,
+          "y": 800,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "Button_ShopIAP",
+          "x": 360,
+          "y": 800,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "Button_Wash",
+          "x": 40,
+          "y": 850,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
         }
       ],
       "events": [
@@ -575,102 +696,12 @@
           ]
         }
       ],
-      "instances": [
+      "layers": [
         {
-          "name": "Pet_HatObject",
-          "x": 200,
-          "y": 160,
-          "angle": 0,
-          "zOrder": 5,
-          "layer": "",
-          "customSize": true,
-          "width": 48,
-          "height": 48
-        },
-        {
-          "name": "Pet_OutfitObject",
-          "x": 200,
-          "y": 230,
-          "angle": 0,
-          "zOrder": 4,
-          "layer": "",
-          "customSize": true,
-          "width": 64,
-          "height": 64
-        },
-        {
-          "name": "PetObject",
-          "x": 200,
-          "y": 200,
-          "angle": 0,
-          "zOrder": 1,
-          "layer": "",
-          "customSize": true,
-          "width": 140,
-          "height": 140
-        },
-        {
-          "name": "HUD_CoinsText",
-          "x": 20,
-          "y": 20,
-          "angle": 0,
-          "zOrder": 10,
-          "layer": "",
-          "customSize": false
-        },
-        {
-          "name": "HUD_GemsText",
-          "x": 200,
-          "y": 20,
-          "angle": 0,
-          "zOrder": 10,
-          "layer": "",
-          "customSize": false
-        },
-        {
-          "name": "HUD_StatusText",
-          "x": 20,
-          "y": 60,
-          "angle": 0,
-          "zOrder": 10,
-          "layer": "",
-          "customSize": false
-        },
-        {
-          "name": "Button_Feed",
-          "x": 40,
-          "y": 800,
-          "angle": 0,
-          "zOrder": 10,
-          "layer": "",
-          "customSize": false
-        },
-        {
-          "name": "Button_Sleep",
-          "x": 200,
-          "y": 800,
-          "angle": 0,
-          "zOrder": 10,
-          "layer": "",
-          "customSize": false
-        },
-        {
-          "name": "Button_ShopIAP",
-          "x": 360,
-          "y": 800,
-          "angle": 0,
-          "zOrder": 10,
-          "layer": "",
-          "customSize": false
-        },
-        {
-          "name": "Button_Wash",
-          "x": 40,
-          "y": 850,
-          "angle": 0,
-          "zOrder": 10,
-          "layer": "",
-          "customSize": false
+          "name": "",
+          "visibility": true,
+          "cameras": [],
+          "effects": []
         }
       ]
     },
@@ -1507,14 +1538,6 @@
       "value": "0"
     }
   ],
-  "androidConfig": {
-    "packageName": "com.tamacore.virtualpet",
-    "orientation": "portrait",
-    "permissions": [
-      "android.permission.INTERNET",
-      "com.android.vending.BILLING"
-    ]
-  },
   "resources": {
     "resources": [
       {
@@ -1589,6 +1612,14 @@
         "file": "assets/coin.png",
         "origin": ""
       }
+    ]
+  },
+  "androidConfig": {
+    "packageName": "com.tamacore.virtualpet",
+    "orientation": "portrait",
+    "permissions": [
+      "android.permission.INTERNET",
+      "com.android.vending.BILLING"
     ]
   }
 }
