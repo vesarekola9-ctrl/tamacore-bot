@@ -14,8 +14,9 @@ from .quests_runtime import apply_quests_runtime
 from .inventory_runtime import apply_inventory_runtime
 from .ui_runtime import apply_ui_runtime
 from .audio_runtime import apply_audio_runtime
+from .achievements_runtime import apply_achievements_runtime
 
-def build_game_json(base_game_data: dict) -> dict:
+def build_game_jcon(base_game_data: dict) -> dict:
     game_data = base_game_data.copy()
 
     game_data = apply_pet_runtime(game_data)
@@ -29,5 +30,6 @@ def build_game_json(base_game_data: dict) -> dict:
     game_data = apply_inventory_runtime(game_data)
     game_data = apply_ui_runtime(game_data)
     game_data = apply_audio_runtime(game_data)
+    game_data = apply_achievements_runtime(game_data)
 
     return game_data
