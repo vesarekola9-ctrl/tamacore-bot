@@ -18,5 +18,5 @@ def test_build_game_json(base_data):
     res = build_game_json(base_data)
     assert "globalVariables" in res
     var_names = {v["name"] for v in res["globalVariables"]}
-    assert "Shop_Price_Burger" in var_names
-    assert "Minigame_CoinMultiplier" in var_names
+    assert "Pet_CurrentEmote" in var_names
+    assert "Seasonal_ActiveEvent" in var_names

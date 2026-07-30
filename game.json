@@ -526,6 +526,53 @@
               ]
             }
           ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "CursorOnObject"
+              },
+              "parameters": [
+                "PetObject",
+                "",
+                "no",
+                ""
+              ]
+            },
+            {
+              "type": {
+                "value": "MouseButtonPressed"
+              },
+              "parameters": [
+                "",
+                "Left"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Pet_Happiness",
+                "+",
+                "5"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalString"
+              },
+              "parameters": [
+                "Pet_CurrentEmote",
+                "=",
+                "Heart"
+              ]
+            }
+          ]
         }
       ],
       "instances": [
@@ -1433,6 +1480,30 @@
     },
     {
       "name": "Social_GiftsSentCount",
+      "value": "0"
+    },
+    {
+      "name": "Pet_CurrentEmote",
+      "value": "None"
+    },
+    {
+      "name": "Pet_EmoteTimer",
+      "value": "0"
+    },
+    {
+      "name": "Pet_IsBeingPetted",
+      "value": "0"
+    },
+    {
+      "name": "Seasonal_ActiveEvent",
+      "value": "Spring"
+    },
+    {
+      "name": "Seasonal_HasPumpkinHat",
+      "value": "0"
+    },
+    {
+      "name": "Seasonal_HasSantaHat",
       "value": "0"
     }
   ],

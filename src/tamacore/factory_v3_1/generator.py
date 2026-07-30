@@ -1,4 +1,4 @@
-"""TamaCore Factory v3.1 - Master Generator"""
+"""TamaCore Factory v3.1 - Master Generator with Emotes & Seasonals"""
 from .project_properties import apply_project_properties
 from .resources_runtime import apply_resources_runtime
 from .pet_runtime import apply_pet_runtime
@@ -32,6 +32,8 @@ from .jumpgame_runtime import apply_jumpgame_runtime
 from .album_runtime import apply_album_runtime
 from .wheel_runtime import apply_wheel_runtime
 from .social_runtime import apply_social_runtime
+from .emotes_runtime import apply_emotes_runtime
+from .seasonal_runtime import apply_seasonal_runtime
 
 def build_game_json(base_game_data: dict) -> dict:
     game_data = base_game_data.copy()
@@ -69,5 +71,7 @@ def build_game_json(base_game_data: dict) -> dict:
     game_data = apply_album_runtime(game_data)
     game_data = apply_wheel_runtime(game_data)
     game_data = apply_social_runtime(game_data)
+    game_data = apply_emotes_runtime(game_data)
+    game_data = apply_seasonal_runtime(game_data)
 
     return game_data
