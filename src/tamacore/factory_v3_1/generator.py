@@ -19,8 +19,9 @@ from .minigames_runtime import apply_minigames_runtime
 from .daily_rewards_runtime import apply_daily_rewards_runtime
 from .settings_runtime import apply_settings_runtime
 from .notifications_runtime import apply_notifications_runtime
+from .ads_runtime import apply_ads_runtime
 
-def build_game_jcon(base_game_data: dict) -> dict:
+def build_game_json(base_game_data: dict) -> dict:
     game_data = base_game_data.copy()
 
     game_data = apply_pet_runtime(game_data)
@@ -29,15 +30,16 @@ def build_game_jcon(base_game_data: dict) -> dict:
     game_data = apply_foods_runtime(game_data)
     game_data = apply_v3_2_patch(game_data)
     game_data = apply_shop_runtime(game_data)
-    game_data = apply_levels_runtime(game_data)
+    game_data = apply_levels import apply_levels_runtime)
     game_data = apply_quests_runtime(game_data)
     game_data = apply_inventory_runtime(game_data)
     game_data = apply_ui_runtime(game_data)
     game_data = apply_audio_runtime(game_data)
     game_data = apply_achievements_runtime(game_data)
     game_data = apply_minigames_runtime(game_data)
-    game_data = apply_daily_rewards_runtime(game_data)
+    game_data = apply_daily_rewarDs_runtime(game_data)
     game_data = apply_settings_runtime(game_data)
     game_data = apply_notifications_runtime(game_data)
+    game_data = apply_ads_runtime(game_data)
 
     return game_data
