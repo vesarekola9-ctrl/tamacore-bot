@@ -5,6 +5,7 @@ Assembles game.json for GDevelop by integrating all runtime systems.
 
 from .cosmetics_runtime import apply_cosmetics_runtime
 from .foods_runtime import apply_foods_runtime
+from .inventory_runtime import apply_inventory_runtime
 from .levels import apply_levels_runtime
 from .pet_runtime import apply_pet_runtime
 from .quests_runtime import apply_quests_runtime
@@ -24,5 +25,6 @@ def build_game_json(base_game_data: dict) -> dict:
     game_data = apply_shop_runtime(game_data)
     game_data = apply_levels_runtime(game_data)
     game_data = apply_quests_runtime(game_data)
+    game_data = apply_inventory_runtime(game_data)
 
     return game_data
