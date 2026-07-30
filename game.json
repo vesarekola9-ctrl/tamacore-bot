@@ -221,6 +221,23 @@
             "g": 215,
             "b": 0
           }
+        },
+        {
+          "name": "Button_Wash",
+          "type": "TextObject::Text",
+          "variables": [],
+          "behaviors": [],
+          "string": "[ PESE ]",
+          "characterSize": 20,
+          "fontName": "",
+          "bold": true,
+          "italic": false,
+          "smoothed": true,
+          "color": {
+            "r": 135,
+            "g": 206,
+            "b": 250
+          }
         }
       ],
       "events": [
@@ -445,6 +462,70 @@
               ]
             }
           ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "CursorOnObject"
+              },
+              "parameters": [
+                "Button_Wash",
+                "",
+                "no",
+                ""
+              ]
+            },
+            {
+              "type": {
+                "value": "MouseButtonPressed"
+              },
+              "parameters": [
+                "",
+                "Left"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Pet_Hygiene",
+                "=",
+                "100"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Pet_Hygiene",
+                "<=",
+                "20"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Pet_IsSick",
+                "=",
+                "1"
+              ]
+            }
+          ]
         }
       ],
       "instances": [
@@ -530,6 +611,15 @@
           "name": "Button_ShopIAP",
           "x": 360,
           "y": 800,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "Button_Wash",
+          "x": 40,
+          "y": 850,
           "angle": 0,
           "zOrder": 10,
           "layer": "",
@@ -1232,6 +1322,78 @@
     {
       "name": "Home_Has_PlushRug",
       "value": "0"
+    },
+    {
+      "name": "Pet_Hygiene",
+      "value": "100"
+    },
+    {
+      "name": "Soap_Count",
+      "value": "5"
+    },
+    {
+      "name": "Shop_Price_Soap",
+      "value": "15"
+    },
+    {
+      "name": "Pet_IsSick",
+      "value": "0"
+    },
+    {
+      "name": "Medicine_Count",
+      "value": "2"
+    },
+    {
+      "name": "Shop_Price_Medicine",
+      "value": "30"
+    },
+    {
+      "name": "World_IsNight",
+      "value": "0"
+    },
+    {
+      "name": "World_Weather",
+      "value": "Sunny"
+    },
+    {
+      "name": "JumpGame_HighScore",
+      "value": "0"
+    },
+    {
+      "name": "JumpGame_IsActive",
+      "value": "0"
+    },
+    {
+      "name": "JumpGame_PlayerY",
+      "value": "0"
+    },
+    {
+      "name": "JumpGame_CoinsEarned",
+      "value": "0"
+    },
+    {
+      "name": "Album_EggUnlocked",
+      "value": "1"
+    },
+    {
+      "name": "Album_Stage1Unlocked",
+      "value": "0"
+    },
+    {
+      "name": "Album_Stage2Unlocked",
+      "value": "0"
+    },
+    {
+      "name": "Album_Stage3Unlocked",
+      "value": "0"
+    },
+    {
+      "name": "Album_Stage4Unlocked",
+      "value": "0"
+    },
+    {
+      "name": "Album_UltimateUnlocked",
+      "value": "0"
     }
   ],
   "androidConfig": {
@@ -1288,6 +1450,24 @@
       },
       {
         "kind": "image",
+        "name": "soap.png",
+        "file": "assets/soap.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "medicine.png",
+        "file": "assets/medicine.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "cloud.png",
+        "file": "assets/cloud.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
         "name": "apple.png",
         "file": "assets/apple.png",
         "origin": ""
@@ -1296,180 +1476,6 @@
         "kind": "image",
         "name": "cake.png",
         "file": "assets/cake.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "pizza.png",
-        "file": "assets/pizza.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "icecream.png",
-        "file": "assets/icecream.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "donut.png",
-        "file": "assets/donut.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "burger.png",
-        "file": "assets/burger.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "sushi.png",
-        "file": "assets/sushi.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "strawberry.png",
-        "file": "assets/strawberry.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "pancake.png",
-        "file": "assets/pancake.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "cookie.png",
-        "file": "assets/cookie.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "water.png",
-        "file": "assets/water.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "milk.png",
-        "file": "assets/milk.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "boba.png",
-        "file": "assets/boba.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "juice.png",
-        "file": "assets/juice.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "soda.png",
-        "file": "assets/soda.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "cocoa.png",
-        "file": "assets/cocoa.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "coffee.png",
-        "file": "assets/coffee.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "top_hat.png",
-        "file": "assets/top_hat.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "pink_bow.png",
-        "file": "assets/pink_bow.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "crown.png",
-        "file": "assets/crown.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "party_hat.png",
-        "file": "assets/party_hat.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "cat_ears.png",
-        "file": "assets/cat_ears.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "hoodie.png",
-        "file": "assets/hoodie.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "tuxedo.png",
-        "file": "assets/tuxedo.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "dress.png",
-        "file": "assets/dress.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "pet_bed.png",
-        "file": "assets/pet_bed.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "princess_bed.png",
-        "file": "assets/princess_bed.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "plant.png",
-        "file": "assets/plant.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "cactus.png",
-        "file": "assets/cactus.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "sofa.png",
-        "file": "assets/sofa.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "desk.png",
-        "file": "assets/desk.png",
         "origin": ""
       },
       {

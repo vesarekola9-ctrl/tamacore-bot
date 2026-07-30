@@ -25,6 +25,11 @@ from .evolution_runtime import apply_evolution_runtime
 from .iap_runtime import apply_iap_runtime
 from .shop_scene_runtime import apply_shop_scene_runtime
 from .home_runtime import apply_home_runtime
+from .hygiene_runtime import apply_hygiene_runtime
+from .sickness_runtime import apply_sickness_runtime
+from .daynight_runtime import apply_daynight_runtime
+from .jumpgame_runtime import apply_jumpgame_runtime
+from .album_runtime import apply_album_runtime
 
 def build_game_json(base_game_data: dict) -> dict:
     game_data = base_game_data.copy()
@@ -55,5 +60,10 @@ def build_game_json(base_game_data: dict) -> dict:
     game_data = apply_iap_runtime(game_data)
     game_data = apply_shop_scene_runtime(game_data)
     game_data = apply_home_runtime(game_data)
+    game_data = apply_hygiene_runtime(game_data)
+    game_data = apply_sickness_runtime(game_data)
+    game_data = apply_daynight_runtime(game_data)
+    game_data = apply_jumpgame_runtime(game_data)
+    game_data = apply_album_runtime(game_data)
 
     return game_data
