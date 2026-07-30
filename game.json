@@ -7,6 +7,54 @@
       "name": "MainScene",
       "objects": [
         {
+          "name": "PetObject",
+          "type": "Sprite",
+          "variables": [],
+          "behaviors": [],
+          "animations": [
+            {
+              "name": "Idle",
+              "directions": [
+                {
+                  "timeBetweenFrames": 0.2,
+                  "loops": true,
+                  "sprites": []
+                }
+              ]
+            },
+            {
+              "name": "Feed",
+              "directions": [
+                {
+                  "timeBetweenFrames": 0.15,
+                  "loops": false,
+                  "sprites": []
+                }
+              ]
+            },
+            {
+              "name": "Sleep",
+              "directions": [
+                {
+                  "timeBetweenFrames": 0.5,
+                  "loops": true,
+                  "sprites": []
+                }
+              ]
+            },
+            {
+              "name": "Evolve",
+              "directions": [
+                {
+                  "timeBetweenFrames": 0.1,
+                  "loops": false,
+                  "sprites": []
+                }
+              ]
+            }
+          ]
+        },
+        {
           "name": "HUD_CoinsText",
           "type": "TextObject::Text",
           "variables": [],
@@ -39,9 +87,62 @@
             "g": 255,
             "b": 255
           }
+        },
+        {
+          "name": "HUD_MinigameScoreText",
+          "type": "TextObject::Text",
+          "variables": [],
+          "behaviors": [],
+          "string": "High Score: 0",
+          "characterSize": 20,
+          "fontName": "",
+          "bold": true,
+          "italic": false,
+          "smoothed": true,
+          "color": {
+            "r": 50,
+            "g": 205,
+            "b": 50
+          }
         }
       ],
       "events": [
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalStringCompare"
+              },
+              "parameters": [
+                "Pet_State",
+                "=",
+                "Sleep"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Pet_Energy",
+                "+",
+                "0.5"
+              ]
+            },
+            {
+              "type": {
+                "value": "SetAnimationName"
+              },
+              "parameters": [
+                "PetObject",
+                "Sleep"
+              ]
+            }
+          ]
+        },
         {
           "type": "BuiltinCommonInstructions::Standard",
           "conditions": [
@@ -85,6 +186,116 @@
                 "Food_Apple_Count",
                 "-",
                 "1"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Shop_Coins",
+                ">=",
+                "GlobalVariable(Shop_ItemPrice_Apple)"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Inventory_UsedSlots",
+                "<",
+                "GlobalVariable(Inventory_MaxSlots)"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Shop_Coins",
+                "-",
+                "GlobalVariable(Shop_ItemPrice_Apple)"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Food_Apple_Count",
+                "+",
+                "1"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Inventory_UsedSlots",
+                "=",
+                "GlobalVariable(Food_Apple_Count) + GlobalVariable(Food_Cake_Count)"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Minigame_IsActive",
+                "=",
+                "1"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Minigame_Timer",
+                "<=",
+                "0"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Minigame_IsActive",
+                "=",
+                "0"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Shop_Coins",
+                "+",
+                "GlobalVariable(Minigame_CoinsEarned)"
               ]
             }
           ]
@@ -281,6 +492,14 @@
       "value": "100"
     },
     {
+      "name": "Pet_State",
+      "value": "Idle"
+    },
+    {
+      "name": "Pet_CurrentAnimation",
+      "value": "idle_anim"
+    },
+    {
       "name": "Save_AutoSaveEnabled",
       "value": "1"
     },
@@ -329,6 +548,10 @@
       "value": "10"
     },
     {
+      "name": "Shop_ItemPrice_Cake",
+      "value": "25"
+    },
+    {
       "name": "Level_Current",
       "value": "1"
     },
@@ -358,6 +581,10 @@
     },
     {
       "name": "Inventory_UsedSlots",
+      "value": "0"
+    },
+    {
+      "name": "Inventory_SelectedSlot",
       "value": "0"
     },
     {
@@ -395,6 +622,14 @@
     {
       "name": "Minigame_CoinsEarned",
       "value": "0"
+    },
+    {
+      "name": "Minigame_IsActive",
+      "value": "0"
+    },
+    {
+      "name": "Minigame_Timer",
+      "value": "30"
     },
     {
       "name": "Daily_StreakCount",

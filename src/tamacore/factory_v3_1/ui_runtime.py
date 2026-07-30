@@ -1,5 +1,6 @@
 # type: ignore
 """TamaCore Factory v3.1 - UI Runtime"""
+
 def apply_ui_runtime(game_data: dict) -> dict:
     layouts = game_data.get("layouts", [])
     for layout in layouts:
@@ -32,6 +33,19 @@ def apply_ui_runtime(game_data: dict) -> dict:
                     "italic": False,
                     "smoothed": True,
                     "color": {"r": 255, "g": 255, "b": 255}
+                },
+                {
+                    "name": "HUD_MinigameScoreText",
+                    "type": "TextObject::Text",
+                    "variables": [],
+                    "behaviors": [],
+                    "string": "High Score: 0",
+                    "characterSize": 20,
+                    "fontName": "",
+                    "bold": True,
+                    "italic": False,
+                    "smoothed": True,
+                    "color": {"r": 50, "g": 205, "b": 50}
                 }
             ]
             for hud_obj in hud_objects:
