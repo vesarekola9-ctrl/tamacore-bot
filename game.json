@@ -198,53 +198,6 @@
                 "value": "VarGlobalCompare"
               },
               "parameters": [
-                "Shop_Coins",
-                ">=",
-                "GlobalVariable(Shop_ItemPrice_Apple)"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
-                "Inventory_UsedSlots",
-                "<",
-                "GlobalVariable(Inventory_MaxSlots)"
-              ]
-            }
-          ],
-          "actions": [
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Shop_Coins",
-                "-",
-                "GlobalVariable(Shop_ItemPrice_Apple)"
-              ]
-            },
-            {
-              "type": {
-                "value": "VarGlobal"
-              },
-              "parameters": [
-                "Food_Apple_Count",
-                "+",
-                "1"
-              ]
-            }
-          ]
-        },
-        {
-          "type": "BuiltinCommonInstructions::Standard",
-          "conditions": [
-            {
-              "type": {
-                "value": "VarGlobalCompare"
-              },
-              "parameters": [
                 "Quest_FeedCount",
                 ">=",
                 "GlobalVariable(Quest_FeedTarget)"
@@ -485,7 +438,7 @@
               "parameters": [
                 "Pet_AgeDays",
                 ">=",
-                "2"
+                "1"
               ]
             },
             {
@@ -495,7 +448,7 @@
               "parameters": [
                 "Pet_GrowthStage",
                 "=",
-                "Baby"
+                "Egg"
               ]
             }
           ],
@@ -507,7 +460,7 @@
               "parameters": [
                 "Pet_GrowthStage",
                 "=",
-                "Child"
+                "Stage 1"
               ]
             }
           ]
@@ -521,8 +474,8 @@
               },
               "parameters": [
                 "Pet_AgeDays",
-                "==",
-                "5"
+                ">=",
+                "3"
               ]
             },
             {
@@ -532,7 +485,7 @@
               "parameters": [
                 "Pet_GrowthStage",
                 "=",
-                "Child"
+                "Stage 1"
               ]
             }
           ],
@@ -544,7 +497,7 @@
               "parameters": [
                 "Pet_GrowthStage",
                 "=",
-                "Teen"
+                "Stage 2"
               ]
             }
           ]
@@ -558,7 +511,44 @@
               },
               "parameters": [
                 "Pet_AgeDays",
-                "==",
+                ">=",
+                "6"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalStringCompare"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Stage 2"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobalString"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Stage 3"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Pet_AgeDays",
+                ">=",
                 "10"
               ]
             },
@@ -569,7 +559,7 @@
               "parameters": [
                 "Pet_GrowthStage",
                 "=",
-                "Teen"
+                "Stage 3"
               ]
             }
           ],
@@ -581,7 +571,44 @@
               "parameters": [
                 "Pet_GrowthStage",
                 "=",
-                "Adult"
+                "Stage 4"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Pet_AgeDays",
+                ">=",
+                "15"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalStringCompare"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Stage 4"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobalString"
+              },
+              "parameters": [
+                "Pet_GrowthStage",
+                "=",
+                "Ultimate"
               ]
             }
           ]
@@ -636,7 +663,27 @@
     },
     {
       "name": "Cosmetic_EquippedSkin",
-      "value": "Default"
+      "value": "PinkFluff"
+    },
+    {
+      "name": "Cosmetic_Has_RainbowSkin",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_Halo",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_420Glasses",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_CoolHat",
+      "value": "0"
+    },
+    {
+      "name": "Cosmetic_Has_MemeFrog",
+      "value": "0"
     },
     {
       "name": "Food_Apple_Count",
@@ -660,15 +707,27 @@
     },
     {
       "name": "Shop_Coins",
+      "value": "600"
+    },
+    {
+      "name": "Shop_Price_RainbowSkin",
+      "value": "600"
+    },
+    {
+      "name": "Shop_Price_Halo",
+      "value": "400"
+    },
+    {
+      "name": "Shop_Price_420Glasses",
+      "value": "150"
+    },
+    {
+      "name": "Shop_Price_CoolHat",
       "value": "100"
     },
     {
-      "name": "Shop_ItemPrice_Apple",
-      "value": "10"
-    },
-    {
-      "name": "Shop_ItemPrice_Cake",
-      "value": "25"
+      "name": "Shop_Price_MemeFrog",
+      "value": "150"
     },
     {
       "name": "Level_Current",
@@ -856,11 +915,11 @@
     },
     {
       "name": "Pet_GrowthStage",
-      "value": "Baby"
+      "value": "Egg"
     },
     {
       "name": "Pet_EvolutionBranch",
-      "value": "Normal"
+      "value": "Ultimate"
     },
     {
       "name": "Pet_CareScore",
