@@ -16,9 +16,8 @@ def apply_resources_runtime(game_data: dict) -> dict:
         {"kind": "image", "name": "stage4.png", "file": "assets/stage4.png", "origin": ""},
         {"kind": "image", "name": "ultimate.png", "file": "assets/ultimate.png", "origin": ""},
         {"kind": "image", "name": "pet_dead.png", "file": "assets/pet_dead.png", "origin": ""},
-        {"kind": "image", "name": "soap.png", "file": "assets/soap.png", "origin": ""},
-        {"kind": "image", "name": "medicine.png", "file": "assets/medicine.png", "origin": ""},
-        {"kind": "image", "name": "cloud.png", "file": "assets/cloud.png", "origin": ""},
+        {"kind": "image", "name": "wheel.png", "file": "assets/wheel.png", "origin": ""},
+        {"kind": "image", "name": "gift.png", "file": "assets/gift.png", "origin": ""},
         {"kind": "image", "name": "apple.png", "file": "assets/apple.png", "origin": ""},
         {"kind": "image", "name": "cake.png", "file": "assets/cake.png", "origin": ""},
         {"kind": "image", "name": "coin.png", "file": "assets/coin.png", "origin": ""}

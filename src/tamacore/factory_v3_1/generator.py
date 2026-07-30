@@ -30,6 +30,8 @@ from .sickness_runtime import apply_sickness_runtime
 from .daynight_runtime import apply_daynight_runtime
 from .jumpgame_runtime import apply_jumpgame_runtime
 from .album_runtime import apply_album_runtime
+from .wheel_runtime import apply_wheel_runtime
+from .social_runtime import apply_social_runtime
 
 def build_game_json(base_game_data: dict) -> dict:
     game_data = base_game_data.copy()
@@ -65,5 +67,7 @@ def build_game_json(base_game_data: dict) -> dict:
     game_data = apply_daynight_runtime(game_data)
     game_data = apply_jumpgame_runtime(game_data)
     game_data = apply_album_runtime(game_data)
+    game_data = apply_wheel_runtime(game_data)
+    game_data = apply_social_runtime(game_data)
 
     return game_data

@@ -1148,12 +1148,16 @@
       "value": "0"
     },
     {
-      "name": "Notif_EnergyAlertSent",
+      "name": "Notif_CriticalAlertSent",
       "value": "0"
     },
     {
-      "name": "Notif_DailyReminderSent",
+      "name": "Notif_DailyChestAlertSent",
       "value": "0"
+    },
+    {
+      "name": "Notif_ScheduledTimeSeconds",
+      "value": "14400"
     },
     {
       "name": "Ads_RewardedWatchCount",
@@ -1394,6 +1398,38 @@
     {
       "name": "Album_UltimateUnlocked",
       "value": "0"
+    },
+    {
+      "name": "Wheel_FreeSpinAvailable",
+      "value": "1"
+    },
+    {
+      "name": "Wheel_LastSpinTimestamp",
+      "value": "0"
+    },
+    {
+      "name": "Wheel_LastRewardType",
+      "value": "Coins"
+    },
+    {
+      "name": "Wheel_LastRewardValue",
+      "value": "100"
+    },
+    {
+      "name": "Social_FriendCode",
+      "value": "TAMA-9982"
+    },
+    {
+      "name": "Social_VisitedFriendID",
+      "value": ""
+    },
+    {
+      "name": "Social_PettedFriendPet",
+      "value": "0"
+    },
+    {
+      "name": "Social_GiftsSentCount",
+      "value": "0"
     }
   ],
   "androidConfig": {
@@ -1450,20 +1486,14 @@
       },
       {
         "kind": "image",
-        "name": "soap.png",
-        "file": "assets/soap.png",
+        "name": "wheel.png",
+        "file": "assets/wheel.png",
         "origin": ""
       },
       {
         "kind": "image",
-        "name": "medicine.png",
-        "file": "assets/medicine.png",
-        "origin": ""
-      },
-      {
-        "kind": "image",
-        "name": "cloud.png",
-        "file": "assets/cloud.png",
+        "name": "gift.png",
+        "file": "assets/gift.png",
         "origin": ""
       },
       {
