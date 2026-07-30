@@ -239,6 +239,53 @@
         },
         {
           "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Quest_FeedCount",
+                ">=",
+                "GlobalVariable(Quest_FeedTarget)"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Quest_Completed",
+                "=",
+                "0"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Quest_Completed",
+                "=",
+                "1"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Shop_Coins",
+                "+",
+                "GlobalVariable(Quest_RewardCoins)"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
           "conditions": [],
           "actions": [
             {
@@ -249,6 +296,78 @@
                 "Inventory_UsedSlots",
                 "=",
                 "GlobalVariable(Food_Apple_Count) + GlobalVariable(Food_Cake_Count)"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Audio_Muted",
+                "=",
+                "1"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "SetGlobalVolume"
+              },
+              "parameters": [
+                "0"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Food_Apple_Count",
+                "<",
+                "5"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Ach_FirstFeed_Unlocked",
+                "=",
+                "0"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Ach_FirstFeed_Unlocked",
+                "=",
+                "1"
+              ]
+            },
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "Shop_Coins",
+                "+",
+                "20"
               ]
             }
           ]
@@ -569,11 +688,15 @@
     },
     {
       "name": "Quest_FeedTarget",
-      "value": "5"
+      "value": "3"
     },
     {
       "name": "Quest_Completed",
       "value": "0"
+    },
+    {
+      "name": "Quest_RewardCoins",
+      "value": "50"
     },
     {
       "name": "Inventory_MaxSlots",
