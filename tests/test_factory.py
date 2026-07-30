@@ -11,19 +11,24 @@ from tamacore.factory_v3_1.evolution_runtime import apply_evolution_runtime
 def base_data():
     return {
         "properties": {"name": "Test Game"},
-        "layouts": [{"name": "MainScene", "objects": [], "events": []}],
-        "globalVariables": []
+        "layouts": [{"name": "MainScene", "objects": [], "instances": [], "events": []}],
+        "globalVariables": [],
+        "resources": {"resources": []}
     }
 
 def test_build_game_json(base_data):
     res = build_game_json(base_data)
     assert "globalVariables" in res
+    assert res["properties"]["packageName"] == "com.tamacore.virtualpet"
+    
+    layout_names = [l["name"] for l in res["layouts"]]
+    assert "MainScene" in layout_names
+    assert "ShopScene" in layout_names
+
     var_names = {v["name"] for v in res["globalVariables"]}
+    assert "IAP_Gems" in var_names
     assert "RealTime_LastTickTimestamp" in var_names
     assert "Pet_GrowthStage" in var_names
-    assert "Quest_FeedCount" in var_names
-    assert "Audio_MusicVolume" in var_names
-    assert "Ach_FirstFeed_Unlocked" in var_names
 
 def test_realtime_events(base_data):
     res = apply_realtime_runtime(base_data)

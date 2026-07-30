@@ -1,4 +1,5 @@
-"""TamaCore Factory v3.1 - Generator with IAP & Premium Features"""
+"""TamaCore Factory v3.1 - Generator with Android & ShopScene"""
+from .project_properties import apply_project_properties
 from .resources_runtime import apply_resources_runtime
 from .pet_runtime import apply_pet_runtime
 from .save_runtime import apply_save_runtime
@@ -22,10 +23,12 @@ from .cloud_save_runtime import apply_cloud_save_runtime
 from .realtime_runtime import apply_realtime_runtime
 from .evolution_runtime import apply_evolution_runtime
 from .iap_runtime import apply_iap_runtime
+from .shop_scene_runtime import apply_shop_scene_runtime
 
 def build_game_json(base_game_data: dict) -> dict:
     game_data = base_game_data.copy()
 
+    game_data = apply_project_properties(game_data)
     game_data = apply_resources_runtime(game_data)
     game_data = apply_pet_runtime(game_data)
     game_data = apply_save_runtime(game_data)
@@ -49,5 +52,6 @@ def build_game_json(base_game_data: dict) -> dict:
     game_data = apply_realtime_runtime(game_data)
     game_data = apply_evolution_runtime(game_data)
     game_data = apply_iap_runtime(game_data)
+    game_data = apply_shop_scene_runtime(game_data)
 
     return game_data
