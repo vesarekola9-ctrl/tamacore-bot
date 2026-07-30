@@ -59,8 +59,8 @@
           "type": "TextObject::Text",
           "variables": [],
           "behaviors": [],
-          "string": "Coins: 100",
-          "characterSize": 24,
+          "string": "Coins: 600 \ud83e\ude99",
+          "characterSize": 22,
           "fontName": "",
           "bold": true,
           "italic": false,
@@ -72,37 +72,88 @@
           }
         },
         {
+          "name": "HUD_GemsText",
+          "type": "TextObject::Text",
+          "variables": [],
+          "behaviors": [],
+          "string": "Gems: 50 \ud83d\udc8e",
+          "characterSize": 22,
+          "fontName": "",
+          "bold": true,
+          "italic": false,
+          "smoothed": true,
+          "color": {
+            "r": 238,
+            "g": 130,
+            "b": 238
+          }
+        },
+        {
           "name": "HUD_StatusText",
           "type": "TextObject::Text",
           "variables": [],
           "behaviors": [],
-          "string": "Pet Status: Normal",
-          "characterSize": 20,
+          "string": "Pet: Happy | Stage: Egg",
+          "characterSize": 18,
           "fontName": "",
           "bold": false,
           "italic": false,
           "smoothed": true,
           "color": {
             "r": 255,
-            "g": 255,
-            "b": 255
+            "g": 240,
+            "b": 245
           }
         },
         {
-          "name": "HUD_MinigameScoreText",
+          "name": "Button_Feed",
           "type": "TextObject::Text",
           "variables": [],
           "behaviors": [],
-          "string": "High Score: 0",
+          "string": "[ \ud83c\udf4e SY\u00d6T\u00c4 ]",
           "characterSize": 20,
           "fontName": "",
           "bold": true,
           "italic": false,
           "smoothed": true,
           "color": {
-            "r": 50,
-            "g": 205,
-            "b": 50
+            "r": 255,
+            "g": 105,
+            "b": 180
+          }
+        },
+        {
+          "name": "Button_Sleep",
+          "type": "TextObject::Text",
+          "variables": [],
+          "behaviors": [],
+          "string": "[ \ud83c\udf19 NUKU ]",
+          "characterSize": 20,
+          "fontName": "",
+          "bold": true,
+          "italic": false,
+          "smoothed": true,
+          "color": {
+            "r": 147,
+            "g": 112,
+            "b": 219
+          }
+        },
+        {
+          "name": "Button_ShopIAP",
+          "type": "TextObject::Text",
+          "variables": [],
+          "behaviors": [],
+          "string": "[ \ud83d\uded2 KAUPPA (PLAY IAP) ]",
+          "characterSize": 20,
+          "fontName": "",
+          "bold": true,
+          "italic": false,
+          "smoothed": true,
+          "color": {
+            "r": 255,
+            "g": 215,
+            "b": 0
           }
         }
       ],
@@ -612,6 +663,100 @@
               ]
             }
           ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "IAP_IsVIPActive",
+                "=",
+                "1"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "VarGlobal"
+              },
+              "parameters": [
+                "RealTime_HungerDecayRate",
+                "=",
+                "0.5"
+              ]
+            }
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "name": "PetObject",
+          "x": 340,
+          "y": 220,
+          "angle": 0,
+          "zOrder": 1,
+          "layer": "",
+          "customSize": true,
+          "width": 128,
+          "height": 128
+        },
+        {
+          "name": "HUD_CoinsText",
+          "x": 20,
+          "y": 20,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "HUD_GemsText",
+          "x": 200,
+          "y": 20,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "HUD_StatusText",
+          "x": 20,
+          "y": 60,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "Button_Feed",
+          "x": 80,
+          "y": 480,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "Button_Sleep",
+          "x": 280,
+          "y": 480,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
+        },
+        {
+          "name": "Button_ShopIAP",
+          "x": 460,
+          "y": 480,
+          "angle": 0,
+          "zOrder": 10,
+          "layer": "",
+          "customSize": false
         }
       ]
     }
@@ -710,23 +855,31 @@
       "value": "600"
     },
     {
-      "name": "Shop_Price_RainbowSkin",
-      "value": "600"
+      "name": "Shop_Price_Apple",
+      "value": "10"
     },
     {
-      "name": "Shop_Price_Halo",
-      "value": "400"
-    },
-    {
-      "name": "Shop_Price_420Glasses",
-      "value": "150"
+      "name": "Shop_Price_Cake",
+      "value": "25"
     },
     {
       "name": "Shop_Price_CoolHat",
       "value": "100"
     },
     {
-      "name": "Shop_Price_MemeFrog",
+      "name": "Shop_GemsPrice_RainbowSkin",
+      "value": "600"
+    },
+    {
+      "name": "Shop_GemsPrice_Halo",
+      "value": "400"
+    },
+    {
+      "name": "Shop_GemsPrice_420Glasses",
+      "value": "150"
+    },
+    {
+      "name": "Shop_GemsPrice_MemeFrog",
       "value": "150"
     },
     {
@@ -924,6 +1077,92 @@
     {
       "name": "Pet_CareScore",
       "value": "100"
+    },
+    {
+      "name": "IAP_Gems",
+      "value": "50"
+    },
+    {
+      "name": "IAP_IsVIPActive",
+      "value": "0"
+    },
+    {
+      "name": "IAP_RemoveAdsOwned",
+      "value": "0"
+    },
+    {
+      "name": "IAP_LastPurchaseID",
+      "value": ""
+    },
+    {
+      "name": "IAP_Product_Gems250_ID",
+      "value": "com.tamacore.gems250"
+    },
+    {
+      "name": "IAP_Product_RainbowSkin_ID",
+      "value": "com.tamacore.rainbowskin"
+    },
+    {
+      "name": "IAP_Product_VIPPass_ID",
+      "value": "com.tamacore.vippass"
     }
-  ]
+  ],
+  "resources": {
+    "resources": [
+      {
+        "kind": "image",
+        "name": "egg.png",
+        "file": "assets/egg.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "stage1.png",
+        "file": "assets/stage1.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "stage2.png",
+        "file": "assets/stage2.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "stage3.png",
+        "file": "assets/stage3.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "stage4.png",
+        "file": "assets/stage4.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "ultimate.png",
+        "file": "assets/ultimate.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "apple.png",
+        "file": "assets/apple.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "cake.png",
+        "file": "assets/cake.png",
+        "origin": ""
+      },
+      {
+        "kind": "image",
+        "name": "coin.png",
+        "file": "assets/coin.png",
+        "origin": ""
+      }
+    ]
+  }
 }
