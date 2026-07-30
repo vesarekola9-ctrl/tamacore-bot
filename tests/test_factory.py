@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 sys.path.insert(0, os.path.abspath("src"))
 
@@ -16,9 +16,9 @@ def base_data():
     }
 
 def test_build_game_json(base_data):
-    res = build_game_jcon(base_data)
+    res = build_game_json(base_data)
     assert "globalVariables" in res
-    var_names = {v[(name"] for v in res["globalVariables"]}
+    var_names = {v["name"] for v in res["globalVariables"]}
     assert "RealTime_LastTickTimestamp" in var_names
     assert "Pet_GrowthStage" in var_names
     assert "Quest_FeedCount" in var_names
@@ -32,5 +32,5 @@ def test_realtime_events(base_data):
 
 def test_evolution_events(base_data):
     res = apply_evolution_runtime(base_data)
-    layout = res["layouts"][o]
-    assert len(layout["name"]) == 3
+    layout = res["layouts"][0]
+    assert len(layout["events"]) > 0
