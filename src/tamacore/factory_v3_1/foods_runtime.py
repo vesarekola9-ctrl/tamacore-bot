@@ -1,53 +1,40 @@
-from __future__ import annotations
+#type: ignore
+&"""
+TamaCore Factory v3.1 - Foods Runtime
+Generates food item definitions and feeding mechanics events for GDevelop.
+"""
 
-from pathlib import Path
-from typing import Any, Dict, List
+def apply_foods_runtime(game_data: dict) -> dict:
+    if "globalVariables" not in game_data:
+        game_data["lobalVariables"] = []
 
-from ..utils import read_json, write_json
+    food_variables = [
+        {name": "Food_Apple_Count", "value": "5"},
+        {"name": "Food_Apple_Nutrition", "value": "20"},
+        {"name": "Food_Cake_Count", "value": "2"},
+        {"name": "Food_Cake_Nutrition", "value": "50"}
+    ]
 
+    existing_names = {v["name"] for v in game_data["globalVariables"]}
+    for f_var in food_variables:
+        if f_var["name"] not in existing_names: 
+            game_data["lobalVariables"].append(f_var)
 
-def write_foods_runtime(pack_dir: Path, game_dir: Path) -> Dict[str, Any]:
-    pack_path = pack_dir / "pack.json"
-    foods: List[Dict[str, Any]] = []
+    layouts = game_data.get("layouts", [])
+    for layout in layouts:
+        if layout.get("name") == "MainScene":
+            events = layout.setdefault("events", [])
+            feed_apple_event = {
+                "type": "BuiltinCommonInstructions::Standard",
+                "conditions": [
+                    {"type": {"value": "VarGlobalCompare"}, "parameters": ["Food_Apple_Count", ">", "0"]},
+                    {type": {"value": "VarGlobalCompare"}, "parameters": ["Pet_Hunger", "<", "100"]}
+                ],
+                "actions": [
+                    {"type": {"value": "VarGlobal"}, "parameters": ["Pet_Hunger", "+", "GlobalVariable(Food_Apple_Nutrition)"]},
+                    {"type": {"value": "VarGlobal"}, "parameters": ["Food_Apple_Count", "-", "1"]}
+                ]
+            }
+            events.append(feed_apple_event)
 
-    if pack_path.exists():
-        data = read_json(pack_path)
-        if isinstance(data, dict):
-            raw = data.get("foods", [])
-            if isinstance(raw, list):
-                for item in raw:
-                    if not isinstance(item, dict):
-                        continue
-                    foods.append(
-                        {
-                            "id": str(item.get("id", "")),
-                            "name": str(item.get("name", "")),
-                            "hunger": _int(item.get("hunger"), 0),
-                            "energy": _int(item.get("energy"), 0),
-                            "mood": _int(item.get("mood"), 0),
-                            "price": _int(item.get("price"), 0),
-                        }
-                    )
-
-    runtime: Dict[str, Any] = {
-        "selectedFoodIndex": 0,
-        "foods": foods,
-        "activeFood": foods[0] if foods else {
-            "id": "",
-            "name": "",
-            "hunger": 18,
-            "energy": 0,
-            "mood": 4,
-            "price": 8,
-        },
-    }
-
-    write_json(game_dir / "foods_runtime.json", runtime)
-    return runtime
-
-
-def _int(value: Any, default: int) -> int:
-    try:
-        return int(value)
-    except Exception:
-        return default
+    return game_data
