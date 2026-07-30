@@ -80,14 +80,13 @@ def apply_shop_scene_runtime(game_data: dict) -> dict:
                         {"type": {"value": "MouseButtonPressed"}, "parameters": ["", "Left"]}
                     ],
                     "actions": [
-                        {"type": {"value": "ChangeScene"}, "parameters": ["", ""MainScene"", ""]}
+                        {"type": {"value": "ChangeScene"}, "parameters": ["", "'MainScene'", ""]}
                     ]
                 }
             ]
         }
         layouts.append(shop_layout)
 
-    # Kauppanäkymään siirtyminen MainScenestä
     for layout in layouts:
         if layout.get("name") == "MainScene":
             events = layout.setdefault("events", [])
@@ -98,7 +97,7 @@ def apply_shop_scene_runtime(game_data: dict) -> dict:
                     {"type": {"value": "MouseButtonPressed"}, "parameters": ["", "Left"]}
                 ],
                 "actions": [
-                    {"type": {"value": "ChangeScene"}, "parameters": ["", ""ShopScene"", ""]}
+                    {"type": {"value": "ChangeScene"}, "parameters": ["", "'ShopScene'", ""]}
                 ]
             })
 
