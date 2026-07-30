@@ -77,6 +77,50 @@
           ]
         },
         {
+          "name": "Pet_HatObject",
+          "type": "Sprite",
+          "variables": [],
+          "behaviors": [],
+          "animations": [
+            {
+              "name": "Default",
+              "directions": [
+                {
+                  "timeBetweenFrames": 1.0,
+                  "loops": true,
+                  "sprites": [
+                    {
+                      "image": "top_hat.png"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Pet_OutfitObject",
+          "type": "Sprite",
+          "variables": [],
+          "behaviors": [],
+          "animations": [
+            {
+              "name": "Default",
+              "directions": [
+                {
+                  "timeBetweenFrames": 1.0,
+                  "loops": true,
+                  "sprites": [
+                    {
+                      "image": "hoodie.png"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
           "name": "HUD_CoinsText",
           "type": "TextObject::Text",
           "variables": [],
@@ -218,6 +262,155 @@
         },
         {
           "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [],
+          "actions": [
+            {
+              "type": {
+                "value": "SetXPosition"
+              },
+              "parameters": [
+                "Pet_HatObject",
+                "=",
+                "PetObject.X() + 46"
+              ]
+            },
+            {
+              "type": {
+                "value": "SetYPosition"
+              },
+              "parameters": [
+                "Pet_HatObject",
+                "=",
+                "PetObject.Y() - 20"
+              ]
+            },
+            {
+              "type": {
+                "value": "SetXPosition"
+              },
+              "parameters": [
+                "Pet_OutfitObject",
+                "=",
+                "PetObject.X() + 38"
+              ]
+            },
+            {
+              "type": {
+                "value": "SetYPosition"
+              },
+              "parameters": [
+                "Pet_OutfitObject",
+                "=",
+                "PetObject.Y() + 50"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "VarGlobalCompare"
+              },
+              "parameters": [
+                "Audio_Muted",
+                "=",
+                "1"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "SetGlobalVolume"
+              },
+              "parameters": [
+                "0"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "CursorOnObject"
+              },
+              "parameters": [
+                "Button_Feed",
+                "",
+                "no",
+                ""
+              ]
+            },
+            {
+              "type": {
+                "value": "MouseButtonPressed"
+              },
+              "parameters": [
+                "",
+                "Left"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "PlaySound"
+              },
+              "parameters": [
+                "",
+                "assets/sfx_feed.wav",
+                "",
+                "GlobalVariable(Audio_SFXVolume)",
+                "100"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "value": "CursorOnObject"
+              },
+              "parameters": [
+                "Button_Sleep",
+                "",
+                "no",
+                ""
+              ]
+            },
+            {
+              "type": {
+                "value": "MouseButtonPressed"
+              },
+              "parameters": [
+                "",
+                "Left"
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": {
+                "value": "PlaySound"
+              },
+              "parameters": [
+                "",
+                "assets/sfx_sleep.wav",
+                "",
+                "GlobalVariable(Audio_SFXVolume)",
+                "100"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "BuiltinCommonInstructions::Standard",
           "conditions": [
             {
               "type": {
@@ -255,6 +448,28 @@
         }
       ],
       "instances": [
+        {
+          "name": "Pet_HatObject",
+          "x": 200,
+          "y": 160,
+          "angle": 0,
+          "zOrder": 5,
+          "layer": "",
+          "customSize": true,
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "Pet_OutfitObject",
+          "x": 200,
+          "y": 230,
+          "angle": 0,
+          "zOrder": 4,
+          "layer": "",
+          "customSize": true,
+          "width": 64,
+          "height": 64
+        },
         {
           "name": "PetObject",
           "x": 200,
@@ -555,79 +770,7 @@
       "value": "0"
     },
     {
-      "name": "Cosmetic_Has_PartyHat",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_CatEars",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_PirateHat",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_WizardHat",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_ChefHat",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_Glasses",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_Sunglasses",
-      "value": "0"
-    },
-    {
       "name": "Cosmetic_Has_Hoodie",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_Tuxedo",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_Dress",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_Cape",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_Sailor",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_Pajamas",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_RainbowSkin",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_GoldSkin",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_GalaxySkin",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_MatchaSkin",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_BlackSkin",
-      "value": "0"
-    },
-    {
-      "name": "Cosmetic_Has_SakuraSkin",
       "value": "0"
     },
     {

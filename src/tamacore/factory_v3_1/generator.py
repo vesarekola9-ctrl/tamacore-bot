@@ -1,4 +1,4 @@
-"""TamaCore Factory v3.1 - Master Generator with Home Runtime"""
+"""TamaCore Factory v3.1 - Master Generator"""
 from .project_properties import apply_project_properties
 from .resources_runtime import apply_resources_runtime
 from .pet_runtime import apply_pet_runtime
