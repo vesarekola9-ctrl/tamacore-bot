@@ -80,7 +80,9 @@ def create_pack(pack_dir: Path, name: str = "New Pack") -> None:
                         "cost": 100,
                         "effect": {
                             "playerMaxSpeedAdd": 50
-                        }
+                        },
+                        "ownedVariable": "Owned_speed_1",
+                        "uiText": "BUY: Speed +50 (100c)"
                     },
                     {
                         "id": "coins_bonus",
@@ -88,7 +90,9 @@ def create_pack(pack_dir: Path, name: str = "New Pack") -> None:
                         "cost": 75,
                         "effect": {
                             "coinsAdd": 100
-                        }
+                        },
+                        "ownedVariable": "Owned_coins_bonus",
+                        "uiText": "BUY: Coins +100 (75c)"
                     }
                 ]
             }
