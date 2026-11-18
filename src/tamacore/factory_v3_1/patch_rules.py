@@ -53,10 +53,14 @@ def _ensure_hud_labels(scene: Json, cfg: Any) -> None:
         ("LevelLabel", "Level: 1", 24, 96),
         ("GoalLabel", "Goal: 0", 24, 132),
     )
-    for name, caption, x, y in labels:
+    # Compress the vertical gaps on short screens instead of pinning
+    # several labels to the same bottom-edge coordinate.
+    top = min(24, height - 1)
+    step = min(36, max(1, (height - 1 - top) // (len(labels) - 1)))
+    for index, (name, caption, x, _y) in enumerate(labels):
         _ensure_layout_object(scene, _obj_text(name, caption, 24))
         _ensure_instance(scene, name, x=min(x, width - 1),
-                         y=min(y, height - 1), layer="UI", z=2500)
+                         y=top + index * step, layer="UI", z=2500)
 
 
 def _ensure_project_var(project: Json, name: str, value: float) -> None:
