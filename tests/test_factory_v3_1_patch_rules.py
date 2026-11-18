@@ -64,6 +64,26 @@ class ScenePatchTests(unittest.TestCase):
                 self.assertGreaterEqual(instances[name]["y"], 0)
                 self.assertLess(instances[name]["y"], 240)
 
+    def test_tiny_display_keeps_ui_anchors_inside_viewport(self):
+        tiny = cfg()
+        tiny.display.virtualWidth = 20
+        tiny.display.virtualHeight = 20
+        tiny.ui.joystick.marginX = 36
+        tiny.ui.joystick.marginY = 36
+        project = {"variables": []}
+        scene = {"objects": [], "instances": [], "layers": []}
+        apply_v3_1_rules(project, scene, tiny)
+        names = {"ShopButton", "ShopPanel", "TouchJoystick",
+                 "CoinsLabel", "SpeedLabel", "LevelLabel", "GoalLabel"}
+        for instance in scene["instances"]:
+            if instance["objectName"] not in names:
+                continue
+            with self.subTest(name=instance["objectName"]):
+                self.assertGreaterEqual(instance["x"], 0)
+                self.assertLess(instance["x"], 20)
+                self.assertGreaterEqual(instance["y"], 0)
+                self.assertLess(instance["y"], 20)
+
     def test_level_defaults_match_pack_configuration(self):
         variables = {item["name"]: item["value"]
                      for item in self.project["variables"]}
