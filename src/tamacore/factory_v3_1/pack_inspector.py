@@ -141,11 +141,12 @@ def _validate_shop(shop: object) -> List[str]:
             errors.append(f"pack.json: upgrade {i} missing name")
         # Missing ownership names are supported by the generator's legacy
         # normalization; explicit names must not collide across upgrades.
-        owned_var = item.get("ownedVariable", f"Owned_{uid}")
+        owned_var = item.get("ownedVariable")
         if not isinstance(owned_var, str) or not owned_var.strip():
-            errors.append(f"pack.json: upgrade {i} invalid ownedVariable")
+            owned_var = f"Owned_{uid}"
         else:
             owned_var = owned_var.strip()
+        if uid:
             seen_owned_variables[owned_var] = seen_owned_variables.get(owned_var, 0) + 1
 
 
