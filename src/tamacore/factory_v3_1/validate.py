@@ -43,7 +43,12 @@ def validate_build_output(game_dir: Path) -> List[str]:
     manifest = _load_json(game_dir / "FACTORY_MANIFEST.json", errors, "FACTORY_MANIFEST.json")
 
     if isinstance(game, dict):
-        _validate_game(game, errors)
+        scene_name = "Main"
+        if isinstance(manifest, dict):
+            pack_info = manifest.get("pack")
+            if isinstance(pack_info, dict) and isinstance(pack_info.get("scene"), str):
+                scene_name = pack_info["scene"]
+        _validate_game(game, errors, scene_name)
     if isinstance(catalog, dict):
         _validate_catalog(catalog, errors)
     if isinstance(levels, list):
@@ -73,7 +78,7 @@ def validate_build_output(game_dir: Path) -> List[str]:
     return errors
 
 
-def _validate_game(game: Json, errors: List[str]) -> None:
+def _validate_game(game: Json, errors: List[str], scene_name: str = "Main") -> None:
     layouts = game.get("layouts")
     if not isinstance(layouts, list) or not layouts:
         errors.append("game.json: layouts missing")
@@ -81,15 +86,12 @@ def _validate_game(game: Json, errors: List[str]) -> None:
 
     main = None
     for layout in layouts:
-        if isinstance(layout, dict) and layout.get("name") == "Main":
+        if isinstance(layout, dict) and layout.get("name") == scene_name:
             main = layout
             break
 
     if not isinstance(main, dict):
-        main = layouts[0] if layouts and isinstance(layouts[0], dict) else None
-
-    if not isinstance(main, dict):
-        errors.append("game.json: main scene missing")
+        errors.append(f"game.json: expected scene '{scene_name}' missing")
         return
 
     objects = main.get("objects")
