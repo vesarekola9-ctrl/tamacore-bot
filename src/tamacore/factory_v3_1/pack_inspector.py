@@ -149,6 +149,11 @@ def _validate_shop(shop: object) -> List[str]:
             owned_var = f"Owned_{uid}"
         else:
             owned_var = owned_var.strip()
+        if owned_var in {"Coins", "Speed", "PlayerMaxSpeed", "ShopOpen",
+                         "LevelIndex", "LevelCount", "CoinTarget", "EnemyTarget",
+                         "CoinsCollected", "EnemiesHit", "LevelComplete",
+                         "GameComplete", "SaveLoaded", "SaveDirty"}:
+            errors.append(f"pack.json: upgrade {i} ownedVariable '{owned_var}' is reserved")
         if uid:
             seen_owned_variables[owned_var] = seen_owned_variables.get(owned_var, 0) + 1
 
