@@ -75,6 +75,14 @@ class ShopValidationTests(unittest.TestCase):
     def test_zero_price_is_allowed(self):
         self.assertEqual(_validate_shop(shop(upgrade("speed", cost=0))), [])
 
+    def test_ownership_cannot_replace_coin_balance(self):
+        errors = _validate_shop(shop(upgrade("speed", ownedVariable="Coins")))
+        self.assertTrue(any("is reserved" in e for e in errors))
+
+    def test_ownership_cannot_replace_level_state(self):
+        errors = _validate_shop(shop(upgrade("speed", ownedVariable="LevelIndex")))
+        self.assertTrue(any("is reserved" in e for e in errors))
+
     def test_nonfinite_effect_is_rejected(self):
         for value in (float("nan"), float("inf"), float("-inf")):
             with self.subTest(value=value):
