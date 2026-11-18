@@ -75,3 +75,59 @@ def build_game_json(base_game_data: dict) -> dict:
     game_data = apply_seasonal_runtime(game_data)
 
     return game_data
+
+
+
+def run_factory_v3_1(
+    pack_dir,
+    template_dir,
+    game_dir,
+    with_demo_layout=True,
+    enable_v3_2=False,
+):
+    """Build a GDevelop project while retaining all v3.1 master runtime modules.
+
+    This compatibility entry point restores the CLI import contract.
+    """
+    from pathlib import Path
+    from ..factory_v3.generator import run_factory_v3
+    from ..utils import read_json, write_json
+    from .schema import load_pack_cfg
+
+    pack_dir = Path(pack_dir)
+    template_dir = Path(template_dir)
+    game_dir = Path(game_dir)
+    cfg = load_pack_cfg(pack_dir)
+
+    run_factory_v3(
+        pack_dir=pack_dir,
+        template_dir=template_dir,
+        game_dir=game_dir,
+        scene_name=cfg.scene,
+        seed=cfg.levels.seed,
+        with_demo_layout=with_demo_layout,
+    )
+
+    game_path = game_dir / "game.json"
+    project = read_json(game_path)
+    if not isinstance(project, dict):
+        raise ValueError("Generated game.json must contain a JSON object")
+
+    # Preserve every registered v3.1 subsystem.
+    project = build_game_json(project)
+    if not isinstance(project, dict):
+        raise ValueError("Master generator returned an invalid project")
+
+    write_json(game_path, project)
+
+    manifest_path = game_dir / "FACTORY_MANIFEST.json"
+    manifest = read_json(manifest_path)
+    if not isinstance(manifest, dict):
+        manifest = {}
+    manifest.update({
+        "factory": "v3.2" if enable_v3_2 else "v3.1",
+        "pack": {"name": cfg.name, "version": cfg.version, "scene": cfg.scene},
+        "masterRuntimeApplied": True,
+    })
+    write_json(manifest_path, manifest)
+    print("[OK] TamaCore master generator output:", game_path)
