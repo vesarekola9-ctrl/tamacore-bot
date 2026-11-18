@@ -200,15 +200,15 @@ def _validate_levels(levels: object) -> List[str]:
         if key not in levels:
             errors.append(f"pack.json: levels missing '{key}'")
 
-    for key in ["count", "coinBase", "coinStep", "enemyBase", "enemyStep", "seed"]:
-        try:
-            value = int(levels.get(key, 0))
-            if key != "seed" and value < 0:
-                errors.append(f"pack.json: levels.{key} must be >= 0")
-            if key == "count" and value <= 0:
-                errors.append("pack.json: levels.count must be > 0")
-        except Exception:
-            errors.append(f"pack.json: levels.{key} invalid")
+    for key in required:
+        value = levels.get(key)
+        if isinstance(value, bool) or not isinstance(value, int):
+            errors.append(f"pack.json: levels.{key} must be an integer")
+            continue
+        if key == "count" and value <= 0:
+            errors.append("pack.json: levels.count must be > 0")
+        elif key != "seed" and value < 0:
+            errors.append(f"pack.json: levels.{key} must be >= 0")
 
     return errors
 
