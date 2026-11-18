@@ -35,7 +35,7 @@ from .social_runtime import apply_social_runtime
 from .emotes_runtime import apply_emotes_runtime
 from .seasonal_runtime import apply_seasonal_runtime
 
-def build_game_json(base_game_data: dict) -> dict:
+def build_game_json(base_game_data: dict, enable_v3_2: bool = False) -> dict:
     game_data = base_game_data.copy()
 
     game_data = apply_project_properties(game_data)
@@ -44,7 +44,8 @@ def build_game_json(base_game_data: dict) -> dict:
     game_data = apply_save_runtime(game_data)
     game_data = apply_cosmetics_runtime(game_data)
     game_data = apply_foods_runtime(game_data)
-    game_data = apply_v3_2_patch(game_data)
+    if enable_v3_2:
+        game_data = apply_v3_2_patch(game_data)
     game_data = apply_shop_runtime(game_data)
     game_data = apply_levels_runtime(game_data)
     game_data = apply_quests_runtime(game_data)
@@ -137,7 +138,7 @@ def run_factory_v3_1(
     apply_character_animations(project, scene, game_dir)
 
     # Preserve every registered v3.1 subsystem.
-    project = build_game_json(project)
+    project = build_game_json(project, enable_v3_2=enable_v3_2)
     if not isinstance(project, dict):
         raise ValueError("Master generator returned an invalid project")
 
