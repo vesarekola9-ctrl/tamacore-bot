@@ -12,8 +12,10 @@ def shop(*upgrades):
 
 
 def upgrade(identifier, **extra):
-    return {"id": identifier, "name": "Speed boost", "cost": 25,
-            "effect": {"speed": 10}, **extra}
+    item = {"id": identifier, "name": "Speed boost", "cost": 25,
+            "effect": {"speed": 10}}
+    item.update(extra)
+    return item
 
 
 class ShopValidationTests(unittest.TestCase):
