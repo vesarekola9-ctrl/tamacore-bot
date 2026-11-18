@@ -124,7 +124,8 @@ def main(argv: list[str] | None = None) -> int:
     ai_make.add_argument("--foods", type=int, default=4)
     ai_make.add_argument("--cosmetics", type=int, default=4)
     ai_make.add_argument("--with-demo-layout", action="store_true")
-    ai_make.add_argument("--no-export-web", action="store_true")
+    ai_make.add_argument("--export-web", action="store_true", help="Require precompiled GDevelop HTML5 files")
+    ai_make.add_argument("--no-export-web", action="store_true", help="Deprecated; web export is disabled by default")
     ai_make.add_argument("--no-export-zip", action="store_true")
     ai_make.add_argument("--no-bundle", action="store_true")
 
@@ -293,7 +294,7 @@ def main(argv: list[str] | None = None) -> int:
             cosmetics_count=int(args.cosmetics),
             with_demo_layout=bool(args.with_demo_layout),
             enable_v3_2=True,
-            export_web_enabled=not bool(args.no_export_web),
+            export_web_enabled=bool(args.export_web and not args.no_export_web),
             export_zip_enabled=not bool(args.no_export_zip),
             bundle_enabled=not bool(args.no_bundle),
         )
