@@ -24,7 +24,7 @@ def run_ai_make_game(
     cosmetics_count: int = 4,
     with_demo_layout: bool = True,
     enable_v3_2: bool = True,
-    export_web_enabled: bool = True,
+    export_web_enabled: bool = False,
     export_zip_enabled: bool = True,
     bundle_enabled: bool = True,
 ) -> Dict[str, Any]:
