@@ -84,6 +84,27 @@ class ScenePatchTests(unittest.TestCase):
                 self.assertGreaterEqual(instance["y"], 0)
                 self.assertLess(instance["y"], 20)
 
+    def test_one_pixel_viewport_keeps_hud_coordinates_in_bounds(self):
+        tiny = cfg()
+        tiny.display.virtualWidth = 1
+        tiny.display.virtualHeight = 1
+        project = {"variables": []}
+        scene = {"objects": [], "instances": [], "layers": []}
+        apply_v3_1_rules(project, scene, tiny)
+        labels = {"CoinsLabel", "SpeedLabel", "LevelLabel", "GoalLabel"}
+        for instance in scene["instances"]:
+            if instance["objectName"] in labels:
+                with self.subTest(name=instance["objectName"]):
+                    self.assertEqual(instance["x"], 0)
+                    self.assertEqual(instance["y"], 0)
+
+    def test_normal_viewport_keeps_original_hud_spacing(self):
+        positions = {instance["objectName"]: instance["y"]
+                     for instance in self.scene["instances"]}
+        self.assertEqual([positions[name] for name in
+                          ("CoinsLabel", "SpeedLabel", "LevelLabel", "GoalLabel")],
+                         [24, 60, 96, 132])
+
     def test_level_defaults_match_pack_configuration(self):
         variables = {item["name"]: item["value"]
                      for item in self.project["variables"]}
