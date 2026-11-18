@@ -61,7 +61,10 @@ def validate_build_output(game_dir: Path) -> List[str]:
             project_vars = game.get("variables", [])
             names = {var.get("name") for var in project_vars
                      if isinstance(var, dict)} if isinstance(project_vars, list) else set()
-            for upgrade in shop.get("upgrades", []):
+            upgrades = shop.get("upgrades", [])
+            if not isinstance(upgrades, list):
+                upgrades = []  # _validate_shop reports the malformed shop structure.
+            for upgrade in upgrades:
                 if not isinstance(upgrade, dict):
                     continue
                 owned_var = upgrade.get("ownedVariable")
