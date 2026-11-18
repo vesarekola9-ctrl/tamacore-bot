@@ -197,10 +197,12 @@ def run_factory_v3_1(
     for upgrade in shop_output.get("upgrades", []):
         item = dict(upgrade)
         identifier = str(item["id"])
-        item.setdefault("ownedVariable", f"Owned_{identifier}")
-        item.setdefault(
-            "uiText", f"BUY: {item['name']} ({item['cost']}c)"
-        )
+        if not isinstance(item.get("ownedVariable"), str) or not item["ownedVariable"].strip():
+            item["ownedVariable"] = f"Owned_{identifier}"
+        else:
+            item["ownedVariable"] = item["ownedVariable"].strip()
+        if not isinstance(item.get("uiText"), str) or not item["uiText"].strip():
+            item["uiText"] = f"BUY: {item['name']} ({item['cost']}c)"
         normalized_upgrades.append(item)
     shop_output["upgrades"] = normalized_upgrades
     write_json(game_dir / "shop.json", shop_output)
