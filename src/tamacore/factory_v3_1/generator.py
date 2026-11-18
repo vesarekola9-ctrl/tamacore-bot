@@ -191,9 +191,21 @@ def run_factory_v3_1(
         for index in range(int(level_cfg["count"]))
     ]
     write_json(game_dir / "levels.json", levels)
-    write_json(game_dir / "shop.json", raw_pack["shop"])
+    # Normalize older scaffold upgrades without mutating the source pack.
+    shop_output = dict(raw_pack["shop"])
+    normalized_upgrades = []
+    for upgrade in shop_output.get("upgrades", []):
+        item = dict(upgrade)
+        identifier = str(item["id"])
+        item.setdefault("ownedVariable", f"Owned_{identifier}")
+        item.setdefault(
+            "uiText", f"BUY: {item['name']} ({item['cost']}c)"
+        )
+        normalized_upgrades.append(item)
+    shop_output["upgrades"] = normalized_upgrades
+    write_json(game_dir / "shop.json", shop_output)
     from .save_system import write_save_schema
-    save_schema = write_save_schema(game_dir, raw_pack["shop"])
+    save_schema = write_save_schema(game_dir, shop_output)
     save_schema["defaults"]["LevelCount"] = len(levels)
     save_schema["defaults"]["CoinTarget"] = levels[0]["coinCount"]
     save_schema["defaults"]["EnemyTarget"] = levels[0]["enemyCount"]
@@ -267,9 +279,7 @@ def run_factory_v3_1(
     manifest = read_json(manifest_path)
     if not isinstance(manifest, dict):
         manifest = {}
-    shop_data = raw_pack.get("shop")
-    if not isinstance(shop_data, dict):
-        shop_data = {}
+    shop_data = shop_output
     manifest.update({
         "factory": "v3.2" if enable_v3_2 else "v3.1",
         "pack": {"name": cfg.name, "version": cfg.version, "scene": cfg.scene},
