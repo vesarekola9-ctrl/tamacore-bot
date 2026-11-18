@@ -134,6 +134,33 @@ def run_factory_v3_1(
     if not isinstance(project, dict):
         raise ValueError("Master generator returned an invalid project")
 
+    # Legacy runtime modules use "globalVariables", while GDevelop
+    # stores project-wide variables in "variables". Merge without
+    # overwriting variables already defined by the project.
+    legacy_variables = project.pop("globalVariables", [])
+    project_variables = project.setdefault("variables", [])
+    if not isinstance(project_variables, list):
+        raise ValueError("GDevelop project variables must be a list")
+    existing_names = {
+        item.get("name") for item in project_variables
+        if isinstance(item, dict)
+    }
+    if isinstance(legacy_variables, list):
+        for item in legacy_variables:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name")
+            if not isinstance(name, str) or not name or name in existing_names:
+                continue
+            value = item.get("value", "0")
+            project_variables.append({
+                "name": name,
+                "type": "number" if str(value).replace(".", "", 1).lstrip("-").isdigit() else "string",
+                "value": value,
+                "children": [],
+            })
+            existing_names.add(name)
+
     write_json(game_path, project)
 
     manifest_path = game_dir / "FACTORY_MANIFEST.json"
