@@ -39,7 +39,7 @@ def apply_v3_1_rules(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any) -
     _ensure_camera_marker(scene, cfg)
     _ensure_hud_objects(scene, cfg)
     _ensure_joystick_instance(scene, cfg)
-    _ensure_shop_shell(scene)
+    _ensure_shop_shell(scene, cfg)
     _ensure_hud_labels(scene, cfg)
 
 
@@ -338,9 +338,18 @@ def _ensure_joystick_instance(scene: Json, cfg: Any) -> None:
     )
 
 
-def _ensure_shop_shell(scene: Json) -> None:
+def _ensure_shop_shell(scene: Json, cfg: Any) -> None:
+    width = max(1, int(getattr(cfg.display, "virtualWidth", 720)))
+    height = max(1, int(getattr(cfg.display, "virtualHeight", 1280)))
+    panel_width = min(520, max(1, width - 32))
+    panel_height = min(420, max(1, height - 160))
     _ensure_layout_object(scene, _obj_text("ShopButton", "SHOP", 36, align="center"))
-    _ensure_layout_object(scene, _obj_panel("ShopPanel", 520, 420))
+    _ensure_layout_object(scene, _obj_panel("ShopPanel", panel_width, panel_height))
 
-    _ensure_instance(scene, "ShopButton", x=820, y=24, layer="UI", z=2000)
-    _ensure_instance(scene, "ShopPanel", x=450, y=110, layer="UI", z=2100)
+    # Keep both controls visible on portrait and landscape layouts.
+    _ensure_instance(scene, "ShopButton", x=max(0, width - 150), y=24,
+                     layer="UI", z=2000)
+    _ensure_instance(scene, "ShopPanel",
+                     x=max(0, (width - panel_width) // 2),
+                     y=max(0, (height - panel_height) // 2),
+                     layer="UI", z=2100)
