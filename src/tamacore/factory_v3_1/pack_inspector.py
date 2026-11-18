@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import math
 from typing import Dict, List
 
 from ..utils import is_image_file, read_json
@@ -167,6 +168,8 @@ def _validate_shop(shop: object) -> List[str]:
                     errors.append(f"pack.json: upgrade {i} effect key invalid")
                 if not isinstance(value, (int, float, str, bool)):
                     errors.append(f"pack.json: upgrade {i} effect '{key}' invalid type")
+                elif isinstance(value, float) and not math.isfinite(value):
+                    errors.append(f"pack.json: upgrade {i} effect '{key}' must be finite")
 
     for uid, count in seen_ids.items():
         if count > 1:
