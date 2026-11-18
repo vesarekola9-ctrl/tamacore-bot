@@ -195,6 +195,9 @@ def run_factory_v3_1(
     from .save_system import write_save_schema
     save_schema = write_save_schema(game_dir, raw_pack["shop"])
     save_schema["defaults"]["LevelCount"] = len(levels)
+    save_schema["defaults"]["CoinTarget"] = levels[0]["coinCount"]
+    save_schema["defaults"]["EnemyTarget"] = levels[0]["enemyCount"]
+    # Keep initial level targets in sync with the generated level definitions.
     write_json(game_dir / "save.json", save_schema)
     # Produce pet, inventory and persistence runtime descriptors from the pack.
     pet = raw_pack.get("pet", {})
@@ -251,7 +254,7 @@ def run_factory_v3_1(
         ("PetMood", "mood"), ("PetCleanliness", "cleanliness"),
     ):
         save_runtime_defaults[key] = stats.get(stat_name, 100)
-    save_runtime_defaults["PetState"] = "Idle"
+    save_runtime_defaults["PetState"] = 0
     save_runtime = {
         "storageKey": save_schema["storageKey"],
         "defaults": save_runtime_defaults,
