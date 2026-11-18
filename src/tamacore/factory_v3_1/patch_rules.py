@@ -347,8 +347,8 @@ def _ensure_shop_shell(scene: Json, cfg: Any) -> None:
     _ensure_layout_object(scene, _obj_panel("ShopPanel", panel_width, panel_height))
 
     # Keep both controls visible on portrait and landscape layouts.
-    _ensure_instance(scene, "ShopButton", x=max(0, width - 150), y=24,
-                     layer="UI", z=2000)
+    _ensure_instance(scene, "ShopButton", x=max(0, width - 150),
+                     y=min(24, height - 1), layer="UI", z=2000)
     _ensure_instance(scene, "ShopPanel",
                      x=max(0, (width - panel_width) // 2),
                      y=max(0, (height - panel_height) // 2),
