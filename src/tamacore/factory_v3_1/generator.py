@@ -113,6 +113,22 @@ def run_factory_v3_1(
     if not isinstance(project, dict):
         raise ValueError("Generated game.json must contain a JSON object")
 
+    # Build the base v3.1 scene before applying optional subsystems.
+    from .patch_rules import apply_v3_1_rules
+    from .character_builder import apply_character_animations
+
+    layouts = project.get("layouts", [])
+    scene = next(
+        (item for item in layouts if isinstance(item, dict)
+         and item.get("name") == cfg.scene),
+        None,
+    )
+    if scene is None:
+        raise ValueError(f"Generated GDevelop scene not found: {cfg.scene}")
+
+    apply_v3_1_rules(project, scene, cfg)
+    apply_character_animations(project, scene, game_dir)
+
     # Preserve every registered v3.1 subsystem.
     project = build_game_json(project)
     if not isinstance(project, dict):
