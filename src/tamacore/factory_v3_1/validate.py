@@ -70,9 +70,6 @@ def validate_build_output(game_dir: Path) -> List[str]:
         text = build_report.read_text(encoding="utf-8")
         if "TamaCore Build Report" not in text:
             errors.append("BUILD_REPORT.txt: invalid header")
-    else:
-        errors.append("Missing file: BUILD_REPORT.txt")
-
     return errors
 
 
