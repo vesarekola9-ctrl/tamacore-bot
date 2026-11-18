@@ -195,6 +195,68 @@ def run_factory_v3_1(
     save_schema = write_save_schema(game_dir, raw_pack["shop"])
     save_schema["defaults"]["LevelCount"] = len(levels)
     write_json(game_dir / "save.json", save_schema)
+    # Produce pet, inventory and persistence runtime descriptors from the pack.
+    pet = raw_pack.get("pet", {})
+    if not isinstance(pet, dict):
+        pet = {}
+    stats = pet.get("stats", {})
+    if not isinstance(stats, dict):
+        stats = {}
+    pet_runtime = {
+        **pet,
+        "name": pet.get("name", "Tama"),
+        "species": pet.get("species", "Unknown"),
+        "temperament": pet.get("temperament", "gentle"),
+        "stats": stats,
+        "behavior": pet.get("behavior", {}),
+        "actions": pet.get("actions", ["feed", "clean", "play", "sleep"]),
+        "decay": pet.get("decay", {"hunger": 1, "energy": 1, "mood": 1, "cleanliness": 1}),
+    }
+    write_json(game_dir / "pet_runtime.json", pet_runtime)
+
+    cosmetics = raw_pack.get("cosmetics", [])
+    if not isinstance(cosmetics, list):
+        cosmetics = []
+    cosmetics = [
+        {**item, "styleBonus": item.get("styleBonus", 0)}
+        for item in cosmetics if isinstance(item, dict)
+    ]
+    cosmetics_runtime = {
+        "selectedCosmeticId": cosmetics[0]["id"] if cosmetics else "",
+        "cosmetics": cosmetics,
+    }
+    write_json(game_dir / "cosmetics_runtime.json", cosmetics_runtime)
+
+    foods = raw_pack.get("foods", [])
+    if not isinstance(foods, list):
+        foods = []
+    foods = [
+        {**item, "energy": item.get("energy", 0), "mood": item.get("mood", 0)}
+        for item in foods if isinstance(item, dict)
+    ]
+    active_food = foods[0] if foods else {
+        "id": "", "name": "", "hunger": 0, "energy": 0, "mood": 0, "price": 0,
+    }
+    foods_runtime = {
+        "selectedFoodIndex": 0,
+        "foods": foods,
+        "activeFood": active_food,
+    }
+    write_json(game_dir / "foods_runtime.json", foods_runtime)
+
+    save_runtime_defaults = dict(save_schema["defaults"])
+    for key, stat_name in (
+        ("PetHunger", "hunger"), ("PetEnergy", "energy"),
+        ("PetMood", "mood"), ("PetCleanliness", "cleanliness"),
+    ):
+        save_runtime_defaults[key] = stats.get(stat_name, 100)
+    save_runtime_defaults["PetState"] = "Idle"
+    save_runtime = {
+        "storageKey": save_schema["storageKey"],
+        "defaults": save_runtime_defaults,
+    }
+    write_json(game_dir / "save_runtime.json", save_runtime)
+
 
 
     manifest_path = game_dir / "FACTORY_MANIFEST.json"
@@ -218,6 +280,11 @@ def run_factory_v3_1(
         },
         "levels": raw_pack.get("levels", {}),
         "shopUpgrades": shop_data.get("upgrades", []),
+        "save": save_schema,
+        "petRuntime": pet_runtime,
+        "saveRuntime": save_runtime,
+        "cosmeticsRuntime": cosmetics_runtime,
+        "foodsRuntime": foods_runtime,
     })
     write_json(manifest_path, manifest)
     print("[OK] TamaCore master generator output:", game_path)
