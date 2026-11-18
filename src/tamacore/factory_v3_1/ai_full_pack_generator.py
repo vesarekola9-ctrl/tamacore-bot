@@ -31,7 +31,7 @@ def generate_ai_full_pack(
 
     errors = inspect_pack(pack_dir)
     if errors:
-        raise ValueError("Generated AI pack failed validation:\\n" + "\\n".join(errors))
+        raise ValueError("Generated AI pack failed validation:\n" + "\n".join(errors))
 
     return {
         "packDir": str(pack_dir),
