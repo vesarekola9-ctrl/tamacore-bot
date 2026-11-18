@@ -127,8 +127,10 @@ def _validate_shop(shop: object) -> List[str]:
             errors.append(f"pack.json: upgrade {i} must be object")
             continue
 
-        uid = str(item.get("id", "")).strip()
-        name = str(item.get("name", "")).strip()
+        raw_id = item.get("id")
+        uid = raw_id.strip() if isinstance(raw_id, str) else ""
+        raw_name = item.get("name")
+        name = raw_name.strip() if isinstance(raw_name, str) else ""
         cost = item.get("cost")
         effect = item.get("effect")
 
