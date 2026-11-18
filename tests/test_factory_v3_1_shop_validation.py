@@ -48,6 +48,18 @@ class ShopValidationTests(unittest.TestCase):
         errors = _validate_shop(shop(upgrade("speed"), upgrade("speed")))
         self.assertTrue(any("duplicate upgrade id" in e for e in errors))
 
+    def test_null_upgrade_id_is_rejected(self):
+        errors = _validate_shop(shop(upgrade(None)))
+        self.assertTrue(any("missing id" in e for e in errors))
+
+    def test_numeric_upgrade_id_is_rejected(self):
+        errors = _validate_shop(shop(upgrade(42)))
+        self.assertTrue(any("missing id" in e for e in errors))
+
+    def test_null_upgrade_name_is_rejected(self):
+        errors = _validate_shop(shop(upgrade("speed", name=None)))
+        self.assertTrue(any("missing name" in e for e in errors))
+
     def test_fractional_price_is_rejected(self):
         errors = _validate_shop(shop(upgrade("speed", cost=1.5)))
         self.assertTrue(any("cost must be an integer" in e for e in errors))
