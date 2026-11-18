@@ -169,6 +169,20 @@ def run_factory_v3_1(
             })
             existing_names.add(name)
 
+    # Shop ownership flags must exist in the actual GDevelop project,
+    # not only in the separate save.json schema. Keep existing values.
+    for upgrade in raw_pack["shop"].get("upgrades", []):
+        owned_var = upgrade.get("ownedVariable")
+        if not isinstance(owned_var, str) or not owned_var.strip():
+            owned_var = f"Owned_{upgrade['id']}"
+        else:
+            owned_var = owned_var.strip()
+        if owned_var not in existing_names:
+            project_variables.append({
+                "name": owned_var, "type": "number", "value": 0, "children": [],
+            })
+            existing_names.add(owned_var)
+
     write_json(game_path, project)
     # Materialize gameplay configuration alongside the GDevelop project.
     # The runtime and build validator consume these files directly.
