@@ -56,7 +56,7 @@ def _ensure_hud_labels(scene: Json, cfg: Any) -> None:
     # Compress the vertical gaps on short screens instead of pinning
     # several labels to the same bottom-edge coordinate.
     top = min(24, height - 1)
-    step = min(36, max(1, (height - 1 - top) // (len(labels) - 1)))
+    step = min(36, max(0, (height - 1 - top) // (len(labels) - 1)))
     for index, (name, caption, x, _y) in enumerate(labels):
         _ensure_layout_object(scene, _obj_text(name, caption, 24))
         _ensure_instance(scene, name, x=min(x, width - 1),
