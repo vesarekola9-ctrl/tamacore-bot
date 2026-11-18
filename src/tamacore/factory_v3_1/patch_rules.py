@@ -10,6 +10,26 @@ def apply_v3_1_rules(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any) -
     _ensure_project_var(project, "Speed", 200)
     _ensure_project_var(project, "PlayerMaxSpeed", 200)
     _ensure_project_var(project, "ShopOpen", 0)
+    # Variables required by the level, save, pet and inventory contracts.
+    defaults = {
+        "LevelIndex": 0, "LevelCount": int(cfg.levels.count),
+        "CoinTarget": int(cfg.levels.coinBase),
+        "EnemyTarget": int(cfg.levels.enemyBase),
+        "CoinsCollected": 0, "EnemiesHit": 0,
+        "LevelComplete": 0, "GameComplete": 0,
+        "SaveLoaded": 0, "SaveDirty": 0,
+        "PetHunger": 100, "PetEnergy": 100, "PetMood": 100,
+        "PetCleanliness": 100, "PetState": 0,
+        "FeedCost": 0, "CleanCost": 0,
+        "CosmeticIndex": 0, "CosmeticStyleBonus": 0,
+        "CosmeticOwnedCount": 0,
+        "FoodIndex": 0, "FoodOwnedCount": 0,
+        "FoodHungerValue": 0, "FoodEnergyValue": 0,
+        "FoodMoodValue": 0, "FoodPrice": 0,
+    }
+    for name, value in defaults.items():
+        _ensure_project_var(project, name, value)
+
 
     _ensure_ui_layer(scene)
     _ensure_scene_property(scene, "standardSortMethod", False)
