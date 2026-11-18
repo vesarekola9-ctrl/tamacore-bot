@@ -150,11 +150,12 @@ def _validate_shop(shop: object) -> List[str]:
             seen_owned_variables[owned_var] = seen_owned_variables.get(owned_var, 0) + 1
 
 
-        try:
-            if int(cost) < 0:
-                errors.append(f"pack.json: upgrade {i} cost must be >= 0")
-        except Exception:
-            errors.append(f"pack.json: upgrade {i} invalid cost")
+        # Costs must be whole, non-negative coin amounts. int(1.5)
+        # silently truncates, and bool is a subclass of int in Python.
+        if isinstance(cost, bool) or not isinstance(cost, int):
+            errors.append(f"pack.json: upgrade {i} cost must be an integer")
+        elif cost < 0:
+            errors.append(f"pack.json: upgrade {i} cost must be >= 0")
 
         if not isinstance(effect, dict) or not effect:
             errors.append(f"pack.json: upgrade {i} missing effect")
