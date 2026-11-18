@@ -9,6 +9,7 @@ from .ai_pack_generator import generate_ai_pack
 from .ai_pet_generator import generate_ai_pet
 from .ai_shop_generator import generate_ai_shop
 from .asset_generator import generate_placeholder_assets
+from .pack_inspector import inspect_pack
 
 
 def generate_ai_full_pack(
@@ -27,6 +28,10 @@ def generate_ai_full_pack(
         cosmetics_count=cosmetics_count,
     )
     generate_placeholder_assets(pack_dir)
+
+    errors = inspect_pack(pack_dir)
+    if errors:
+        raise ValueError("Generated AI pack failed validation:\\n" + "\\n".join(errors))
 
     return {
         "packDir": str(pack_dir),
