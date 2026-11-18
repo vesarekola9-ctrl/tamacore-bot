@@ -57,6 +57,20 @@ def validate_build_output(game_dir: Path) -> List[str]:
         errors.append("levels.json: must be a list")
     if isinstance(shop, dict):
         _validate_shop(shop, errors)
+        if isinstance(game, dict):
+            project_vars = game.get("variables", [])
+            names = {var.get("name") for var in project_vars
+                     if isinstance(var, dict)} if isinstance(project_vars, list) else set()
+            for upgrade in shop.get("upgrades", []):
+                if not isinstance(upgrade, dict):
+                    continue
+                owned_var = upgrade.get("ownedVariable")
+                if isinstance(owned_var, str) and owned_var.strip():
+                    owned_var = owned_var.strip()
+                else:
+                    owned_var = f"Owned_{upgrade.get('id', '')}"
+                if owned_var not in names:
+                    errors.append(f"game.json: missing shop ownership variable '{owned_var}'")
     if isinstance(save_data, dict):
         _validate_save(save_data, shop if isinstance(shop, dict) else {}, errors)
     if isinstance(pet_runtime, dict):
