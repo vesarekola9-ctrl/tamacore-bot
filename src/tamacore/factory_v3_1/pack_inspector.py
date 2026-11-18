@@ -18,7 +18,10 @@ def inspect_pack(pack_dir: Path) -> List[str]:
     if not assets_dir.exists():
         return [f"Missing directory: {assets_dir}"]
 
-    data = read_json(pack_json)
+    try:
+        data = read_json(pack_json)
+    except (OSError, ValueError) as exc:
+        return [f"pack.json: cannot read valid JSON ({exc})"]
     if not isinstance(data, dict):
         return ["pack.json must be a JSON object"]
 
@@ -28,6 +31,7 @@ def inspect_pack(pack_dir: Path) -> List[str]:
     errors.extend(_validate_levels(data.get("levels")))
     errors.extend(_validate_bounds(data.get("worldBounds"), data.get("display")))
     errors.extend(_validate_spawns(data))
+    errors.extend(_validate_content(data))
 
     return errors
 
@@ -234,4 +238,42 @@ def _validate_spawns(data: Dict[str, object]) -> List[str]:
             except Exception:
                 errors.append(f"pack.json: {key}.{field} invalid")
 
+    return errors
+
+
+def _validate_content(data: Dict[str, object]) -> List[str]:
+    errors: List[str] = []
+    required_fields = {
+        "foods": ("id", "name", "hunger", "energy", "mood", "price"),
+        "cosmetics": ("id", "name", "styleBonus", "price"),
+    }
+    for category, fields in required_fields.items():
+        entries = data.get(category)
+        if entries is None:
+            continue  # Existing packs may not include optional content.
+        if not isinstance(entries, list):
+            errors.append(f"pack.json: {category} must be a list")
+            continue
+        seen: set[str] = set()
+        for index, item in enumerate(entries):
+            label = f"pack.json: {category}[{index}]"
+            if not isinstance(item, dict):
+                errors.append(f"{label} must be an object")
+                continue
+            for field in fields:
+                if field not in item:
+                    errors.append(f"{label} missing '{field}'")
+            identifier = item.get("id")
+            if not isinstance(identifier, str) or not identifier.strip():
+                errors.append(f"{label} invalid id")
+            elif identifier in seen:
+                errors.append(f"{label} duplicate id '{identifier}'")
+            else:
+                seen.add(identifier)
+            for field in fields:
+                if field in ("id", "name") or field not in item:
+                    continue
+                value = item[field]
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+                    errors.append(f"{label}.{field} must be a nonnegative number")
     return errors
