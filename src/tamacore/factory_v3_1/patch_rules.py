@@ -40,6 +40,22 @@ def apply_v3_1_rules(project: Dict[str, Any], scene: Dict[str, Any], cfg: Any) -
     _ensure_hud_objects(scene, cfg)
     _ensure_joystick_instance(scene, cfg)
     _ensure_shop_shell(scene)
+    _ensure_hud_labels(scene, cfg)
+
+
+def _ensure_hud_labels(scene: Json, cfg: Any) -> None:
+    """Create the text objects and instances required by the HUD contract."""
+    width = int(getattr(cfg.display, "virtualWidth", 720))
+    labels = (
+        ("CoinsLabel", "Coins: 0", 24, 24),
+        ("SpeedLabel", "Speed: 200", 24, 60),
+        ("LevelLabel", "Level: 1", 24, 96),
+        ("GoalLabel", "Goal: 0", 24, 132),
+    )
+    for name, caption, x, y in labels:
+        _ensure_layout_object(scene, _obj_text(name, caption, 24))
+        _ensure_instance(scene, name, x=min(x, max(0, width - 24)), y=y,
+                         layer="UI", z=2500)
 
 
 def _ensure_project_var(project: Json, name: str, value: float) -> None:
