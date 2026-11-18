@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import math
+import re
 from typing import Dict, List
 
 from ..utils import is_image_file, read_json
@@ -149,6 +150,8 @@ def _validate_shop(shop: object) -> List[str]:
             owned_var = f"Owned_{uid}"
         else:
             owned_var = owned_var.strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", owned_var):
+            errors.append(f"pack.json: upgrade {i} ownedVariable '{owned_var}' invalid identifier")
         if owned_var in {"Coins", "Speed", "PlayerMaxSpeed", "ShopOpen",
                          "LevelIndex", "LevelCount", "CoinTarget", "EnemyTarget",
                          "CoinsCollected", "EnemiesHit", "LevelComplete",
