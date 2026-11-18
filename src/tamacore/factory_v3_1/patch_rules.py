@@ -327,12 +327,13 @@ def _ensure_joystick_instance(scene: Json, cfg: Any) -> None:
     # A scene instance without a corresponding object is invalid GDevelop data.
     # This text placeholder must later be replaced by a working joystick control.
     _ensure_layout_object(scene, _obj_text(object_name, "JOYSTICK", 20))
-    height = int(getattr(cfg.display, "virtualHeight", 1280))
+    width = max(1, int(getattr(cfg.display, "virtualWidth", 720)))
+    height = max(1, int(getattr(cfg.display, "virtualHeight", 1280)))
     _ensure_instance(
         scene,
         object_name,
-        x=margin_x,
-        y=max(0, height - margin_y - 160),
+        x=min(margin_x, width - 1),
+        y=min(max(0, height - margin_y - 160), height - 1),
         layer="UI",
         z=2300,
     )
