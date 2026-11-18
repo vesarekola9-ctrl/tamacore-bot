@@ -75,6 +75,16 @@ class ShopValidationTests(unittest.TestCase):
     def test_zero_price_is_allowed(self):
         self.assertEqual(_validate_shop(shop(upgrade("speed", cost=0))), [])
 
+    def test_invalid_ownership_identifier_is_rejected(self):
+        for name in ("Owned-speed", "Owned speed", "1Owned", "Owned.speed"):
+            with self.subTest(name=name):
+                errors = _validate_shop(shop(upgrade("speed", ownedVariable=name)))
+                self.assertTrue(any("invalid identifier" in e for e in errors))
+
+    def test_valid_ownership_identifier_is_allowed(self):
+        self.assertEqual(_validate_shop(shop(
+            upgrade("speed", ownedVariable="_Owned_speed2"))), [])
+
     def test_ownership_cannot_replace_coin_balance(self):
         errors = _validate_shop(shop(upgrade("speed", ownedVariable="Coins")))
         self.assertTrue(any("is reserved" in e for e in errors))
