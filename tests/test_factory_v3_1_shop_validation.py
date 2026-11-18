@@ -75,6 +75,12 @@ class ShopValidationTests(unittest.TestCase):
     def test_zero_price_is_allowed(self):
         self.assertEqual(_validate_shop(shop(upgrade("speed", cost=0))), [])
 
+    def test_nonfinite_effect_is_rejected(self):
+        for value in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=value):
+                errors = _validate_shop(shop(upgrade("speed", effect={"speed": value})))
+                self.assertTrue(any("must be finite" in e for e in errors))
+
     def test_missing_effect_is_rejected(self):
         errors = _validate_shop(shop(upgrade("speed", effect={})))
         self.assertTrue(any("missing effect" in e for e in errors))
