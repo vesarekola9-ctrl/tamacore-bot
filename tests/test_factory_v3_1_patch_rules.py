@@ -49,6 +49,28 @@ class ScenePatchTests(unittest.TestCase):
                         if item["objectName"] == "TouchJoystick")
         self.assertEqual(joystick["y"], 1280 - 36 - 160)
 
+    def test_small_landscape_display_keeps_shop_controls_inside(self):
+        small_cfg = cfg()
+        small_cfg.display.virtualWidth = 320
+        small_cfg.display.virtualHeight = 240
+        project = {"variables": []}
+        scene = {"objects": [], "instances": [], "layers": []}
+        apply_v3_1_rules(project, scene, small_cfg)
+        instances = {item["objectName"]: item for item in scene["instances"]}
+        for name in ("ShopButton", "ShopPanel"):
+            with self.subTest(name=name):
+                self.assertGreaterEqual(instances[name]["x"], 0)
+                self.assertLess(instances[name]["x"], 320)
+                self.assertGreaterEqual(instances[name]["y"], 0)
+                self.assertLess(instances[name]["y"], 240)
+
+    def test_level_defaults_match_pack_configuration(self):
+        variables = {item["name"]: item["value"]
+                     for item in self.project["variables"]}
+        self.assertEqual(variables["LevelCount"], 3)
+        self.assertEqual(variables["CoinTarget"], 5)
+        self.assertEqual(variables["EnemyTarget"], 2)
+
     def test_patching_twice_does_not_duplicate_objects_or_variables(self):
         apply_v3_1_rules(self.project, self.scene, cfg())
         for collection, key in ((self.scene["objects"], "name"),
