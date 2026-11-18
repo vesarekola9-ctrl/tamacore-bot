@@ -169,6 +169,33 @@ def run_factory_v3_1(
             existing_names.add(name)
 
     write_json(game_path, project)
+    # Materialize gameplay configuration alongside the GDevelop project.
+    # The runtime and build validator consume these files directly.
+    level_cfg = raw_pack["levels"]
+    bounds = raw_pack["worldBounds"]
+    coin_spawn = raw_pack["coinSpawn"]
+    enemy_spawn = raw_pack["enemySpawn"]
+    levels = [
+        {
+            "id": index + 1,
+            "coinCount": max(0, int(level_cfg.get("coinBase", coin_spawn.get("count", 0)))
+                             + index * int(level_cfg.get("coinStep", 0))),
+            "enemyCount": max(0, int(level_cfg.get("enemyBase", enemy_spawn.get("count", 0)))
+                              + index * int(level_cfg.get("enemyStep", 0))),
+            "coinObjectName": coin_spawn.get("objectName", "Coin"),
+            "enemyObjectName": enemy_spawn.get("objectName", "Enemy"),
+            "worldBounds": bounds,
+            "seed": int(level_cfg.get("seed", 1337)) + index,
+        }
+        for index in range(int(level_cfg["count"]))
+    ]
+    write_json(game_dir / "levels.json", levels)
+    write_json(game_dir / "shop.json", raw_pack["shop"])
+    from .save_system import write_save_schema
+    save_schema = write_save_schema(game_dir, raw_pack["shop"])
+    save_schema["defaults"]["LevelCount"] = len(levels)
+    write_json(game_dir / "save.json", save_schema)
+
 
     manifest_path = game_dir / "FACTORY_MANIFEST.json"
     manifest = read_json(manifest_path)
