@@ -121,6 +121,7 @@ def _validate_shop(shop: object) -> List[str]:
         return errors
 
     seen_ids: Dict[str, int] = {}
+    seen_owned_variables: Dict[str, int] = {}
     for i, item in enumerate(upgrades):
         if not isinstance(item, dict):
             errors.append(f"pack.json: upgrade {i} must be object")
@@ -138,6 +139,15 @@ def _validate_shop(shop: object) -> List[str]:
 
         if not name:
             errors.append(f"pack.json: upgrade {i} missing name")
+        # Missing ownership names are supported by the generator's legacy
+        # normalization; explicit names must not collide across upgrades.
+        owned_var = item.get("ownedVariable", f"Owned_{uid}")
+        if not isinstance(owned_var, str) or not owned_var.strip():
+            errors.append(f"pack.json: upgrade {i} invalid ownedVariable")
+        else:
+            owned_var = owned_var.strip()
+            seen_owned_variables[owned_var] = seen_owned_variables.get(owned_var, 0) + 1
+
 
         try:
             if int(cost) < 0:
@@ -157,6 +167,9 @@ def _validate_shop(shop: object) -> List[str]:
     for uid, count in seen_ids.items():
         if count > 1:
             errors.append(f"pack.json: duplicate upgrade id '{uid}'")
+    for owned_var, count in seen_owned_variables.items():
+        if count > 1:
+            errors.append(f"pack.json: duplicate upgrade ownedVariable '{owned_var}'")
 
     return errors
 
