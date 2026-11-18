@@ -306,7 +306,7 @@ def run_factory_v3_1(
     build_errors = validate_build_output(game_dir)
     if build_errors:
         raise RuntimeError(
-            "Generated game failed validation; see BUILD_REPORT.txt:\\n"
-            + "\\n".join(build_errors)
+            "Generated game failed validation; see BUILD_REPORT.txt:\n"
+            + "\n".join(build_errors)
         )
     print("[OK] TamaCore master generator output:", game_path)
