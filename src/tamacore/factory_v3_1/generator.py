@@ -98,6 +98,9 @@ def run_factory_v3_1(
     template_dir = Path(template_dir)
     game_dir = Path(game_dir)
     cfg = load_pack_cfg(pack_dir)
+    raw_pack = read_json(pack_dir / "pack.json")
+    if not isinstance(raw_pack, dict):
+        raise ValueError("pack.json must contain a JSON object")
 
     run_factory_v3(
         pack_dir=pack_dir,
@@ -171,6 +174,16 @@ def run_factory_v3_1(
         "factory": "v3.2" if enable_v3_2 else "v3.1",
         "pack": {"name": cfg.name, "version": cfg.version, "scene": cfg.scene},
         "masterRuntimeApplied": True,
+        "display": raw_pack.get("display", {}),
+        "worldBounds": raw_pack.get("worldBounds", {}),
+        "camera": raw_pack.get("camera", {}),
+        "ui": raw_pack.get("ui", {}),
+        "spawns": {
+            "coin": raw_pack.get("coinSpawn", {}),
+            "enemy": raw_pack.get("enemySpawn", {}),
+        },
+        "levels": raw_pack.get("levels", {}),
+        "shopUpgrades": raw_pack.get("shop", {}).get("upgrades", []),
     })
     write_json(manifest_path, manifest)
     print("[OK] TamaCore master generator output:", game_path)
