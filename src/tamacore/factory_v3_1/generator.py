@@ -287,4 +287,26 @@ def run_factory_v3_1(
         "foodsRuntime": foods_runtime,
     })
     write_json(manifest_path, manifest)
+
+    # Always leave an actionable build report, even for incomplete projects.
+    from .build_report import write_build_report
+    from .validate import validate_build_output
+    catalog = read_json(game_dir / "catalog.json")
+    if not isinstance(catalog, dict):
+        catalog = {}
+    write_build_report(
+        game_dir=game_dir,
+        pack_name=cfg.name,
+        factory_version=manifest["factory"],
+        manifest=manifest,
+        catalog=catalog,
+        levels=levels,
+        shop=shop_data,
+    )
+    build_errors = validate_build_output(game_dir)
+    if build_errors:
+        raise RuntimeError(
+            "Generated game failed validation; see BUILD_REPORT.txt:\\n"
+            + "\\n".join(build_errors)
+        )
     print("[OK] TamaCore master generator output:", game_path)
