@@ -67,13 +67,15 @@ def run_ai_make_game(
         if export_errors:
             raise RuntimeError("Export validation failed:\n" + "\n".join(export_errors))
 
+    final_bundle_dir = None
     if bundle_enabled:
-        final_bundle_dir = bundle_dir if bundle_dir is not None else Path("release_bundle")
+        final_bundle_dir = Path(bundle_dir) if bundle_dir is not None else Path(out_dir).parent / "release_bundle"
         bundle_release(out_dir, export_dir, final_bundle_dir)
 
     return {
         "pack": pack_info,
         "gameDir": str(out_dir),
         "exportDir": str(export_dir),
-        "bundleDir": str(bundle_dir) if bundle_dir is not None else "",
+        "bundleDir": str(final_bundle_dir) if final_bundle_dir is not None else "",
+        "exports": exported,
     }
