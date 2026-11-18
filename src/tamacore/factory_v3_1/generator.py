@@ -93,10 +93,14 @@ def run_factory_v3_1(
     from ..factory_v3.generator import run_factory_v3
     from ..utils import read_json, write_json
     from .schema import load_pack_cfg
+    from .pack_inspector import inspect_pack
 
     pack_dir = Path(pack_dir)
     template_dir = Path(template_dir)
     game_dir = Path(game_dir)
+    pack_errors = inspect_pack(pack_dir)
+    if pack_errors:
+        raise ValueError("Invalid game pack:\n" + "\n".join(pack_errors))
     cfg = load_pack_cfg(pack_dir)
     raw_pack = read_json(pack_dir / "pack.json")
     if not isinstance(raw_pack, dict):
@@ -170,6 +174,9 @@ def run_factory_v3_1(
     manifest = read_json(manifest_path)
     if not isinstance(manifest, dict):
         manifest = {}
+    shop_data = raw_pack.get("shop")
+    if not isinstance(shop_data, dict):
+        shop_data = {}
     manifest.update({
         "factory": "v3.2" if enable_v3_2 else "v3.1",
         "pack": {"name": cfg.name, "version": cfg.version, "scene": cfg.scene},
@@ -183,7 +190,7 @@ def run_factory_v3_1(
             "enemy": raw_pack.get("enemySpawn", {}),
         },
         "levels": raw_pack.get("levels", {}),
-        "shopUpgrades": raw_pack.get("shop", {}).get("upgrades", []),
+        "shopUpgrades": shop_data.get("upgrades", []),
     })
     write_json(manifest_path, manifest)
     print("[OK] TamaCore master generator output:", game_path)
