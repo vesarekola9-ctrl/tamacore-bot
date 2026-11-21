@@ -52,6 +52,41 @@ def apply_character_animations(project: Dict[str, Any], scene: Dict[str, Any], g
         })
 
 
+def apply_pet_animation_events(scene: Json) -> None:
+    """Connect the Pet_State variable to Player's named GDevelop animations.
+
+    This creates GDevelop event-sheet actions, not just sprite metadata.
+    The existing pet runtime owns changes to Pet_State; this bridge only
+    chooses the visual state. Safe to call repeatedly.
+    """
+    player = _find_object(scene, "Player")
+    if not isinstance(player, dict):
+        return
+    available = {
+        animation.get("name") for animation in player.get("animations", [])
+        if isinstance(animation, dict)
+    }
+    events = scene.setdefault("events", [])
+    for name in ("Idle", "Walk", "Sleep", "Eat", "Play"):
+        if name not in available:
+            continue
+        marker = f"TamaCorePetAnimation_{name}"
+        if any(isinstance(event, dict) and event.get("name") == marker for event in events):
+            continue
+        events.append({
+            "type": "BuiltinCommonInstructions::Standard",
+            "name": marker,
+            "conditions": [{
+                "type": {"value": "VarGlobalStringCompare"},
+                "parameters": ["Pet_State", "=", name],
+            }],
+            "actions": [{
+                "type": {"value": "SetAnimationName"},
+                "parameters": ["Player", name],
+            }],
+        })
+
+
 def _find_object(scene: Json, name: str) -> Json | None:
     objects = scene.get("objects")
     if not isinstance(objects, list):
