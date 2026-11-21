@@ -77,7 +77,7 @@ if(musicEnabled){try{const AC=window.AudioContext||window.webkitAudioContext;if(
 function sound(kind){if(!soundEnabled)return;
 try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
 if(!audioCtx)audioCtx=new AC();if(audioCtx.state==="suspended")audioCtx.resume();
-const now=audioCtx.currentTime;const notes=kind==="coin"?[[880,.06],[1175,.09]]:kind==="hit"?[[210,.13],[125,.16]]:kind==="win"?[[523,.12],[659,.12],[784,.16],[1047,.3]]:kind==="power"?[[440,.09],[660,.09],[880,.15]]:kind==="belly"?[[175,.12],[130,.18],[210,.13]]:kind==="skinny"?[[660,.08],[490,.12]]:[[620,.08]];
+const now=audioCtx.currentTime;const notes=kind==="coin"?[[880,.06],[1175,.09]]:kind==="hit"?[[210,.13],[125,.16]]:kind==="win"?[[523,.12],[659,.12],[784,.16],[1047,.3]]:kind==="power"?[[440,.09],[660,.09],[880,.15]]:kind==="belly"?[[175,.12],[130,.18],[210,.13]]:kind==="skinny"?[[660,.08],[490,.12]]:kind==="hiccup"?[[520,.07],[750,.06]]:kind==="sneeze"?[[860,.05],[310,.17]]:kind==="toot"?[[145,.13],[95,.2]]:kind==="trip"?[[380,.08],[240,.12]]:[[620,.08]];
 let offset=0;for(const [frequency,duration] of notes){const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
 osc.type=kind==="hit"?"triangle":"sine";osc.frequency.setValueAtTime(frequency,now+offset);
 gain.gain.setValueAtTime(.0001,now+offset);gain.gain.exponentialRampToValueAtTime(.055,now+offset+.012);
@@ -124,7 +124,7 @@ state.homeSurprise={kind:["gift","dance","discovery"].includes(v.kind)?v.kind:""
 if(saved.dailyCare&&typeof saved.dailyCare==="object"&&!Array.isArray(saved.dailyCare)){const d=saved.dailyCare;if(typeof d.date==="string")state.dailyCare={date:d.date,feed:Number(d.feed)||0,play:Number(d.play)||0,clean:Number(d.clean)||0,rest:Number(d.rest)||0,claimed:d.claimed===true};}
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
-let reactionUntil=0,reactionText="",reactionKind="",lastCareAlert="",feedingVisual={until:0,emoji:"",liked:false,disliked:false};
+let reactionUntil=0,reactionText="",reactionKind="",lastCareAlert="",funnyEventUntil=0,funnyEventIcon="",feedingVisual={until:0,emoji:"",liked:false,disliked:false};
 if(!state.petPersonality)state.petPersonality=["playful","gentle","curious"][Math.floor(state.petBornAt/1000)%3];
 function dailyDate(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function dailyProgress(){const today=dailyDate();if(state.dailyCare.date!==today)state.dailyCare={date:today,feed:0,play:0,clean:0,rest:0,claimed:false};}
@@ -201,8 +201,18 @@ function renderCelebration(){const v=petCelebration();$("celebrationStatus").tex
 $("celebratePet").onclick=()=>{const v=petCelebration();if(!v.ready)return;
 state.celebrationsClaimed[v.ready.key]=true;state.coins+=50;state.petMood=clamp(state.petMood+20,0,100);gainFriendship(5);
 rememberPet("🎂 Celebrated "+v.ready.label);petReaction("celebrate","🎉 Happy celebration!");save();updateStats();msg("🎂 "+v.ready.label+"! +50 coins, +20 mood, +5 friendship.");};
+function funnyPetMoment(){if(state.petSleeping||state.petSick||state.petStage===1||performance.now()<reactionUntil)return;
+const roll=Math.random();let kind,icon,line;
+if(state.petFullness>=70&&roll<.45){kind="hiccup";icon="❗";line="😮 HIC! Was that my tummy?";}
+else if(state.petFullness>=65&&roll<.7){kind="toot";icon="💨";line=state.petPersonality==="playful"?"💨 Pfffft! Heehee!":"💨 Oops... was that me?";}
+else if(state.petPersonality==="curious"&&roll<.65){kind="sneeze";icon="🤧";line="🤧 Achoo! Dusty discovery!";}
+else if(state.petPersonality==="playful"&&roll<.7){kind="trip";icon="💫";line="🙃 Whoops! Silly feet!";}
+else if(roll<.5){kind="sneeze";icon="🤧";line="🤧 Achoo! Excuse me!";}
+else{kind="trip";icon="💫";line="😵 Oopsie-daisy!";}
+funnyEventUntil=performance.now()+2200;funnyEventIcon=icon;petReaction(kind,line);sound(kind);}
 function careTick(dt){updatePetGrowth();morningTick();surpriseTick();careClock+=dt;if(careClock<20)return;careClock=0;
 state.petHunger=clamp(state.petHunger-1,0,100);state.petFullness=clamp(state.petFullness-2,0,100);
+if(Math.random()<.1)funnyPetMoment();
 if(state.petHunger<20)state.petWeight=clamp(state.petWeight-.45,5,100);
 else if(state.petHunger>=40&&state.petHunger<=85&&state.petWeight>50)state.petWeight=clamp(state.petWeight-.08,5,100);const night=petDayPhase()==="night";
 state.petEnergy=clamp(state.petEnergy+(state.petSleeping?(state.roomEquipped.furniture==="bed"?5:3)+(night?1:0):-1),0,100);
@@ -682,6 +692,7 @@ ctx.font="23px system-ui";ctx.fillText(state.dreamKind==="nightmare"?"☁️":st
 if(state.friendship>=85&&!state.petSleeping&&state.petStage>1){ctx.save();ctx.fillStyle="#ff9ecb";ctx.font="bold 19px system-ui";ctx.fillText("♥",W/2-85,H/2-80+Math.sin(visualTime*2)*7);ctx.restore();}
 if(state.petTrait==="kind"&&!state.petSleeping){ctx.fillStyle="#ffb9d7";ctx.font="bold 20px system-ui";ctx.fillText("♥",W/2+85,H/2-20+Math.sin(visualTime*2)*8);}
 if(state.petTrait==="brave"&&!state.petSleeping){ctx.fillStyle="#ffe08a";ctx.font="bold 22px system-ui";ctx.fillText("★",W/2-92,H/2-10+Math.sin(visualTime*2)*5);}
+if(performance.now()<funnyEventUntil){ctx.save();ctx.font="36px system-ui";ctx.fillText(funnyEventIcon,W/2+110,H/2+15+Math.sin(visualTime*12)*8);ctx.restore();}
 if(reacting){ctx.font="bold 25px system-ui";ctx.fillStyle="#fff1c4";ctx.fillText(reactionText,W/2,245);}
 if(performance.now()<hatchAnimationUntil){ctx.fillStyle="#ffedb5";ctx.font="bold 29px system-ui";ctx.fillText("✨ 🐣 HATCHED! ✨",W/2,260);
 for(let i=0;i<12;i++){const a=i*Math.PI/6+visualTime*.6,r=95+Math.sin(visualTime*5+i)*12;
