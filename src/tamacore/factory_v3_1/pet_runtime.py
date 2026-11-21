@@ -26,14 +26,17 @@ def apply_pet_runtime(game_data: dict) -> dict:
         if name not in existing:
             variables.append({"name": name, "value": value})
 
-    # GDevelop's current project schema also uses 'variables'. Keep the
-    # canonical Pet_State available to event conditions in that format.
+    # Define every pet care variable in GDevelop's typed project schema.
     canonical = game_data.setdefault("variables", [])
     if isinstance(canonical, list):
-        names = {item.get("name") for item in canonical if isinstance(item, dict)}
-        if "Pet_State" not in names:
-            canonical.append({
-                "name": "Pet_State", "type": "string", "value": "Idle",
-                "children": [],
-            })
+        by_name = {item.get("name"): item for item in canonical if isinstance(item, dict)}
+        for name, value in defaults.items():
+            kind = "number" if name in ("Pet_Hunger", "Pet_Energy", "Pet_Happiness", "Pet_Health") else "string"
+            if name not in by_name:
+                canonical.append({"name": name, "type": kind,
+                                  "value": int(value) if kind == "number" else value,
+                                  "children": []})
+            else:
+                by_name[name].setdefault("type", kind)
+                by_name[name].setdefault("children", [])
     return game_data
