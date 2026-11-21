@@ -1149,6 +1149,12 @@ function boutiqueRender(){
   const ownedOnly=document.getElementById("boutiqueOwnedOnly").checked;
   const results=(cfg.collectibles||[]).filter(item=>item.category===boutiqueCategory&&(!query||item.name.toLowerCase().includes(query))&&(!theme||(item.theme||"classic")===theme)&&(!ownedOnly||boutiqueSave.owned[item.id]));
   document.getElementById("boutiqueCount").textContent=results.length+" items • "+(cfg.collectibles||[]).filter(item=>boutiqueSave.owned[item.id]).length+" collected";
+  const allItems=cfg.collectibles||[];
+  const collected=allItems.filter(item=>boutiqueSave.owned[item.id]).length;
+  const progress=document.createElement("progress");progress.max=Math.max(1,allItems.length);progress.value=collected;progress.style.width="100%";progress.setAttribute("aria-label","Collection completion");
+  document.getElementById("boutiqueCount").append(" / "+allItems.length+" · "+Math.floor(100*collected/Math.max(1,allItems.length))+"%",progress);
+  if(!results.length){const empty=document.createElement("p");empty.textContent="No matching items. Try a different search or collection.";grid.appendChild(empty);}
+
   results.forEach(item=>{
     const card=document.createElement("div");card.style.cssText="padding:10px;background:#223b5a;border:1px solid #5b7d9e;border-radius:12px";
     const themeColors={pastel:"#efb9df",royal:"#e8ca77",winter:"#a9dfef",garden:"#a4d5a3"};
@@ -1167,7 +1173,11 @@ function boutiqueRender(){
       state.boutique=boutiqueSave;
       save();
       if(typeof updateStats==="function")updateStats();boutiqueRender();
-    };card.appendChild(btn);grid.appendChild(card)
+    };card.appendChild(btn);
+    if(owned&&boutiqueSave.equipped[item.category]===item.id){
+      const remove=document.createElement("button");remove.textContent="Unequip";remove.onclick=()=>{delete boutiqueSave.equipped[item.category];save();boutiqueRender();};card.appendChild(remove);
+    }
+    grid.appendChild(card)
   });
   const equipped=document.getElementById("boutiqueEquipped");
   equipped.textContent="Equipped: "+Object.entries(boutiqueSave.equipped).map(([cat,id])=>{const item=(cfg.collectibles||[]).find(x=>x.id===id);return cat+": "+(item?item.name:id)}).join(" · ");
