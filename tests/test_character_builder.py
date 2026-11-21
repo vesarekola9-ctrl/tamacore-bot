@@ -35,6 +35,20 @@ class CharacterBuilderTests(unittest.TestCase):
             apply_character_animations(project, scene, root)
             self.assertEqual(len(resources), 2)
 
+    def test_unrelated_player_art_is_not_imported_as_animation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "assets" / "generated" / "player"
+            folder.mkdir(parents=True)
+            for name in ("player_idle_01.png", "player_playful.png", "player_portrait.png", "player_walk_01.png"):
+                (folder / name).write_bytes(b"image")
+            player = {"name": "Player"}
+            project = {"resources": {"resources": []}}
+            apply_character_animations(project, {"objects": [player]}, root)
+            self.assertEqual([a["name"] for a in player["animations"]], ["Idle", "Walk"])
+            self.assertEqual(len(project["resources"]["resources"]), 2)
+
+
 
 if __name__ == "__main__":
     unittest.main()
