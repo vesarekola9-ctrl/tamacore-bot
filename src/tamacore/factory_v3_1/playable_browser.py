@@ -1168,6 +1168,8 @@ function boutiqueRender(){
   const collected=allItems.filter(item=>boutiqueSave.owned[item.id]).length;
   const progress=document.createElement("progress");progress.max=Math.max(1,allItems.length);progress.value=collected;progress.style.width="100%";progress.setAttribute("aria-label","Collection completion");
   document.getElementById("boutiqueCount").append(" / "+allItems.length+" · "+Math.floor(100*collected/Math.max(1,allItems.length))+"%",progress);
+  const wishItems=(cfg.collectibles||[]).filter(item=>boutiqueSave.wishlist.includes(item.id)&&!boutiqueSave.owned[item.id]);
+  if(wishItems.length){const total=wishItems.reduce((sum,item)=>sum+item.coinPrice,0);const summary=document.createElement("p");summary.textContent="Wishlist: "+wishItems.length+" items · "+total+" coins total";const goal=document.createElement("span");goal.dataset.goal=String(total);goal.textContent=state.coins>=total?"Affordable":Math.ceil(total-state.coins)+" more coins needed";summary.append(" · ",goal);document.getElementById("boutiqueCount").appendChild(summary);}
   const layouts=document.createElement("div");layouts.style.cssText="display:flex;gap:5px;flex-wrap:wrap";layouts.append("Saved room styles: ");
   for(const slot of ["1","2","3"]){
     const store=document.createElement("button"),load=document.createElement("button");
@@ -1237,6 +1239,7 @@ function boutiqueRender(){
         x.oninput=y.oninput=()=>{boutiqueSave.positions[item.id]={x:Number(x.value),y:Number(y.value)};save();};
       }
     }
+    const preview=document.createElement("button");preview.textContent="Try preview";preview.onclick=()=>{const ids={outfit:"boutiquePreviewOutfit",furniture:"boutiquePreviewFurniture",toy:"boutiquePreviewToy"};if(ids[item.category]){const el=document.getElementById(ids[item.category]);el.textContent=item.emoji;el.style.filter=item.theme?"drop-shadow(0 0 9px "+themeColors[item.theme]+")":"none";}else{const colors={wallpaper_sky:"#8acbe9",wallpaper_forest:"#497e5d",wallpaper_space:"#302459",wallpaper_candy:"#d890bf",wallpaper_ocean:"#287c9c",wallpaper_snow:"#a8c5d8",wallpaper_sunset:"#b76b49",wallpaper_garden:"#548d63"};document.getElementById("boutiquePreviewWallpaper").style.background=colors[item.id]||"transparent";}msg("Preview only: "+item.name);};card.appendChild(preview);
     grid.appendChild(card)
   });
   const equipped=document.getElementById("boutiqueEquipped");
@@ -1256,7 +1259,7 @@ function boutiqueRender(){
 
 }
 for(const id of ["boutiqueSearch","boutiqueTheme","boutiqueOwnedOnly","boutiqueWishlist","boutiqueSort"]){document.getElementById(id).addEventListener("input",boutiqueRender);}
-setInterval(()=>{const balance=document.getElementById("boutiqueBalance");if(balance)balance.textContent="🪙 Available coins: "+Math.floor(state.coins);for(const btn of document.querySelectorAll("#boutiqueItems button[data-price]"))btn.disabled=state.coins<Number(btn.dataset.price);for(const goal of document.querySelectorAll("#boutiqueItems [data-goal]"))goal.textContent=state.coins>=Number(goal.dataset.goal)?"Affordable":Math.ceil(Number(goal.dataset.goal)-state.coins)+" more coins needed";},1000);
+setInterval(()=>{const balance=document.getElementById("boutiqueBalance");if(balance)balance.textContent="🪙 Available coins: "+Math.floor(state.coins);for(const btn of document.querySelectorAll("#boutiqueItems button[data-price]"))btn.disabled=state.coins<Number(btn.dataset.price);for(const goal of document.querySelectorAll("#boutiqueItems [data-goal],#boutiqueCount [data-goal]"))goal.textContent=state.coins>=Number(goal.dataset.goal)?"Affordable":Math.ceil(Number(goal.dataset.goal)-state.coins)+" more coins needed";},1000);
 boutiqueRender();
 updatePetGrowth();startLevel();renderShop();renderWardrobe();updateStats();requestAnimationFrame(frame);
 </script></body></html>
