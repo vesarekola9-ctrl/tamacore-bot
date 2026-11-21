@@ -81,6 +81,19 @@ jobs:
                 return pixels.some((value, i) => i % 4 === 3 && value > 0);
               }), 'Canvas must contain rendered pixels');
               await page.locator('#boutiqueSearch').fill('zz_no_matching_product_zz');
+              await page.locator('#boutiqueSearch').fill('');
+              await page.locator('#boutiqueSort').selectOption('cheap');
+              const readSave = () => page.evaluate(() => JSON.parse(localStorage.getItem('tamacore_browser_save_v1')));
+              const buy = page.locator('#boutiqueItems button[data-price]:enabled').first();
+              const price = Number(await buy.getAttribute('data-price'));
+              const before = await readSave();
+              await buy.click();
+              const purchased = await readSave();
+              assert.equal(purchased.coins, before.coins - price, 'Purchase must deduct exact price');
+              const outfit = purchased.boutique.equipped.outfit;
+              assert.ok(outfit && purchased.boutique.owned[outfit], 'Purchased outfit must be owned and equipped');
+              await page.locator('#boutiqueItems').getByRole('button', {name: '✓ Equipped', exact: true}).click();
+              assert.equal((await readSave()).coins, purchased.coins, 'Equipping again must not charge coins');
               await page.locator('#petNameInput').fill('Browser Test Pet');
               await page.locator('#savePetName').click();
               assert.equal(await page.locator('#petNameInput').inputValue(), 'Browser Test Pet');
@@ -88,6 +101,10 @@ jobs:
               if (await page.locator('#startGame').isVisible()) await page.locator('#startGame').click();
               await page.waitForFunction(() => document.getElementById('petNameInput').value === 'Browser Test Pet');
               assert.equal(await page.locator('#petNameInput').inputValue(), 'Browser Test Pet', 'Pet name must survive reload');
+              const restored = await readSave();
+              assert.ok(restored.boutique.owned[outfit], 'Purchase must survive reload');
+              assert.equal(restored.boutique.equipped.outfit, outfit);
+              assert.equal(restored.coins, purchased.coins);
               await page.waitForTimeout(500);
               assert.deepEqual(errors, [], 'Uncaught browser errors');
             } finally { await browser.close(); }
