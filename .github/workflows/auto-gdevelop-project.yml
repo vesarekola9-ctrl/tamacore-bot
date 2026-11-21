@@ -30,13 +30,7 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_*.py' -v
       - name: Generate GDevelop source project and browser preview
         run: |
-          python -m tamacore.cli ai-make-game \\
-            --out-pack build/ai_pack \\
-            --template templates/gdevelop_template \\
-            --out-game build/gdevelop_game \\
-            --export-out build/exports \\
-            --bundle-out build/release_bundle \\
-            --shop-count 5 --foods 5 --cosmetics 5 --with-demo-layout
+          python -m tamacore.cli ai-make-game --out-pack build/ai_pack --template templates/gdevelop_template --out-game build/gdevelop_game --export-out build/exports --bundle-out build/release_bundle --shop-count 5 --foods 5 --cosmetics 5 --with-demo-layout
       - name: Verify generated project exists
         run: |
           test -s build/gdevelop_game/game.json
