@@ -1,5 +1,6 @@
 """Procedural pet PNG and GDevelop animation integration tests."""
 import struct
+import zlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +15,27 @@ class PetSpriteGeneratorTests(unittest.TestCase):
             data = render_pet(species, "idle", 0)
             self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
             self.assertEqual(struct.unpack(">II", data[16:24]), (128, 128))
+
+    def test_png_payload_is_decodable_rgba(self):
+        data = render_pet("bunny", "play", 1)
+        cursor = 8
+        image_chunks = []
+        while cursor < len(data):
+            length = struct.unpack(">I", data[cursor:cursor + 4])[0]
+            kind = data[cursor + 4:cursor + 8]
+            payload = data[cursor + 8:cursor + 8 + length]
+            crc = struct.unpack(">I", data[cursor + 8 + length:cursor + 12 + length])[0]
+            self.assertEqual(zlib.crc32(kind + payload) & 0xffffffff, crc)
+            if kind == b"IDAT":
+                image_chunks.append(payload)
+            cursor += 12 + length
+        raw = zlib.decompress(b"".join(image_chunks))
+        self.assertEqual(len(raw), 128 * (1 + 128 * 4))
+        self.assertTrue(any(raw))
+
+    def test_animation_states_render_distinct_images(self):
+        self.assertNotEqual(render_pet("cat", "sleep", 0), render_pet("cat", "eat", 0))
+        self.assertNotEqual(render_pet("dog", "walk", 0), render_pet("dog", "walk", 1))
 
     def test_generate_ten_frames_and_preserve_custom_art(self):
         with tempfile.TemporaryDirectory() as directory:
