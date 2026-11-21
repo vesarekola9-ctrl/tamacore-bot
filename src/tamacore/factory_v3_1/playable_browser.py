@@ -67,7 +67,7 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
-let questProgress=0,questTarget=5,questKind="collect",questDone=false;
+let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0;
 let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0,treasures=[],magnetTime=0,shieldTime=0;
 let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
@@ -127,7 +127,7 @@ if(particles.length>220)particles.splice(0,particles.length-220);}
 function drawParticles(){for(const p of particles){ctx.save();ctx.globalAlpha=clamp(p.life/p.maxLife,0,1);
 circle(p.x,p.y,p.r*p.life/p.maxLife,p.color);ctx.restore();}}
 function startLevel(){const lv=cfg.levels[state.level];if(!lv){won=true;msg("Game complete!");return;}
-player.x=W/2;player.y=H/2;levelBanner=2.1;generateScenery();beginQuest();pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
+player.x=W/2;player.y=H/2;levelBanner=2.1;companionCollectCooldown=0;generateScenery();beginQuest();pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
 obstacles=[];
 for(let i=0;i<Math.min(14,3+state.level);i++){
 const p=point(rand(20,32));if(Math.hypot(p.x-W/2,p.y-H/2)>115&&!blocked(p.x,p.y,p.r))obstacles.push(p);}
@@ -176,7 +176,9 @@ $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Co
 "  •  Pet hunger: "+Math.round(state.petHunger)+"  •  Pet stage: "+state.petStage+
 "  •  Medals: 🥇"+state.goldMedals+" 🥈"+state.silverMedals+" 🥉"+state.bronzeMedals;
 $("petStatus").textContent="Hunger "+Math.round(state.petHunger)+"/100 • Energy "+Math.round(state.petEnergy)+"/100 • Mood "+Math.round(state.petMood)+"/100 • Cleanliness "+Math.round(state.petCleanliness)+"/100";
-$("petProgress").textContent="Pet evolution: stage "+state.petStage+" • XP "+state.petXP+"/"+(state.petStage*100);
+$("petProgress").textContent="Pet evolution: stage "+state.petStage+" • XP "+state.petXP+"/"+(state.petStage*100)+
+(state.petStage>=3?" • 🪙 Companion coin helper":" • Coin helper unlocks at stage 3")+
+(state.petStage>=5?" • ⚡ Happy speed boost":"");
 $("petEmotion").textContent="Pet mood: "+petEmotion()+" • Quests completed: "+state.questsCompleted;}
 function gainPetXP(amount){state.petXP+=amount;let evolved=false;
 while(state.petStage<5&&state.petXP>=state.petStage*100){state.petXP-=state.petStage*100;state.petStage++;evolved=true;}
@@ -211,7 +213,7 @@ state.equippedCosmetic=item.id;save();renderWardrobe();updateStats();msg("Equipp
 $("shopToggle").onclick=()=>{$("shop").classList.toggle("open");renderShop();};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;state.questsCompleted=0;state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;state.questsCompleted=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
 function petCompanion(){if(paused||won){msg("Resume playing to interact with your pet.");return;}
 if(petCooldown>0){msg("Your pet needs a moment before more cuddles.");return;}
 petCooldown=4;state.petMood=clamp(state.petMood+8,0,100);
@@ -314,6 +316,7 @@ ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
 if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
 levelBanner=Math.max(0,levelBanner-dt);hitFlash=Math.max(0,hitFlash-dt);
+companionCollectCooldown=Math.max(0,companionCollectCooldown-dt);
 magnetTime=Math.max(0,magnetTime-dt);shieldTime=Math.max(0,shieldTime-dt);
 for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=90*dt;p.life-=dt;}
 particles=particles.filter(p=>p.life>0);
@@ -345,7 +348,14 @@ if(joystick){const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick
 const length=Math.hypot(vx,vy);if(length>8){dx=vx/Math.max(60,length);dy=vy/Math.max(60,length);}}
 const len=Math.max(1,Math.hypot(dx,dy));playerMoving=Math.hypot(dx,dy)>.1;
 if(Math.abs(dx)>.1)playerFacing=dx>0?1:-1;
-moveAroundObstacles(player,dx/len*state.speed*dt,dy/len*state.speed*dt);
+const happyBoost=state.petStage>=5&&state.petMood>=70?1.12:1;
+moveAroundObstacles(player,dx/len*state.speed*happyBoost*dt,dy/len*state.speed*happyBoost*dt);
+if(state.petStage>=3&&state.petEnergy>=20&&companionCollectCooldown<=0){
+const nearby=targets.findIndex(c=>Math.hypot(pet.x-c.x,pet.y-c.y)<24);
+if(nearby>=0){const c=targets[nearby];burst(c.x,c.y,"#a8f7d0",12);
+targets.splice(nearby,1);collected++;state.totalCoinsCollected++;state.coins+=10;
+state.petEnergy=clamp(state.petEnergy-1,0,100);companionCollectCooldown=2;
+if(questKind==="collect")advanceQuest(1);save();updateStats();msg("🐰 Your companion found a coin!");}}
 for(let i=treasures.length-1;i>=0;i--){const t=treasures[i];
 if(Math.hypot(player.x-t.x,player.y-t.y)<player.r+15){
 burst(t.x,t.y,"#a5f5ff",18);treasures.splice(i,1);
