@@ -149,8 +149,9 @@ eventTarget=eventKind==="rush"?Math.min(8,Math.max(3,targets.length)):eventKind=
 if(eventKind==="treasure"&&!treasures.some(t=>t.kind==="gem"))treasures.push({...safePoint(14),kind:"gem"});
 updateEvent();
 enemies=Array.from({length:Math.min(50,Math.max(0,lv.enemyCount||0))},(_,i)=>{
-const type=(state.level>=4&&i%5===0)?"chaser":(state.level>=2&&i%3===0)?"sprinter":"wanderer";
-const speed=type==="sprinter"?rand(115,155):rand(45,90);
+const type=state.level>=7&&i%7===0?"guardian":(state.level>=4&&i%5===0)?"chaser":(state.level>=2&&i%3===0)?"sprinter":"wanderer";
+const difficulty=Math.min(1.65,1+state.level*.025);
+const speed=(type==="guardian"?rand(35,55):type==="sprinter"?rand(115,155):rand(45,90))*difficulty;
 const angle=rand(0,Math.PI*2);return {...safePoint(16),vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,type,speed};});
 msg(world().name+" • Level "+(state.level+1)+": collect "+targets.length+" coins and avoid enemies.");
 updateStats();}
@@ -202,7 +203,8 @@ function updateStats(){refreshAchievements();renderMilestones();const lv=cfg.lev
 $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Coins: "+state.coins+
 "  •  Collected: "+collected+"/"+Math.min(150,lv.coinCount||0)+"  •  Speed: "+state.speed+
 "  •  Pet hunger: "+Math.round(state.petHunger)+"  •  Pet stage: "+state.petStage+
-"  •  Medals: 🥇"+state.goldMedals+" 🥈"+state.silverMedals+" 🥉"+state.bronzeMedals;
+"  •  Medals: 🥇"+state.goldMedals+" 🥈"+state.silverMedals+" 🥉"+state.bronzeMedals+
+"  •  Difficulty: "+(state.level>=7?"Hard":state.level>=3?"Medium":"Easy");
 $("petStatus").textContent="Hunger "+Math.round(state.petHunger)+"/100 • Energy "+Math.round(state.petEnergy)+"/100 • Mood "+Math.round(state.petMood)+"/100 • Cleanliness "+Math.round(state.petCleanliness)+"/100";
 $("petProgress").textContent="Pet evolution: stage "+state.petStage+" • XP "+state.petXP+"/"+(state.petStage*100)+
 (state.petStage>=3?" • 🪙 Companion coin helper":" • Coin helper unlocks at stage 3")+
@@ -419,8 +421,8 @@ for(let i=targets.length-1;i>=0;i--)if(Math.hypot(player.x-targets[i].x,player.y
 burst(targets[i].x,targets[i].y,"#ffe57d",10);targets.splice(i,1);collected++;state.totalCoinsCollected++;state.coins+=10;eventCollect("coin");
 if(questKind==="collect")advanceQuest(1);save();updateStats();}
 for(const e of enemies){
-if(e.type==="chaser"){const vx=player.x-e.x,vy=player.y-e.y,d=Math.hypot(vx,vy);
-if(d>1&&d<210){const desiredX=vx/d*e.speed,desiredY=vy/d*e.speed;
+if(e.type==="chaser"||e.type==="guardian"){const vx=player.x-e.x,vy=player.y-e.y,d=Math.hypot(vx,vy);
+if(d>1&&d<(e.type==="guardian"?290:210)){const desiredX=vx/d*e.speed,desiredY=vy/d*e.speed;
 e.vx+=(desiredX-e.vx)*Math.min(1,dt*1.5);e.vy+=(desiredY-e.vy)*Math.min(1,dt*1.5);}}
 e.x+=e.vx*dt;e.y+=e.vy*dt;
 if(e.x<e.r||e.x>W-e.r)e.vx*=-1;
@@ -428,7 +430,10 @@ if(e.y<e.r||e.y>H-e.r)e.vy*=-1;
 e.x=clamp(e.x,e.r,W-e.r);e.y=clamp(e.y,e.r,H-e.r);
 if(invincible<=0&&shieldTime<=0&&Math.hypot(player.x-e.x,player.y-e.y)<player.r+e.r){
 if(questKind==="survive"&&!questDone){questProgress=0;petMoodClock=0;updateQuest();}
-hit++;invincible=1.2;hitFlash=.3;burst(player.x,player.y,"#ff7c96",20);state.coins=Math.max(0,state.coins-5);msg("Enemy hit! Lost 5 coins.");updateStats();}}
+hit++;invincible=1.2;hitFlash=.3;burst(player.x,player.y,"#ff7c96",20);
+const penalty=e.type==="guardian"?15:5;state.coins=Math.max(0,state.coins-penalty);
+if(e.type==="guardian"){state.petMood=clamp(state.petMood-5,0,100);}
+msg(e.type==="guardian"?"Guardian hit! Lost 15 coins and 5 pet mood.":"Enemy hit! Lost 5 coins.");save();updateStats();}}
 invincible=Math.max(0,invincible-dt);
 if(!targets.length)finishLevel();}
 for(const o of obstacles)drawObstacle(o);
