@@ -42,7 +42,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 #victory{position:fixed;inset:0;z-index:110;display:grid;place-items:center;background:#071323e8;padding:18px;backdrop-filter:blur(10px)}#victory[hidden]{display:none}#victoryCard{width:min(100%,490px);padding:clamp(22px,5vw,38px);text-align:center;border-radius:25px;border:2px solid #ffdd8c;background:linear-gradient(155deg,#42577e,#17243d);box-shadow:0 25px 90px #000b}#victoryCard h2{color:#ffe3a1;font-size:clamp(26px,5vw,39px);margin:10px 0}#victoryCard p{line-height:1.6;color:#dceeff}#victoryCard button{width:100%;font-size:17px;margin-top:12px;min-height:50px}
 </style></head><body><div id="victory" role="dialog" aria-modal="true" aria-labelledby="victoryTitle" hidden><div id="victoryCard"><div style="font-size:64px">🏆🐰🎉</div><h2 id="victoryTitle">Adventure Complete!</h2><p id="victorySummary"></p><button id="victoryClose">✨ View my achievements</button><button id="victoryRestart">🔄 Start a new adventure</button></div></div><div id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle"><div id="welcomeCard"><div style="font-size:58px">🐰✨</div><h2 id="welcomeTitle">Welcome to TamaCore!</h2><p>Collect coins, dodge enemies and explore new worlds with your bunny companion. Feed, train and evolve your pet as you play.</p><p><strong>Move:</strong> WASD, arrow keys or touch controls<br><strong>Dash:</strong> Space or 💨 button<br><strong>Pet:</strong> Tap your bunny companion</p><button id="startGame">▶ Start adventure</button></div></div><main><header><h1 id="title">TamaCore</h1><div>
 <button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="musicToggle" aria-pressed="false">🎵 Music off</button><button id="effectsToggle" aria-pressed="false">✨ Full effects</button><button id="homeToggle">🏠 Pet home</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="exportSave">💾 Export save</button><button id="importSave">📂 Import save</button><input id="saveFile" type="file" accept=".json,application/json" hidden><button id="reset">New game</button></div></header>
-<div id="stats" aria-live="polite"></div><div id="quickHud" aria-label="Game status"><span id="hudLevel"></span><span id="hudCoins"></span><span id="hudPet"></span><span id="hudPower"></span></div>
+<div id="careAlert" role="status" aria-live="polite" hidden></div><div id="stats" aria-live="polite"></div><div id="quickHud" aria-label="Game status"><span id="hudLevel"></span><span id="hudCoins"></span><span id="hudPet"></span><span id="hudPower"></span></div>
 <canvas id="game" width="800" height="600" aria-label="Playable game field"></canvas>
 <div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button><button id="dash">💨 Dash</button></div>
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
@@ -102,7 +102,16 @@ if(typeof saved.petSick==="boolean")state.petSick=saved.petSick;
 if(Number.isFinite(saved.petBornAt)&&saved.petBornAt>0&&saved.petBornAt<=Date.now())state.petBornAt=saved.petBornAt;
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
-let reactionUntil=0,reactionText="",reactionKind="";
+let reactionUntil=0,reactionText="",reactionKind="",lastCareAlert="";
+function careAlert(){let notice="";
+if(state.petSick)notice="💊 Your pet is sick! Give medicine.";
+else if(state.petHunger<25)notice="🍽️ Your pet is hungry! Feed it.";
+else if(state.petCleanliness<25)notice="🧼 Your pet needs a bath!";
+else if(state.petEnergy<25&&!state.petSleeping)notice="💤 Your pet is tired! Let it sleep.";
+else if(state.petMood<25)notice="🎾 Your pet is lonely! Play together.";
+const el=$("careAlert");el.hidden=!notice;el.textContent=notice;
+if(notice&&notice!==lastCareAlert){el.style.cssText="padding:12px;border:2px solid #f8c87d;border-radius:12px;background:#433329;color:#fff3cb;font-weight:bold;text-align:center;margin:8px 0";}
+lastCareAlert=notice;}
 function petReaction(kind,label){reactionKind=kind;reactionText=label;reactionUntil=performance.now()+2600;}
 const petLifeStages=["🥚 Egg","🐣 Baby","🐥 Child","🐰 Teen","🐇 Adult"];
 const growthMinutes=[0,2,15,60,180];let hatchAnimationUntil=0;
@@ -127,6 +136,7 @@ state.petCleanliness=clamp(state.petCleanliness-1,0,100);
 if(state.petHunger<20||state.petCleanliness<20)state.petMood=clamp(state.petMood-1,0,100);
 if(state.petHunger<10||state.petCleanliness<10)state.petSick=true;
 if(state.petSick)state.petMood=clamp(state.petMood-1,0,100);
+if(state.petSick||state.petHunger<25||state.petCleanliness<25||state.petEnergy<25||state.petMood<25)petReaction("need",state.petSick?"💊 Help me!":state.petHunger<25?"🍽️ I'm hungry!":state.petCleanliness<25?"🧼 Bath time!":state.petEnergy<25?"💤 So sleepy!":"🎾 Play with me!");
 try{localStorage.setItem(careStampKey,String(Date.now()));}catch(_){}save();updateStats();}
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0,trainingCooldown=0,eventKind="none",eventTimer=0,eventDone=false,eventProgress=0,eventTarget=0;
@@ -300,7 +310,7 @@ button.disabled=claimed||!unlocked;button.onclick=()=>{if(state.claimedChallenge
 state.claimedChallenges[challenge.id]=true;state.coins+=challenge.coins;gainPetXP(challenge.xp);
 save();updateStats();msg("🏆 "+challenge.name+" completed! +"+challenge.coins+" coins and +"+challenge.xp+" XP.");};
 item.append(info,button);box.append(item);}}
-function updateStats(){refreshAchievements();renderMilestones();renderChallenges();const lv=cfg.levels[state.level]||{};
+function updateStats(){careAlert();refreshAchievements();renderMilestones();renderChallenges();const lv=cfg.levels[state.level]||{};
 $("hudLevel").textContent="🗺️ "+(state.level+1)+"/"+cfg.levels.length;
 $("hudCoins").textContent="🪙 "+state.coins;
 $("hudPet").textContent="🐰 "+state.petStage+" • ❤️ "+Math.round(state.petMood);
@@ -628,6 +638,6 @@ if(paused){ctx.fillStyle="#ffffff";ctx.font="bold 48px system-ui";ctx.textAlign=
 if(won){ctx.fillStyle="#ffe58d";ctx.font="bold 44px system-ui";ctx.textAlign="center";
 ctx.fillText("YOU WIN!",W/2,H/2);ctx.textAlign="left";}
 requestAnimationFrame(frame);}
-updatePetGrowth();startLevel();renderShop();renderWardrobe();requestAnimationFrame(frame);
+updatePetGrowth();startLevel();renderShop();renderWardrobe();updateStats();requestAnimationFrame(frame);
 </script></body></html>
 '''
