@@ -42,7 +42,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 <button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="reset">New game</button></div></header>
 <div id="stats" aria-live="polite"></div>
 <canvas id="game" width="800" height="600" aria-label="Playable game field"></canvas>
-<div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button></div>
+<div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button><button id="dash">💨 Dash</button></div>
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
 <div id="wardrobe"><h2>Wardrobe</h2><div id="cosmetics"></div></div>
@@ -70,7 +70,7 @@ state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0,trainingCooldown=0,eventKind="none",eventTimer=0,eventDone=false,eventProgress=0,eventTarget=0;
 let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0,treasures=[],hazards=[],hazardCooldown=0,magnetTime=0,shieldTime=0;
-let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
+let dashCooldown=0,dashRequested=false;let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{const tap=canvasPoint(e);
 if(Math.hypot(tap.x-pet.x,tap.y-pet.y)<38){e.preventDefault();petCompanion();return;}
@@ -135,7 +135,7 @@ if((eventKind==="rush"&&kind==="coin")||(eventKind==="treasure"&&kind==="gem")){
 eventProgress++;if(eventProgress>=eventTarget){eventDone=true;
 const reward=eventKind==="rush"?120:180;state.coins+=reward;gainPetXP(25);
 save();updateStats();msg("🎉 Event complete! +"+reward+" coins and +25 pet XP.");}updateEvent();}}
-function startLevel(){const lv=cfg.levels[state.level];if(!lv){won=true;msg("Game complete!");return;}
+function startLevel(){dashCooldown=0;dashRequested=false;const lv=cfg.levels[state.level];if(!lv){won=true;msg("Game complete!");return;}
 player.x=W/2;player.y=H/2;levelBanner=2.1;companionCollectCooldown=0;generateScenery();beginQuest();pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
 obstacles=[];
 for(let i=0;i<Math.min(14,3+state.level);i++){
@@ -248,7 +248,7 @@ state.equippedCosmetic=item.id;save();renderWardrobe();updateStats();msg("Equipp
 $("shopToggle").onclick=()=>{$("shop").classList.toggle("open");renderShop();};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
 $("trainPet").onclick=()=>{if(paused||won){msg("Resume playing to train your companion.");return;}
 if(trainingCooldown>0){msg("Your companion needs a break before training again.");return;}
 if(state.coins<20){msg("Training costs 20 coins.");return;}
@@ -293,7 +293,9 @@ $("restPet").onclick=()=>{if(state.petEnergy>=100){msg("Your pet is fully rested
 state.petEnergy=clamp(state.petEnergy+30,0,100);
 state.petHunger=clamp(state.petHunger-5,0,100);
 gainPetXP(5);save();updateStats();msg("Your pet had a nice nap.");};
-addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());});
+$("dash").onclick=()=>{dashRequested=true;};
+addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();
+if(e.key===" "&&!e.repeat)dashRequested=true;keys.add(e.key.toLowerCase());});
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 addEventListener("blur",()=>keys.clear());
 for(const b of document.querySelectorAll("[data-key]")){
@@ -366,7 +368,8 @@ ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
 if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
 levelBanner=Math.max(0,levelBanner-dt);hitFlash=Math.max(0,hitFlash-dt);
-trainingCooldown=Math.max(0,trainingCooldown-dt);
+trainingCooldown=Math.max(0,trainingCooldown-dt);dashCooldown=Math.max(0,dashCooldown-dt);
+$("dash").disabled=paused||won||dashCooldown>0;$("dash").textContent=dashCooldown>0?"💨 Dash "+Math.ceil(dashCooldown)+"s":"💨 Dash";
 companionCollectCooldown=Math.max(0,companionCollectCooldown-dt);
 magnetTime=Math.max(0,magnetTime-dt);shieldTime=Math.max(0,shieldTime-dt);
 for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=90*dt;p.life-=dt;}
@@ -406,6 +409,11 @@ if(joystick){const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick
 const length=Math.hypot(vx,vy);if(length>8){dx=vx/Math.max(60,length);dy=vy/Math.max(60,length);}}
 const len=Math.max(1,Math.hypot(dx,dy));playerMoving=Math.hypot(dx,dy)>.1;
 if(Math.abs(dx)>.1)playerFacing=dx>0?1:-1;
+if(dashRequested){dashRequested=false;
+if(dashCooldown<=0&&playerMoving){moveAroundObstacles(player,dx/len*115,dy/len*115);
+invincible=Math.max(invincible,.35);dashCooldown=8;burst(player.x,player.y,"#9deeff",14);
+msg("💨 Dash! Briefly dodge attacks.");}
+else if(dashCooldown<=0)msg("Move in a direction to dash.");}
 const happyBoost=state.petStage>=5&&state.petMood>=70?1.12:1;
 moveAroundObstacles(player,dx/len*state.speed*happyBoost*dt,dy/len*state.speed*happyBoost*dt);
 if(state.petStage>=3&&state.petEnergy>=20&&companionCollectCooldown<=0){
