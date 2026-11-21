@@ -88,7 +88,7 @@ $("soundToggle").onclick=()=>{soundEnabled=!soundEnabled;$("soundToggle").textCo
 $("title").textContent=cfg.name;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>a+Math.random()*(b-a);
-const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0,claimedChallenges:{},bossChallengesWon:0,petSleeping:false,sleepStartedAt:0,dreamKind:"",lastMorningDate:"",petSick:false,petBornAt:Date.now(),petDiscipline:50,petMess:0,careQuality:65,petTrait:"",petPersonality:"",roomOwned:{},roomEquipped:{wall:"default",floor:"default",furniture:"none",toy:"none"},homeSurprise:{kind:"",expires:0,nextAt:Date.now()+90000},dailyCare:{date:"",feed:0,play:0,clean:0,rest:0,claimed:false}};
+const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0,claimedChallenges:{},bossChallengesWon:0,petSleeping:false,sleepStartedAt:0,dreamKind:"",lastMorningDate:"",petSick:false,petBornAt:Date.now(),petDiscipline:50,petMess:0,careQuality:65,friendship:20,petTrait:"",petPersonality:"",roomOwned:{},roomEquipped:{wall:"default",floor:"default",furniture:"none",toy:"none"},homeSurprise:{kind:"",expires:0,nextAt:Date.now()+90000},dailyCare:{date:"",feed:0,play:0,clean:0,rest:0,claimed:false}};
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object"){
 for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions","petSkill","levelsCompleted","starTokens","bossChallengesWon"])if(Number.isFinite(saved[k]))state[k]=saved[k];
 if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
@@ -102,6 +102,7 @@ if(typeof saved.petSick==="boolean")state.petSick=saved.petSick;
 if(Number.isFinite(saved.petDiscipline))state.petDiscipline=clamp(saved.petDiscipline,0,100);
 if(Number.isFinite(saved.petMess))state.petMess=clamp(saved.petMess,0,5);
 if(Number.isFinite(saved.careQuality))state.careQuality=clamp(saved.careQuality,0,100);
+if(Number.isFinite(saved.friendship))state.friendship=clamp(saved.friendship,0,100);
 if(["kind","brave","mischievous"].includes(saved.petTrait))state.petTrait=saved.petTrait;
 if(Number.isFinite(saved.petBornAt)&&saved.petBornAt>0&&saved.petBornAt<=Date.now())state.petBornAt=saved.petBornAt;
 if(["playful","gentle","curious"].includes(saved.petPersonality))state.petPersonality=saved.petPersonality;
@@ -372,7 +373,7 @@ save();updateStats();msg("🏆 "+challenge.name+" completed! +"+challenge.coins+
 item.append(info,button);box.append(item);}}
 function updateStats(){updateDayNight();renderRoomShop();dailyProgress();const d=state.dailyCare;
 $("dailyCare").textContent="📅 Daily care: "+(d.feed?"✅":"⬜")+" Feed • "+(d.play?"✅":"⬜")+" Play • "+(d.clean?"✅":"⬜")+" Clean • "+(d.rest?"✅":"⬜")+" Rest"+(d.claimed?" • 🎁 Reward claimed":" • Complete all for 75 coins");
-$("petPersonality").textContent="🐰 Personality: "+state.petPersonality+(state.petTrait?" • Growing trait: "+state.petTrait:"")+" • Care quality "+Math.round(state.careQuality)+"/100 • "+" • "+(state.petPersonality==="playful"?"Loves games!":state.petPersonality==="gentle"?"Enjoys cuddles!":"Loves discovering things!");careAlert();refreshAchievements();renderMilestones();renderChallenges();const lv=cfg.levels[state.level]||{};
+$("petPersonality").textContent="💞 Friendship "+Math.round(state.friendship)+"/100 ("+friendshipRank()+") • 🐰 Personality: "+state.petPersonality+(state.petTrait?" • Growing trait: "+state.petTrait:"")+" • Care quality "+Math.round(state.careQuality)+"/100 • "+" • "+(state.petPersonality==="playful"?"Loves games!":state.petPersonality==="gentle"?"Enjoys cuddles!":"Loves discovering things!");careAlert();refreshAchievements();renderMilestones();renderChallenges();const lv=cfg.levels[state.level]||{};
 $("hudLevel").textContent="🗺️ "+(state.level+1)+"/"+cfg.levels.length;
 $("hudCoins").textContent="🪙 "+state.coins;
 $("hudPet").textContent="🐰 "+state.petStage+" • ❤️ "+Math.round(state.petMood);
@@ -440,7 +441,7 @@ $("startGame").onclick=()=>{$("welcome").hidden=true;homeMode=true;paused=true;$
 $("pause").textContent="Resume";
 $("pause").onclick=()=>{if(!$("welcome").hidden)return;if(homeMode){homeMode=false;$("homeToggle").textContent="🏠 Pet home";}paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.claimedChallenges={};state.bossChallengesWon=0;state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.petBornAt=Date.now();state.petPersonality=["playful","gentle","curious"][Math.floor(Math.random()*3)];state.dailyCare={date:"",feed:0,play:0,clean:0,rest:0,claimed:false};hatchAnimationUntil=0;state.petSleeping=false;state.sleepStartedAt=0;state.dreamKind="";state.lastMorningDate="";state.petSick=false;state.petMess=0;state.petDiscipline=50;state.roomOwned={};state.roomEquipped={wall:"default",floor:"default",furniture:"none",toy:"none"};state.homeSurprise={kind:"",expires:0,nextAt:Date.now()+90000};state.careQuality=65;state.petTrait="";state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("victory").hidden=true;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.claimedChallenges={};state.bossChallengesWon=0;state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.petBornAt=Date.now();state.petPersonality=["playful","gentle","curious"][Math.floor(Math.random()*3)];state.dailyCare={date:"",feed:0,play:0,clean:0,rest:0,claimed:false};hatchAnimationUntil=0;state.petSleeping=false;state.sleepStartedAt=0;state.dreamKind="";state.lastMorningDate="";state.petSick=false;state.petMess=0;state.petDiscipline=50;state.roomOwned={};state.roomEquipped={wall:"default",floor:"default",furniture:"none",toy:"none"};state.homeSurprise={kind:"",expires:0,nextAt:Date.now()+90000};state.careQuality=65;state.friendship=20;state.petTrait="";state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("victory").hidden=true;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
 $("trainPet").onclick=()=>{if(paused||won){msg("Resume playing to train your companion.");return;}
 if(trainingCooldown>0){msg("Your companion needs a break before training again.");return;}
 if(state.coins<20){msg("Training costs 20 coins.");return;}
@@ -459,7 +460,7 @@ save();updateStats();msg("✨ Companion skill upgraded to "+state.petSkill+"/3!"
 function petCompanion(){if((paused&&!homeMode)||won){msg("Resume playing to interact with your pet.");return;}
 if(state.petSleeping){msg("Your pet is asleep. Let it rest.");return;}
 if(petCooldown>0){msg("Your pet needs a moment before more cuddles.");return;}
-petCooldown=4;state.petMood=clamp(state.petMood+(state.petPersonality==="gentle"?15:state.petTrait==="kind"?12:8),0,100);
+petCooldown=4;gainFriendship(3);state.petMood=clamp(state.petMood+(state.petPersonality==="gentle"?15:state.petTrait==="kind"?12:8),0,100);
 petReaction("cuddle",state.petPersonality==="gentle"?"❤️ More cuddles!":"💕 Thank you!");
 hearts.push(...Array.from({length:6},(_,i)=>({x:pet.x+(i-2.5)*7,y:pet.y-25,vx:(i-2.5)*12,vy:-35-rand(0,25),life:1.3})));
 const cuddleXP=state.petPersonality==="gentle"?6:3;gainPetXP(cuddleXP);save();updateStats();msg("❤️ Your companion loves the attention! +"+cuddleXP+" XP.");}
@@ -467,12 +468,14 @@ $("petPet").onclick=petCompanion;
 canvas.addEventListener("pointerdown",e=>{if(!homeMode||state.petStage===1)return;
 const bounds=canvas.getBoundingClientRect(),x=(e.clientX-bounds.left)*W/bounds.width,y=(e.clientY-bounds.top)*H/bounds.height;
 if(Math.abs(x-W/2)<110&&Math.abs(y-(H/2+60))<135)petCompanion();});
+function friendshipRank(){return state.friendship>=85?"Best friends":state.friendship>=60?"Close friends":state.friendship>=30?"Growing bond":"Getting acquainted";}
+function gainFriendship(points){const before=friendshipRank();state.friendship=clamp(state.friendship+points,0,100);const after=friendshipRank();if(before!==after)msg("💞 Friendship milestone: "+after+"!");}
 function feedPet(){const food=cfg.foods[Number($("foodChoice").value)];if(!food){msg("No food available.");return;}
 if(state.coins<food.price){msg("Not enough coins to feed your pet.");return;}
 state.coins-=food.price;state.petHunger=clamp(state.petHunger+(Number(food.hunger)||0),0,100);
 state.petEnergy=clamp(state.petEnergy+(Number(food.energy)||0),0,100);
 state.petMood=clamp(state.petMood+(Number(food.mood)||0),0,100);
-gainPetXP(state.petPersonality==="curious"?11:8);recordCare("feed");petReaction("eat","😋 Yummy!");save();updateStats();msg("Fed pet: "+food.name);}
+gainFriendship(2);gainPetXP(state.petPersonality==="curious"?11:8);recordCare("feed");petReaction("eat","😋 Yummy!");save();updateStats();msg("Fed pet: "+food.name);}
 for(const [index,food] of cfg.foods.entries()){const option=document.createElement("option");option.value=index;
 option.textContent=food.name+" ("+food.price+" coins)";$("foodChoice").appendChild(option);}
 $("feed").onclick=feedPet;$("feedSelected").onclick=feedPet;
@@ -486,13 +489,13 @@ petReaction("learn","📣 Good manners!");gainPetXP(4);save();updateStats();msg(
 $("cleanPet").onclick=()=>{if(state.coins<15){msg("Cleaning costs 15 coins.");return;}
 if(state.petCleanliness>=100){msg("Your pet is already clean.");return;}
 state.coins-=15;state.petCleanliness=clamp(state.petCleanliness+35,0,100);
-state.petMood=clamp(state.petMood+5,0,100);petReaction("clean","🫧 So fresh!");recordCare("clean");gainPetXP(10);save();updateStats();msg("Your pet feels fresh!");};
+state.petMood=clamp(state.petMood+5,0,100);gainFriendship(2);petReaction("clean","🫧 So fresh!");recordCare("clean");gainPetXP(10);save();updateStats();msg("Your pet feels fresh!");};
 $("playPet").onclick=()=>{if(state.petEnergy<12){msg("Your pet is too tired. Let it rest.");return;}
 state.petEnergy=clamp(state.petEnergy-12,0,100);
 state.petMood=clamp(state.petMood+(state.petPersonality==="playful"?28:22)+(state.roomEquipped.toy!=="none"?10:0),0,100);
 state.petHunger=clamp(state.petHunger-6,0,100);
 state.petCleanliness=clamp(state.petCleanliness-5,0,100);
-petReaction("play","🎾 Wheee!");recordCare("play");gainPetXP((state.petPersonality==="playful"?20:15)+(state.roomEquipped.toy==="blocks"?5:0));save();updateStats();msg("Your pet loved playing!");};
+gainFriendship(5);petReaction("play","🎾 Wheee!");recordCare("play");gainPetXP((state.petPersonality==="playful"?20:15)+(state.roomEquipped.toy==="blocks"?5:0));save();updateStats();msg("Your pet loved playing!");};
 $("restPet").onclick=()=>{if(state.petEnergy>=100){msg("Your pet is fully rested.");return;}
 state.petEnergy=clamp(state.petEnergy+(state.roomEquipped.furniture==="bed"?45:30),0,100);
 state.petHunger=clamp(state.petHunger-5,0,100);
