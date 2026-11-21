@@ -830,8 +830,8 @@ if(state.roomEquipped.furniture==="bed"){ctx.font="85px system-ui";ctx.textAlign
 if(typeof extra!=="undefined"&&extra&&extra.living){ctx.save();ctx.font="45px system-ui";ctx.textAlign="center";ctx.fillText(({ball:"⚽",plush:"🧸",blocks:"🧱",drum:"🥁",kite:"🪁",robot:"🤖",puzzle:"🧩",train:"🚂"})[extra.living.favoriteToy]||"⚽",homeWander.x+85,455);ctx.restore();}
 if(state.roomEquipped.toy!=="none"){ctx.font="54px system-ui";ctx.textAlign="center";ctx.fillText(state.roomEquipped.toy==="ball"?"⚽":"🧩",190,460);}
 ctx.save();ctx.textAlign="center";const boutiqueFurniture=boutiqueSelected("furniture"),boutiqueToy=boutiqueSelected("toy");
-if(boutiqueFurniture){ctx.save();boutiqueThemeEffect(boutiqueFurniture);ctx.font="85px system-ui";ctx.fillText(boutiqueFurniture.emoji,boutiqueSave.positions.furniture?.x??560,420);ctx.restore();}
-if(boutiqueToy){ctx.save();boutiqueThemeEffect(boutiqueToy);ctx.font="48px system-ui";ctx.fillText(boutiqueToy.emoji,boutiqueSave.positions.toy?.x??260,475);ctx.restore();}
+if(boutiqueFurniture){ctx.save();boutiqueThemeEffect(boutiqueFurniture);ctx.font="85px system-ui";ctx.fillText(boutiqueFurniture.emoji,boutiqueSave.positions.furniture?.x??560,boutiqueSave.positions.furniture?.y??420);ctx.restore();}
+if(boutiqueToy){ctx.save();boutiqueThemeEffect(boutiqueToy);ctx.font="48px system-ui";ctx.fillText(boutiqueToy.emoji,boutiqueSave.positions.toy?.x??260,boutiqueSave.positions.toy?.y??475);ctx.restore();}
 ctx.restore();
 ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ctx.fillText((state.petSpecies==="kitten"?"🐱":state.petSpecies==="puppy"?"🐶":"🐰")+" "+state.petName.toUpperCase()+"\u0027S HOME",W/2,142);
 ctx.font="bold 16px system-ui";ctx.fillText(phase==="night"?"Nighttime":phase==="evening"?"Evening":"Daytime",W/2,164);
@@ -1125,7 +1125,7 @@ function normalizeBoutique(input){
    if(input.owned&&Object.prototype.hasOwnProperty.call(input.owned,item.id)&&input.owned[item.id]===true)result.owned[item.id]=true;
    if(result.owned[item.id]&&input.equipped&&input.equipped[item.category]===item.id)result.equipped[item.category]=item.id;
  }
- for(const category of ["furniture","toy"]){const pos=input.positions&&input.positions[category];if(pos&&Number.isFinite(pos.x))result.positions[category]={x:Math.max(130,Math.min(670,pos.x))};}
+ for(const category of ["furniture","toy"]){const pos=input.positions&&input.positions[category];if(pos&&Number.isFinite(pos.x))result.positions[category]={x:Math.max(130,Math.min(670,pos.x)),y:Number.isFinite(pos.y)?Math.max(355,Math.min(495,pos.y)):(category==="furniture"?420:475)};}
  for(const theme of ["pastel","royal","winter","garden"])if(input.claimed&&input.claimed[theme]===true)result.claimed[theme]=true;
  return result;
 }
@@ -1180,8 +1180,11 @@ function boutiqueRender(){
     const category=boutiqueCategory;
     const controls=document.createElement("label");controls.textContent="Position in home";
     const range=document.createElement("input");range.type="range";range.min="130";range.max="670";range.step="10";range.value=String(boutiqueSave.positions[category]?.x??(category==="furniture"?560:260));
-    range.oninput=()=>{boutiqueSave.positions[category]={x:Number(range.value)};save();};
-    controls.appendChild(range);grid.appendChild(controls);
+    const vertical=document.createElement("input");vertical.type="range";vertical.min="355";vertical.max="495";vertical.step="5";vertical.value=String(boutiqueSave.positions[category]?.y??(category==="furniture"?420:475));vertical.setAttribute("aria-label","Vertical position");range.setAttribute("aria-label","Horizontal position");
+    const move=()=>{boutiqueSave.positions[category]={x:Number(range.value),y:Number(vertical.value)};save();};
+    range.oninput=move;vertical.oninput=move;
+    controls.append(" Horizontal ",range," Vertical ",vertical);
+    const reset=document.createElement("button");reset.textContent="Reset position";reset.onclick=()=>{delete boutiqueSave.positions[category];save();boutiqueRender();};controls.appendChild(reset);grid.appendChild(controls);
   }
 
   results.forEach(item=>{
