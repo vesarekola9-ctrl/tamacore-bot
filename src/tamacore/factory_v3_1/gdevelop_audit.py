@@ -27,12 +27,29 @@ def audit_project(project_file: Path) -> list[str]:
             continue
         if not (project_file.parent / filename).is_file():
             errors.append(f"Missing resource: {filename}")
+    # Sprite animation images are referenced by objects, not always by
+    # top-level resource entries. Audit both locations.
     for scene in layouts:
         name = scene.get("name", "?")
         if not scene.get("objects") and not scene.get("instances"):
             errors.append(f"Scene {name} has no objects or instances")
         if not scene.get("events"):
             errors.append(f"Scene {name} has no events")
+        for obj in scene.get("objects", []):
+            if not isinstance(obj, dict):
+                continue
+            for animation in obj.get("animations", []):
+                if not isinstance(animation, dict):
+                    continue
+                for direction in animation.get("directions", []):
+                    if not isinstance(direction, dict):
+                        continue
+                    for sprite in direction.get("sprites", []):
+                        if not isinstance(sprite, dict):
+                            continue
+                        image = sprite.get("image")
+                        if isinstance(image, str) and image and not (project_file.parent / image).is_file():
+                            errors.append(f"Missing animation frame: {image}")
     return errors
 
 
