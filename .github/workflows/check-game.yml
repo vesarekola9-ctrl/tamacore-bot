@@ -1,0 +1,41 @@
+name: TamaCore source checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/tamacore/factory_v3_1/playable_browser.py'
+      - '.github/workflows/check-game.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compile generator and build demo
+        run: |
+          python -m py_compile src/tamacore/factory_v3_1/playable_browser.py
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, "src")
+          from tamacore.factory_v3_1.playable_browser import write_playable_browser_game
+          p=Path("/tmp/tamacore-smoke")
+          p.mkdir(exist_ok=True)
+          output=write_playable_browser_game(p, {"name":"TamaCore Test","foods":[{"id":"apple","name":"Apple","price":5,"hunger":12,"mood":2,"energy":1}],"cosmetics":[],"pet":{}}, [{"coinCount":10}], {"upgrades":[]})
+          html=output.read_text(encoding="utf-8")
+          assert "__GAME_CONFIG__" not in html
+          assert "petGarden" in html and "gameArena" in html
+          script=html.rsplit("<script>",1)[1].split("</script>",1)[0]
+          Path("/tmp/tamacore-game.js").write_text(script,encoding="utf-8")
+          print("Generated",len(html),"characters")
+          PY
+      - name: Check browser JavaScript syntax
+        run: node --check /tmp/tamacore-game.js
