@@ -41,7 +41,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 #welcome{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#071323dd;padding:18px;backdrop-filter:blur(10px)}#welcome[hidden]{display:none}#welcomeCard{width:min(100%,480px);background:linear-gradient(150deg,#345579,#15263f);border:2px solid #a6d9f3;border-radius:24px;padding:clamp(20px,5vw,36px);text-align:center;box-shadow:0 24px 80px #0009}#welcomeCard h2{font-size:clamp(26px,5vw,38px);color:#ffe6a8;margin:8px 0}#welcomeCard p{color:#d6e9fa;line-height:1.6}#welcomeCard button{font-size:19px;min-height:54px;width:100%;margin-top:14px;background:linear-gradient(135deg,#49a990,#287d91)}
 #victory{position:fixed;inset:0;z-index:110;display:grid;place-items:center;background:#071323e8;padding:18px;backdrop-filter:blur(10px)}#victory[hidden]{display:none}#victoryCard{width:min(100%,490px);padding:clamp(22px,5vw,38px);text-align:center;border-radius:25px;border:2px solid #ffdd8c;background:linear-gradient(155deg,#42577e,#17243d);box-shadow:0 25px 90px #000b}#victoryCard h2{color:#ffe3a1;font-size:clamp(26px,5vw,39px);margin:10px 0}#victoryCard p{line-height:1.6;color:#dceeff}#victoryCard button{width:100%;font-size:17px;margin-top:12px;min-height:50px}
 </style></head><body><div id="victory" role="dialog" aria-modal="true" aria-labelledby="victoryTitle" hidden><div id="victoryCard"><div style="font-size:64px">🏆🐰🎉</div><h2 id="victoryTitle">Adventure Complete!</h2><p id="victorySummary"></p><button id="victoryClose">✨ View my achievements</button><button id="victoryRestart">🔄 Start a new adventure</button></div></div><div id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle"><div id="welcomeCard"><div style="font-size:58px">🐰✨</div><h2 id="welcomeTitle">Welcome to TamaCore!</h2><p>Collect coins, dodge enemies and explore new worlds with your bunny companion. Feed, train and evolve your pet as you play.</p><p><strong>Move:</strong> WASD, arrow keys or touch controls<br><strong>Dash:</strong> Space or 💨 button<br><strong>Pet:</strong> Tap your bunny companion</p><button id="startGame">▶ Start adventure</button></div></div><main><header><h1 id="title">TamaCore</h1><div>
-<button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="musicToggle" aria-pressed="false">🎵 Music off</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="reset">New game</button></div></header>
+<button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="musicToggle" aria-pressed="false">🎵 Music off</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="exportSave">💾 Export save</button><button id="importSave">📂 Import save</button><input id="saveFile" type="file" accept=".json,application/json" hidden><button id="reset">New game</button></div></header>
 <div id="stats" aria-live="polite"></div><div id="quickHud" aria-label="Game status"><span id="hudLevel"></span><span id="hudCoins"></span><span id="hudPet"></span><span id="hudPower"></span></div>
 <canvas id="game" width="800" height="600" aria-label="Playable game field"></canvas>
 <div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button><button id="dash">💨 Dash</button></div>
@@ -110,6 +110,26 @@ function releaseJoystick(e){if(joystick&&joystick.id===e.pointerId)joystick=null
 for(const event of ["pointerup","pointercancel","lostpointercapture"])canvas.addEventListener(event,releaseJoystick);
 const keys=new Set();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(_){}}
+$("exportSave").onclick=()=>{const payload={format:"tamacore-save",version:1,exportedAt:new Date().toISOString(),progress:state};
+const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob);
+const link=document.createElement("a");link.href=url;link.download="tamacore-save.json";document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+msg("Save file exported. Keep it somewhere safe!");};
+$("importSave").onclick=()=>$("saveFile").click();
+$("saveFile").onchange=async()=>{const file=$("saveFile").files[0];if(!file)return;
+try{if(file.size>1024*1024)throw Error("Save file is too large.");
+const data=JSON.parse(await file.text());if(!data||data.format!=="tamacore-save"||data.version!==1||!data.progress||typeof data.progress!=="object"||Array.isArray(data.progress))throw Error("Not a supported TamaCore save.");
+const incoming=data.progress;
+if(!Number.isInteger(incoming.level)||incoming.level<0||incoming.level>=cfg.levels.length)throw Error("Invalid level in save.");
+const numeric=["coins","speed","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions","petSkill","levelsCompleted","starTokens","bossChallengesWon"];
+for(const key of numeric)if(incoming[key]!==undefined&&(!Number.isFinite(incoming[key])||incoming[key]<0||incoming[key]>100000000))throw Error("Invalid "+key+" in save.");
+const objects=["owned","achievements","claimedMilestones","claimedChallenges","cosmeticsOwned"];
+for(const key of objects)if(incoming[key]!==undefined&&(!incoming[key]||typeof incoming[key]!=="object"||Array.isArray(incoming[key])))throw Error("Invalid "+key+" in save.");
+if(!confirm("Replace current progress with this imported save?"))return;
+const defaults={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0,claimedChallenges:{},bossChallengesWon:0};
+for(const key of Object.keys(defaults)){const value=incoming[key];state[key]=value===undefined?defaults[key]:value;}
+state.level=incoming.level;state.equippedCosmetic=typeof incoming.equippedCosmetic==="string"?incoming.equippedCosmetic:"";
+won=false;paused=true;$("pause").textContent="Resume";$("victory").hidden=true;save();startLevel();renderShop();renderWardrobe();updateStats();msg("Save imported! Press Resume to continue.");
+}catch(error){msg("Import failed: "+error.message);}finally{$("saveFile").value="";}};
 function msg(t){$("message").textContent=t;}
 function point(radius){return{x:rand(radius+15,W-radius-15),y:rand(radius+15,H-radius-15),r:radius};}
 const worlds=[{name:"Meadow",floor:"#17384b",grid:"#234b60",obstacle:"#558e69"},
