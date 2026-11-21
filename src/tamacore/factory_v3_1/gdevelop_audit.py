@@ -17,6 +17,18 @@ def audit_project(project_file: Path) -> list[str]:
         errors.append("Project has no scenes (layouts)")
         layouts = []
     resources = project.get("resources", {}).get("resources", [])
+    seen_missing = set()
+
+    def check_file(filename: str, label: str) -> None:
+        # Reject paths that could escape the project directory.
+        if Path(filename).is_absolute() or ".." in Path(filename).parts:
+            errors.append(f"Unsafe resource path: {filename}")
+            return
+        if not (project_file.parent / filename).is_file():
+            key = (label, filename)
+            if key not in seen_missing:
+                errors.append(f"{label}: {filename}")
+                seen_missing.add(key)
     for resource in resources:
         if not isinstance(resource, dict):
             errors.append("Malformed resource entry")
@@ -25,8 +37,7 @@ def audit_project(project_file: Path) -> list[str]:
         if not filename or not isinstance(filename, str):
             errors.append(f"Resource {resource.get('name', '?')} has no file")
             continue
-        if not (project_file.parent / filename).is_file():
-            errors.append(f"Missing resource: {filename}")
+        check_file(filename, "Missing resource")
     # Sprite animation images are referenced by objects, not always by
     # top-level resource entries. Audit both locations.
     for scene in layouts:
@@ -48,8 +59,8 @@ def audit_project(project_file: Path) -> list[str]:
                         if not isinstance(sprite, dict):
                             continue
                         image = sprite.get("image")
-                        if isinstance(image, str) and image and not (project_file.parent / image).is_file():
-                            errors.append(f"Missing animation frame: {image}")
+                        if isinstance(image, str) and image:
+                            check_file(image, "Missing animation frame")
     return errors
 
 
