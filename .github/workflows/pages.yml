@@ -1,0 +1,53 @@
+name: Publish TamaCore browser game
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/tamacore/factory_v3_1/playable_browser.py'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Build standalone playable HTML
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, "src")
+          from tamacore.factory_v3_1.playable_browser import write_playable_browser_game
+          out = Path("_site")
+          out.mkdir(exist_ok=True)
+          levels = [{"coinCount": 12 + (i % 8) * 2, "target": 12 + (i % 8) * 2} for i in range(25)]
+          pack = {
+            "name": "TamaCore — Pet Home & Adventure",
+            "foods": [
+              {"id":"apple","name":"Apple","cost":5,"hunger":15,"mood":2},
+              {"id":"carrot","name":"Carrot","cost":6,"hunger":18,"mood":2},
+              {"id":"berry","name":"Berry","cost":8,"hunger":12,"mood":5}
+            ],
+            "cosmetics": [],
+            "pet": {}
+          }
+          game = write_playable_browser_game(out, pack, levels, {"upgrades":[]})
+          (out / "index.html").write_text(game.read_text(encoding="utf-8"), encoding="utf-8")
+          print("Built", out / "index.html")
+          PY
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
