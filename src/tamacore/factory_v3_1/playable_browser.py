@@ -48,7 +48,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
 <div id="wardrobe"><h2>Wardrobe</h2><div id="cosmetics"></div></div>
-<div id="foodMenu"><h2>🐰 Tamagotchi pet care</h2><section id="roomDecor"><h3>🏠 Decorate your pet's room</h3><p id="roomStatus"></p><div id="roomButtons"></div></section><p id="careHint">Your pet needs food, play, sleep and cleaning even between adventures.</p><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="toiletPet">🚽 Toilet</button><button id="disciplinePet">📣 Teach manners</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button><button id="sleepPet">🌙 Sleep / Wake</button><button id="healPet">💊 Medicine (25 coins)</button><button id="petPet">❤️ Pet companion</button><button id="trainPet">🎓 Train (20 coins)</button><button id="skillPet">✨ Upgrade skill (100 coins)</button></div><div id="homeSurprise" hidden role="status" aria-live="polite"><p id="surpriseText"></p><button id="surpriseAccept">✨ Join your pet</button><button id="surpriseDismiss">Later</button></div><p id="dailyCare" aria-live="polite"></p><p id="petPersonality"></p><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p><p id="eventStatus" aria-live="polite"></p></div><section id="achievements"><h2>🏅 Achievements</h2><div id="achievementList"></div></section><section id="milestones"><h2>🎁 Journey rewards</h2><div id="milestoneList"></div></section><section id="challenges"><h2>🏆 Long-term challenges</h2><div id="challengeList"></div></section>
+<div id="foodMenu"><h2>🐰 Tamagotchi pet care</h2><section id="roomDecor"><h3>🏠 Decorate your pet's room</h3><p id="roomStatus"></p><div id="roomButtons"></div></section><p id="careHint">Your pet needs food, play, sleep and cleaning even between adventures.</p><p id="dayNightStatus" aria-live="polite"></p><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="toiletPet">🚽 Toilet</button><button id="disciplinePet">📣 Teach manners</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button><button id="sleepPet">🌙 Sleep / Wake</button><button id="healPet">💊 Medicine (25 coins)</button><button id="petPet">❤️ Pet companion</button><button id="trainPet">🎓 Train (20 coins)</button><button id="skillPet">✨ Upgrade skill (100 coins)</button></div><div id="homeSurprise" hidden role="status" aria-live="polite"><p id="surpriseText"></p><button id="surpriseAccept">✨ Join your pet</button><button id="surpriseDismiss">Later</button></div><p id="dailyCare" aria-live="polite"></p><p id="petPersonality"></p><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p><p id="eventStatus" aria-live="polite"></p></div><section id="achievements"><h2>🏅 Achievements</h2><div id="achievementList"></div></section><section id="milestones"><h2>🎁 Journey rewards</h2><div id="milestoneList"></div></section><section id="challenges"><h2>🏆 Long-term challenges</h2><div id="challengeList"></div></section>
 <small>Move: WASD / arrow keys or touch buttons. Collect yellow coins. Avoid red enemies. Progress saves automatically in this browser.</small></div>
 </main><script id="config" type="application/json">__GAME_CONFIG__</script><script>
 "use strict";
@@ -166,8 +166,14 @@ const button=document.createElement("button");button.textContent=item.name+" •
 button.onclick=()=>{if(!state.roomOwned[key]){if(state.coins<item.price){msg("Not enough coins for room decoration.");return;}state.coins-=item.price;state.roomOwned[key]=true;}
 state.roomEquipped[item.slot]=item.id;save();updateStats();renderRoomShop();msg("🏠 Room updated: "+item.name);};root.appendChild(button);}
 $("roomStatus").textContent="Walls: "+state.roomEquipped.wall+" • Floor: "+state.roomEquipped.floor+" • Decoration: "+state.roomEquipped.furniture+" • Toy: "+state.roomEquipped.toy;}
+function petDayPhase(){const h=new Date().getHours();return h>=6&&h<18?"day":h>=18&&h<21?"evening":"night";}
+function updateDayNight(){const phase=petDayPhase();const label=phase==="day"?"☀️ Daytime":phase==="evening"?"🌇 Evening":"🌙 Nighttime";
+$("dayNightStatus").textContent=label+" • Your pet follows the local day and night cycle.";
+return phase;}
 function careTick(dt){updatePetGrowth();surpriseTick();careClock+=dt;if(careClock<20)return;careClock=0;
-state.petHunger=clamp(state.petHunger-1,0,100);state.petEnergy=clamp(state.petEnergy+(state.petSleeping?(state.roomEquipped.furniture==="bed"?5:3):-1),0,100);
+state.petHunger=clamp(state.petHunger-1,0,100);const night=petDayPhase()==="night";
+state.petEnergy=clamp(state.petEnergy+(state.petSleeping?(state.roomEquipped.furniture==="bed"?5:3)+(night?1:0):-1),0,100);
+if(night&&!state.petSleeping&&state.petEnergy<45)state.petMood=clamp(state.petMood-1,0,100);
 state.petCleanliness=clamp(state.petCleanliness-(state.petMess>0?2:1),0,100);
 const wellCared=state.petHunger>=45&&state.petEnergy>=35&&state.petMood>=40&&state.petCleanliness>=45&&!state.petSick&&state.petMess<3;
 state.careQuality=clamp(state.careQuality+(wellCared?.3:-.6),0,100);
@@ -352,7 +358,7 @@ button.disabled=claimed||!unlocked;button.onclick=()=>{if(state.claimedChallenge
 state.claimedChallenges[challenge.id]=true;state.coins+=challenge.coins;gainPetXP(challenge.xp);
 save();updateStats();msg("🏆 "+challenge.name+" completed! +"+challenge.coins+" coins and +"+challenge.xp+" XP.");};
 item.append(info,button);box.append(item);}}
-function updateStats(){renderRoomShop();dailyProgress();const d=state.dailyCare;
+function updateStats(){updateDayNight();renderRoomShop();dailyProgress();const d=state.dailyCare;
 $("dailyCare").textContent="📅 Daily care: "+(d.feed?"✅":"⬜")+" Feed • "+(d.play?"✅":"⬜")+" Play • "+(d.clean?"✅":"⬜")+" Clean • "+(d.rest?"✅":"⬜")+" Rest"+(d.claimed?" • 🎁 Reward claimed":" • Complete all for 75 coins");
 $("petPersonality").textContent="🐰 Personality: "+state.petPersonality+(state.petTrait?" • Growing trait: "+state.petTrait:"")+" • Care quality "+Math.round(state.careQuality)+"/100 • "+" • "+(state.petPersonality==="playful"?"Loves games!":state.petPersonality==="gentle"?"Enjoys cuddles!":"Loves discovering things!");careAlert();refreshAchievements();renderMilestones();renderChallenges();const lv=cfg.levels[state.level]||{};
 $("hudLevel").textContent="🗺️ "+(state.level+1)+"/"+cfg.levels.length;
@@ -581,14 +587,17 @@ ctx.save();ctx.globalAlpha=.22;ctx.strokeStyle=world().grid;ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 ctx.restore();if(!reducedEffects)drawScenery();
-if(homeMode){const wallColors={default:"#10253b",mint:"#245b54",peach:"#71445c"},floorColors={default:"#38404e",wood:"#80583c",cloud:"#6e829f"};
+if(homeMode){const phase=petDayPhase();const wallColors={default:"#10253b",mint:"#245b54",peach:"#71445c"},floorColors={default:"#38404e",wood:"#80583c",cloud:"#6e829f"};
 ctx.fillStyle=wallColors[state.roomEquipped.wall]||wallColors.default;ctx.fillRect(65,90,670,325);
 ctx.fillStyle=floorColors[state.roomEquipped.floor]||floorColors.default;ctx.fillRect(65,415,670,100);
+ctx.fillStyle=phase==="night"?"#07152b99":phase==="evening"?"#b95c4050":"#fff3bd15";ctx.fillRect(65,90,670,425);
+ctx.save();ctx.textAlign="center";ctx.font="40px system-ui";ctx.fillText(phase==="night"?"🌙":phase==="evening"?"🌇":"☀️",690,155);ctx.restore();
 ctx.strokeStyle="#ffffff55";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(65,415);ctx.lineTo(735,415);ctx.stroke();
 if(state.roomEquipped.furniture==="plant"){ctx.font="75px system-ui";ctx.textAlign="center";ctx.fillText("🪴",640,430);}
 if(state.roomEquipped.furniture==="bed"){ctx.font="85px system-ui";ctx.textAlign="center";ctx.fillText("🛏️",610,455);}
 if(state.roomEquipped.toy!=="none"){ctx.font="54px system-ui";ctx.textAlign="center";ctx.fillText(state.roomEquipped.toy==="ball"?"⚽":"🧩",190,460);}
 ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ctx.fillText("🐰 YOUR PET HOME",W/2,142);
+ctx.font="bold 16px system-ui";ctx.fillText(phase==="night"?"Nighttime":phase==="evening"?"Evening":"Daytime",W/2,164);
 const reacting=performance.now()<reactionUntil;
 const idle=state.petSleeping?"sleep":state.petSick?"sick":state.petTrait==="mischievous"?"zigzag":state.petTrait==="brave"?"bounce":state.petTrait==="kind"?"sway":state.petPersonality==="playful"?"bounce":state.petPersonality==="curious"?"look":"sway";
 const petMood=state.petSick||state.petMood<25?"sad":state.petSleeping||state.petEnergy<20?"sleepy":reacting&&reactionKind==="play"?"excited":state.petHunger<25?"sad":"happy";
