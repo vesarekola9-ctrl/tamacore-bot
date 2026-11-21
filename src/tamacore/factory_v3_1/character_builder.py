@@ -87,6 +87,35 @@ def apply_pet_animation_events(scene: Json) -> None:
         })
 
 
+
+def apply_pet_keyboard_controls(scene: Json) -> None:
+    """Add simple keyboard pet actions for testing in GDevelop preview.
+
+    F feeds, P plays, S sleeps, W walks and I returns to idle. The
+    animation bridge reads the same global Pet_State variable.
+    """
+    player = _find_object(scene, "Player")
+    if not isinstance(player, dict) or not player.get("animations"):
+        return
+    events = scene.setdefault("events", [])
+    existing = {event.get("name") for event in events if isinstance(event, dict)}
+    for key, state in (("f", "Eat"), ("p", "Play"), ("s", "Sleep"), ("w", "Walk"), ("i", "Idle")):
+        marker = f"TamaCorePetKey_{state}"
+        if marker in existing:
+            continue
+        events.append({
+            "type": "BuiltinCommonInstructions::Standard",
+            "name": marker,
+            "conditions": [{"type": {"value": "KeyPressed"}, "parameters": [key]}],
+            "actions": [{"type": {"value": "SetStringVariable"},
+                         "parameters": ["Pet_State", "=", f'"{state}"']}],
+            "events": [],
+            "disabled": False,
+            "folded": False,
+        })
+        existing.add(marker)
+
+
 def _find_object(scene: Json, name: str) -> Json | None:
     objects = scene.get("objects")
     if not isinstance(objects, list):
