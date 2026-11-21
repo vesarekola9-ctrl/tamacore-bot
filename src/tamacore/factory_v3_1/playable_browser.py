@@ -69,7 +69,7 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0,trainingCooldown=0,eventKind="none",eventTimer=0,eventDone=false,eventProgress=0,eventTarget=0;
-let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0,treasures=[],magnetTime=0,shieldTime=0;
+let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0,treasures=[],hazards=[],hazardCooldown=0,magnetTime=0,shieldTime=0;
 let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{const tap=canvasPoint(e);
@@ -142,7 +142,8 @@ for(let i=0;i<Math.min(14,3+state.level);i++){
 const p=point(rand(20,32));if(Math.hypot(p.x-W/2,p.y-H/2)>115&&!blocked(p.x,p.y,p.r))obstacles.push(p);}
 targets=Array.from({length:Math.min(150,Math.max(0,lv.coinCount||0))},()=>safePoint(10));
 treasures=Array.from({length:Math.min(5,1+Math.floor(state.level/3))},(_,i)=>({...safePoint(14),kind:["gem","magnet","shield"][((state.level+i)%3)]}));
-magnetTime=0;shieldTime=0;
+magnetTime=0;shieldTime=0;hazardCooldown=0;
+hazards=state.level>=5?Array.from({length:Math.min(6,1+Math.floor(state.level/4))},()=>({...safePoint(24),phase:rand(0,Math.PI*2)})):[];
 eventKind=state.level>0&&state.level%3===0?"rush":state.level>0&&state.level%5===0?"treasure":"none";
 eventTimer=eventKind==="none"?0:60;eventProgress=0;eventDone=false;
 eventTarget=eventKind==="rush"?Math.min(8,Math.max(3,targets.length)):eventKind==="treasure"?1:0;
@@ -204,7 +205,8 @@ $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Co
 "  •  Collected: "+collected+"/"+Math.min(150,lv.coinCount||0)+"  •  Speed: "+state.speed+
 "  •  Pet hunger: "+Math.round(state.petHunger)+"  •  Pet stage: "+state.petStage+
 "  •  Medals: 🥇"+state.goldMedals+" 🥈"+state.silverMedals+" 🥉"+state.bronzeMedals+
-"  •  Difficulty: "+(state.level>=7?"Hard":state.level>=3?"Medium":"Easy");
+"  •  Difficulty: "+(state.level>=7?"Hard":state.level>=3?"Medium":"Easy")+
+"  •  Hazards: "+hazards.length;
 $("petStatus").textContent="Hunger "+Math.round(state.petHunger)+"/100 • Energy "+Math.round(state.petEnergy)+"/100 • Mood "+Math.round(state.petMood)+"/100 • Cleanliness "+Math.round(state.petCleanliness)+"/100";
 $("petProgress").textContent="Pet evolution: stage "+state.petStage+" • XP "+state.petXP+"/"+(state.petStage*100)+
 (state.petStage>=3?" • 🪙 Companion coin helper":" • Coin helper unlocks at stage 3")+
@@ -376,7 +378,12 @@ ctx.save();ctx.globalAlpha=.22;ctx.strokeStyle=world().grid;ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 ctx.restore();drawScenery();
-if(!won&&!paused){if(eventTimer>0&&!eventDone){eventTimer=Math.max(0,eventTimer-dt);
+if(!won&&!paused){hazardCooldown=Math.max(0,hazardCooldown-dt);
+for(const h of hazards){if(hazardCooldown<=0&&invincible<=0&&shieldTime<=0&&Math.hypot(player.x-h.x,player.y-h.y)<player.r+17){
+hazardCooldown=2;invincible=1.2;hit++;hitFlash=.35;state.coins=Math.max(0,state.coins-8);
+state.petEnergy=clamp(state.petEnergy-3,0,100);burst(player.x,player.y,"#ff9a55",18);
+msg("🔥 Hazard! Lost 8 coins and 3 pet energy.");save();updateStats();}}
+if(eventTimer>0&&!eventDone){eventTimer=Math.max(0,eventTimer-dt);
 if(eventTimer===0)msg("⌛ Special event expired.");updateEvent();}
 if(questKind==="survive"){petMoodClock+=dt;
 if(petMoodClock>=1){petMoodClock-=1;advanceQuest(1);}}
@@ -436,6 +443,11 @@ if(e.type==="guardian"){state.petMood=clamp(state.petMood-5,0,100);}
 msg(e.type==="guardian"?"Guardian hit! Lost 15 coins and 5 pet mood.":"Enemy hit! Lost 5 coins.");save();updateStats();}}
 invincible=Math.max(0,invincible-dt);
 if(!targets.length)finishLevel();}
+for(const h of hazards){const pulse=.5+.5*Math.sin(visualTime*3+h.phase);
+ctx.save();ctx.translate(h.x,h.y);ctx.fillStyle="rgba(255,100,55,"+(.17+pulse*.22)+")";
+ctx.beginPath();ctx.arc(0,0,27+pulse*6,0,Math.PI*2);ctx.fill();
+ctx.fillStyle="#ff7549";ctx.beginPath();ctx.moveTo(0,-19);ctx.lineTo(17,13);ctx.lineTo(-17,13);ctx.closePath();ctx.fill();
+ctx.fillStyle="#ffdb7b";ctx.beginPath();ctx.arc(0,4,6,0,Math.PI*2);ctx.fill();ctx.restore();}
 for(const o of obstacles)drawObstacle(o);
 for(const c of targets)drawCoin(c);
 for(const t of treasures)drawTreasure(t);
