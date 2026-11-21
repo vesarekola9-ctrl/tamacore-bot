@@ -61,6 +61,13 @@ if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],collected=0,hit=0,invincible=0,won=false;
+let joystick=null;
+function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
+canvas.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse")return;
+if(joystick!==null)return;const p=canvasPoint(e);joystick={id:e.pointerId,start:p,now:p};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener("pointermove",e=>{if(joystick&&joystick.id===e.pointerId)joystick.now=canvasPoint(e);});
+function releaseJoystick(e){if(joystick&&joystick.id===e.pointerId)joystick=null;}
+for(const event of ["pointerup","pointercancel","lostpointercapture"])canvas.addEventListener(event,releaseJoystick);
 const keys=new Set();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(_){}}
 function msg(t){$("message").textContent=t;}
@@ -112,7 +119,9 @@ for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.strok
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 if(!won){let dx=Number(keys.has("d")||keys.has("arrowright"))-Number(keys.has("a")||keys.has("arrowleft"));
 let dy=Number(keys.has("s")||keys.has("arrowdown"))-Number(keys.has("w")||keys.has("arrowup"));
-const len=Math.hypot(dx,dy)||1;player.x=clamp(player.x+dx/len*state.speed*dt,player.r,W-player.r);
+if(joystick){const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
+const length=Math.hypot(vx,vy);if(length>8){dx=vx/Math.max(60,length);dy=vy/Math.max(60,length);}}
+const len=Math.max(1,Math.hypot(dx,dy));player.x=clamp(player.x+dx/len*state.speed*dt,player.r,W-player.r);
 player.y=clamp(player.y+dy/len*state.speed*dt,player.r,H-player.r);
 for(let i=targets.length-1;i>=0;i--)if(Math.hypot(player.x-targets[i].x,player.y-targets[i].y)<player.r+targets[i].r){
 targets.splice(i,1);collected++;state.coins+=10;save();updateStats();}
@@ -125,8 +134,12 @@ hit++;invincible=1.2;state.coins=Math.max(0,state.coins-5);msg("Enemy hit! Lost 
 invincible=Math.max(0,invincible-dt);
 if(!targets.length)finishLevel();}
 for(const c of targets)circle(c.x,c.y,c.r,"#ffd35a");
+if(joystick){circle(joystick.start.x,joystick.start.y,56,"#365b77");
+const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
+const len=Math.max(1,Math.hypot(vx,vy));circle(joystick.start.x+vx/len*Math.min(48,len),joystick.start.y+vy/len*Math.min(48,len),24,"#9acbdc");}
 for(const e of enemies)circle(e.x,e.y,e.r,"#fb6570");
 circle(player.x,player.y,player.r,invincible>0?"#ffffff":"#79e0d0");
+ctx.font="30px system-ui";ctx.textAlign="center";ctx.fillText("🐾",player.x,player.y+10);ctx.textAlign="left";
 ctx.fillStyle="#ffffff";ctx.font="bold 18px system-ui";ctx.fillText("Coins left: "+targets.length,16,30);
 if(won){ctx.fillStyle="#ffe58d";ctx.font="bold 44px system-ui";ctx.textAlign="center";
 ctx.fillText("YOU WIN!",W/2,H/2);ctx.textAlign="left";}
