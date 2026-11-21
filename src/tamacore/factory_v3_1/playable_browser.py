@@ -15,6 +15,7 @@ def write_playable_browser_game(game_dir: Path, pack: dict, levels: list, shop: 
         "levels": levels,
         "shop": shop.get("upgrades", []),
         "foods": pack.get("foods", []),
+        "cosmetics": pack.get("cosmetics", []),
         "pet": pack.get("pet", {}),
     }
     # Prevent embedded JSON from terminating the script element.
@@ -38,12 +39,13 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 #shop button,#careActions button{margin:4px}#message{min-height:24px;color:#ffe68c}#touch{display:flex;justify-content:space-between;margin-top:10px}
 #touch button{min-width:64px;min-height:50px}small{color:#b8c9dc}
 </style></head><body><main><header><h1 id="title">TamaCore</h1><div>
-<button id="shopToggle">Shop</button><button id="reset">New game</button></div></header>
+<button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="reset">New game</button></div></header>
 <div id="stats" aria-live="polite"></div>
 <canvas id="game" width="800" height="600" aria-label="Playable game field"></canvas>
 <div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button></div>
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
+<div id="wardrobe"><h2>Wardrobe</h2><div id="cosmetics"></div></div>
 <div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button></div><p id="petStatus"></p></div>
 <small>Move: WASD / arrow keys or touch buttons. Collect yellow coins. Avoid red enemies. Progress saves automatically in this browser.</small></div>
 </main><script id="config" type="application/json">__GAME_CONFIG__</script><script>
@@ -55,14 +57,16 @@ const $=id=>document.getElementById(id);
 $("title").textContent=cfg.name;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>a+Math.random()*(b-a);
-const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75};
+const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:""};
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object"){
 for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness"])if(Number.isFinite(saved[k]))state[k]=saved[k];
 if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
+if(saved.cosmeticsOwned&&typeof saved.cosmeticsOwned==="object")state.cosmeticsOwned=saved.cosmeticsOwned;
+if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippedCosmetic;
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],collected=0,hit=0,invincible=0,won=false;
-let joystick=null;
+let joystick=null,paused=false;
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse")return;
 if(joystick!==null)return;const p=canvasPoint(e);joystick={id:e.pointerId,start:p,now:p};canvas.setPointerCapture(e.pointerId);});
@@ -84,8 +88,9 @@ $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Co
 "  •  Collected: "+collected+"/"+Math.min(150,lv.coinCount||0)+"  •  Speed: "+state.speed+
 "  •  Pet hunger: "+Math.round(state.petHunger);
 $("petStatus").textContent="Hunger "+Math.round(state.petHunger)+"/100 • Energy "+Math.round(state.petEnergy)+"/100 • Mood "+Math.round(state.petMood)+"/100 • Cleanliness "+Math.round(state.petCleanliness)+"/100";}
-function finishLevel(){if(state.level+1>=cfg.levels.length){won=true;msg("🏆 All levels completed! Open New game to play again.");}
-else{state.level++;save();startLevel();}save();}
+function finishLevel(){const reward=50+state.level*25;state.coins+=reward;
+if(state.level+1>=cfg.levels.length){won=true;msg("🏆 All levels completed! Final reward: "+reward+" coins.");updateStats();}
+else{state.level++;save();startLevel();msg("Level complete! Bonus: "+reward+" coins. Next: level "+(state.level+1));}save();}
 function renderShop(){const box=$("items");box.replaceChildren();
 for(const upgrade of cfg.shop){const b=document.createElement("button");
 const id=upgrade.ownedVariable||"Owned_"+upgrade.id,owned=!!state.owned[id];
@@ -100,9 +105,16 @@ state.petMood=clamp(state.petMood+(Number(effect.moodAdd)||0),0,100);
 state.petEnergy=clamp(state.petEnergy+(Number(effect.energyAdd)||0),0,100);
 state.petCleanliness=clamp(state.petCleanliness+(Number(effect.cleanlinessAdd)||0),0,100);
 save();renderShop();updateStats();msg("Purchased "+upgrade.name);};box.appendChild(b);}}
+function renderWardrobe(){const box=$("cosmetics");box.replaceChildren();
+for(const item of cfg.cosmetics){const owned=!!state.cosmeticsOwned[item.id],equipped=state.equippedCosmetic===item.id;
+const b=document.createElement("button");b.textContent=equipped?"✓ "+item.name+" (equipped)":owned?"Wear "+item.name:item.name+" — "+item.price+" coins";
+b.onclick=()=>{if(!owned){if(state.coins<item.price){msg("Not enough coins for "+item.name);return;}
+state.coins-=item.price;state.cosmeticsOwned[item.id]=true;}
+state.equippedCosmetic=item.id;save();renderWardrobe();updateStats();msg("Equipped "+item.name);};box.appendChild(b);}}
 $("shopToggle").onclick=()=>{$("shop").classList.toggle("open");renderShop();};
+$("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;won=false;save();startLevel();renderShop();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
 function feedPet(){const food=cfg.foods[Number($("foodChoice").value)];if(!food){msg("No food available.");return;}
 if(state.coins<food.price){msg("Not enough coins to feed your pet.");return;}
 state.coins-=food.price;state.petHunger=clamp(state.petHunger+(Number(food.hunger)||0),0,100);
@@ -140,7 +152,7 @@ ctx.clearRect(0,0,W,H);ctx.fillStyle="#17384b";ctx.fillRect(0,0,W,H);
 ctx.strokeStyle="#234b60";ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-if(!won){let dx=Number(keys.has("d")||keys.has("arrowright"))-Number(keys.has("a")||keys.has("arrowleft"));
+if(!won&&!paused){let dx=Number(keys.has("d")||keys.has("arrowright"))-Number(keys.has("a")||keys.has("arrowleft"));
 let dy=Number(keys.has("s")||keys.has("arrowdown"))-Number(keys.has("w")||keys.has("arrowup"));
 if(joystick){const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
 const length=Math.hypot(vx,vy);if(length>8){dx=vx/Math.max(60,length);dy=vy/Math.max(60,length);}}
@@ -162,11 +174,14 @@ const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
 const len=Math.max(1,Math.hypot(vx,vy));circle(joystick.start.x+vx/len*Math.min(48,len),joystick.start.y+vy/len*Math.min(48,len),24,"#9acbdc");}
 for(const e of enemies)circle(e.x,e.y,e.r,"#fb6570");
 circle(player.x,player.y,player.r,invincible>0?"#ffffff":"#79e0d0");
-ctx.font="30px system-ui";ctx.textAlign="center";ctx.fillText("🐾",player.x,player.y+10);ctx.textAlign="left";
+ctx.font="30px system-ui";ctx.textAlign="center";ctx.fillText("🐾",player.x,player.y+10);
+if(state.equippedCosmetic){ctx.font="23px system-ui";ctx.fillText("✦",player.x+17,player.y-13);}
+ctx.textAlign="left";
 ctx.fillStyle="#ffffff";ctx.font="bold 18px system-ui";ctx.fillText("Coins left: "+targets.length,16,30);
+if(paused){ctx.fillStyle="#ffffff";ctx.font="bold 48px system-ui";ctx.textAlign="center";ctx.fillText("PAUSED",W/2,H/2);ctx.textAlign="left";}
 if(won){ctx.fillStyle="#ffe58d";ctx.font="bold 44px system-ui";ctx.textAlign="center";
 ctx.fillText("YOU WIN!",W/2,H/2);ctx.textAlign="left";}
 requestAnimationFrame(frame);}
-startLevel();renderShop();requestAnimationFrame(frame);
+startLevel();renderShop();renderWardrobe();requestAnimationFrame(frame);
 </script></body></html>
 '''
