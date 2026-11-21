@@ -65,7 +65,7 @@ if(saved.cosmeticsOwned&&typeof saved.cosmeticsOwned==="object")state.cosmeticsO
 if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippedCosmetic;
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
-let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],collected=0,hit=0,invincible=0,won=false;
+let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect";
 let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
@@ -78,11 +78,27 @@ const keys=new Set();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(_){}}
 function msg(t){$("message").textContent=t;}
 function point(radius){return{x:rand(radius+15,W-radius-15),y:rand(radius+15,H-radius-15),r:radius};}
+const worlds=[{name:"Meadow",floor:"#17384b",grid:"#234b60",obstacle:"#558e69"},
+{name:"Crystal Cave",floor:"#242344",grid:"#36355f",obstacle:"#796dc2"},
+{name:"Sunset Desert",floor:"#66442d",grid:"#825d3d",obstacle:"#c18b4e"},
+{name:"Frost Valley",floor:"#27455a",grid:"#3c6278",obstacle:"#8bd2e5"}];
+function world(){return worlds[state.level%worlds.length];}
+function blocked(x,y,r){return obstacles.some(o=>Math.hypot(x-o.x,y-o.y)<r+o.r+6);}
+function safePoint(radius){for(let i=0;i<100;i++){const p=point(radius);
+if(!blocked(p.x,p.y,radius)&&Math.hypot(p.x-W/2,p.y-H/2)>75)return p;}
+return point(radius);}
+function moveAroundObstacles(entity,dx,dy){const nx=clamp(entity.x+dx,entity.r,W-entity.r);
+if(!blocked(nx,entity.y,entity.r))entity.x=nx;
+const ny=clamp(entity.y+dy,entity.r,H-entity.r);
+if(!blocked(entity.x,ny,entity.r))entity.y=ny;}
 function startLevel(){const lv=cfg.levels[state.level];if(!lv){won=true;msg("Game complete!");return;}
 player.x=W/2;player.y=H/2;beginQuest();pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
-targets=Array.from({length:Math.min(150,Math.max(0,lv.coinCount||0))},()=>point(10));
-enemies=Array.from({length:Math.min(50,Math.max(0,lv.enemyCount||0))},()=>({...point(16),vx:rand(-90,90),vy:rand(-90,90)}));
-msg("Level "+(state.level+1)+": collect "+targets.length+" coins and avoid enemies.");
+obstacles=[];
+for(let i=0;i<Math.min(14,3+state.level);i++){
+const p=point(rand(20,32));if(Math.hypot(p.x-W/2,p.y-H/2)>115&&!blocked(p.x,p.y,p.r))obstacles.push(p);}
+targets=Array.from({length:Math.min(150,Math.max(0,lv.coinCount||0))},()=>safePoint(10));
+enemies=Array.from({length:Math.min(50,Math.max(0,lv.enemyCount||0))},()=>({...safePoint(16),vx:rand(-90,90),vy:rand(-90,90)}));
+msg(world().name+" • Level "+(state.level+1)+": collect "+targets.length+" coins and avoid enemies.");
 updateStats();}
 function beginQuest(){questKind=state.level%2===0?"collect":"survive";questProgress=0;
 questTarget=questKind==="collect"?Math.min(8,3+state.level):15+state.level*3;
@@ -167,8 +183,8 @@ for(const event of ["pointerup","pointercancel","lostpointercapture"])b.addEvent
 }
 function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
-ctx.clearRect(0,0,W,H);ctx.fillStyle="#17384b";ctx.fillRect(0,0,W,H);
-ctx.strokeStyle="#234b60";ctx.lineWidth=1;
+ctx.clearRect(0,0,W,H);ctx.fillStyle=world().floor;ctx.fillRect(0,0,W,H);
+ctx.strokeStyle=world().grid;ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 if(!won&&!paused){if(questKind==="survive"){petMoodClock+=dt;
@@ -190,8 +206,7 @@ let dx=Number(keys.has("d")||keys.has("arrowright"))-Number(keys.has("a")||keys.
 let dy=Number(keys.has("s")||keys.has("arrowdown"))-Number(keys.has("w")||keys.has("arrowup"));
 if(joystick){const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
 const length=Math.hypot(vx,vy);if(length>8){dx=vx/Math.max(60,length);dy=vy/Math.max(60,length);}}
-const len=Math.max(1,Math.hypot(dx,dy));player.x=clamp(player.x+dx/len*state.speed*dt,player.r,W-player.r);
-player.y=clamp(player.y+dy/len*state.speed*dt,player.r,H-player.r);
+const len=Math.max(1,Math.hypot(dx,dy));moveAroundObstacles(player,dx/len*state.speed*dt,dy/len*state.speed*dt);
 for(let i=targets.length-1;i>=0;i--)if(Math.hypot(player.x-targets[i].x,player.y-targets[i].y)<player.r+targets[i].r){
 targets.splice(i,1);collected++;state.coins+=10;
 if(questKind==="collect")advanceQuest(1);save();updateStats();}
@@ -204,6 +219,8 @@ if(questKind==="survive"){questProgress=0;petMoodClock=0;updateQuest();}
 hit++;invincible=1.2;state.coins=Math.max(0,state.coins-5);msg("Enemy hit! Lost 5 coins.");updateStats();}}
 invincible=Math.max(0,invincible-dt);
 if(!targets.length)finishLevel();}
+for(const o of obstacles){circle(o.x+3,o.y+5,o.r+3,"#172331");circle(o.x,o.y,o.r,world().obstacle);
+circle(o.x-o.r*.2,o.y-o.r*.2,o.r*.32,"#ffffff25");}
 for(const c of targets)circle(c.x,c.y,c.r,"#ffd35a");
 // The companion is decorative and never collides with enemies or collectibles.
 circle(pet.x,pet.y,16+state.petStage*2,state.petMood<30?"#a9b3cf":"#ffb6d7");
@@ -219,7 +236,7 @@ ctx.font=(30+state.petStage*3)+"px system-ui";ctx.textAlign="center";
 ctx.fillText(state.petStage>=5?"🐉":state.petStage>=3?"🐱":"🐾",player.x,player.y+10);
 if(state.equippedCosmetic){ctx.font="23px system-ui";ctx.fillText("✦",player.x+17,player.y-13);}
 ctx.textAlign="left";
-ctx.fillStyle="#ffffff";ctx.font="bold 18px system-ui";ctx.fillText("Coins left: "+targets.length,16,30);
+ctx.fillStyle="#ffffff";ctx.font="bold 18px system-ui";ctx.fillText(world().name+"  •  Coins left: "+targets.length,16,30);
 if(paused){ctx.fillStyle="#ffffff";ctx.font="bold 48px system-ui";ctx.textAlign="center";ctx.fillText("PAUSED",W/2,H/2);ctx.textAlign="left";}
 if(won){ctx.fillStyle="#ffe58d";ctx.font="bold 44px system-ui";ctx.textAlign="center";
 ctx.fillText("YOU WIN!",W/2,H/2);ctx.textAlign="left";}
