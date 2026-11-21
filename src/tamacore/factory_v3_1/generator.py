@@ -352,6 +352,8 @@ def run_factory_v3_1(
     # This does not enable purchases without verified Google Play Billing.
     from .monetization import monetization_manifest
     write_json(game_dir / "MONETIZATION_MANIFEST.json", monetization_manifest())
+    from .collectibles_catalog import collectible_catalog
+    write_json(game_dir / "COLLECTIBLES_CATALOG.json", collectible_catalog())
 
     # Produce a playable browser edition directly from the same game pack.
     # This is deliberately separate from GDevelop's compiled HTML5 export.
