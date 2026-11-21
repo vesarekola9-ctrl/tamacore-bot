@@ -68,15 +68,25 @@ class PlayableBrowserTests(unittest.TestCase):
                    "equipped": {"furniture": furniture[0], "toy": furniture[0]},
                    "displayed": furniture + furniture,
                    "positions": {furniture[0]: {"x": -500, "y": 999}},
-                   "layouts": {"1": {"equipped": {"furniture": furniture[0]}}}}
+                   "layouts": {"1": {"equipped": {"furniture": furniture[0]}}},
+                   "wishlist": [furniture[0], "invalid", "wallpaper_sky", "wallpaper_sky"]}
         code = "const cfg=" + json.dumps({"collectibles": catalog}) + ";\n" + logic
         code += "\nconsole.log(JSON.stringify(normalizeBoutique(" + json.dumps(fixture) + ")));"
         result = json.loads(subprocess.check_output(["node", "-e", code], text=True))
+        self.assertEqual(result["wishlist"], ["wallpaper_sky"])
         self.assertNotIn("invalid", result["owned"])
         self.assertNotIn("toy", result["equipped"])
         self.assertEqual(len(result["displayed"]), 3)
         self.assertEqual(result["positions"][furniture[0]], {"x": 130, "y": 495})
         self.assertEqual(result["layouts"]["1"]["equipped"]["furniture"], furniture[0])
+
+    def test_boutique_discovery_controls(self):
+        html = self.build({"name": "TamaCore"})
+        for element in ("boutiqueSearch", "boutiqueTheme", "boutiqueOwnedOnly",
+                        "boutiqueWishlist", "boutiqueSort"):
+            self.assertIn('id="' + element + '"', html)
+        self.assertIn("Try preview", html)
+        self.assertIn("more coins needed", html)
 
     def test_legacy_food_cost_is_normalized(self):
         html = self.build({"foods": [{"id": "apple", "cost": 7, "energy": 2}]})
