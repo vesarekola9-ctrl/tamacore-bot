@@ -131,7 +131,10 @@ obstacles=[];
 for(let i=0;i<Math.min(14,3+state.level);i++){
 const p=point(rand(20,32));if(Math.hypot(p.x-W/2,p.y-H/2)>115&&!blocked(p.x,p.y,p.r))obstacles.push(p);}
 targets=Array.from({length:Math.min(150,Math.max(0,lv.coinCount||0))},()=>safePoint(10));
-enemies=Array.from({length:Math.min(50,Math.max(0,lv.enemyCount||0))},()=>({...safePoint(16),vx:rand(-90,90),vy:rand(-90,90)}));
+enemies=Array.from({length:Math.min(50,Math.max(0,lv.enemyCount||0))},(_,i)=>{
+const type=(state.level>=4&&i%5===0)?"chaser":(state.level>=2&&i%3===0)?"sprinter":"wanderer";
+const speed=type==="sprinter"?rand(115,155):rand(45,90);
+const angle=rand(0,Math.PI*2);return {...safePoint(16),vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,type,speed};});
 msg(world().name+" • Level "+(state.level+1)+": collect "+targets.length+" coins and avoid enemies.");
 updateStats();}
 function beginQuest(){questKind=state.level%2===0?"collect":"survive";questProgress=0;
@@ -242,7 +245,8 @@ ctx.strokeStyle="#fff0a5";ctx.lineWidth=1.7;ctx.beginPath();ctx.arc(c.x,c.y,r*.7
 ctx.fillStyle="#a86c24";ctx.font="bold "+Math.round(r*1.25)+"px system-ui";ctx.textAlign="center";ctx.fillText("★",c.x,c.y+r*.44);ctx.textAlign="left";}
 function drawEnemy(e){ctx.save();ctx.translate(e.x,e.y+Math.sin(visualTime*6+e.x*.02)*2);
 circle(2,4,e.r+3,"#511d3d88");const g=ctx.createRadialGradient(-5,-7,1,0,0,e.r+2);
-g.addColorStop(0,"#ffb0b3");g.addColorStop(.55,"#f45e83");g.addColorStop(1,"#ac365c");circle(0,0,e.r,g);
+const palette=e.type==="chaser"?["#ffde95","#ef9a3b","#a75226"]:e.type==="sprinter"?["#d7b8ff","#9868df","#633f9b"]:["#ffb0b3","#f45e83","#ac365c"];
+g.addColorStop(0,palette[0]);g.addColorStop(.55,palette[1]);g.addColorStop(1,palette[2]);circle(0,0,e.r,g);
 for(const side of [-1,1]){ctx.fillStyle="#a83b65";ctx.beginPath();ctx.moveTo(side*e.r*.55,-e.r*.6);ctx.lineTo(side*e.r*.8,-e.r*1.22);ctx.lineTo(side*e.r*.08,-e.r*.87);ctx.closePath();ctx.fill();}
 circle(-5,-3,4,"#fff");circle(6,-3,4,"#fff");circle(-4,-3,2,"#28203a");circle(7,-3,2,"#28203a");
 ctx.strokeStyle="#802744";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-4,7);ctx.lineTo(4,7);ctx.stroke();ctx.restore();}
@@ -313,7 +317,11 @@ moveAroundObstacles(player,dx/len*state.speed*dt,dy/len*state.speed*dt);
 for(let i=targets.length-1;i>=0;i--)if(Math.hypot(player.x-targets[i].x,player.y-targets[i].y)<player.r+targets[i].r){
 burst(targets[i].x,targets[i].y,"#ffe57d",10);targets.splice(i,1);collected++;state.coins+=10;
 if(questKind==="collect")advanceQuest(1);save();updateStats();}
-for(const e of enemies){e.x+=e.vx*dt;e.y+=e.vy*dt;
+for(const e of enemies){
+if(e.type==="chaser"){const vx=player.x-e.x,vy=player.y-e.y,d=Math.hypot(vx,vy);
+if(d>1&&d<210){const desiredX=vx/d*e.speed,desiredY=vy/d*e.speed;
+e.vx+=(desiredX-e.vx)*Math.min(1,dt*1.5);e.vy+=(desiredY-e.vy)*Math.min(1,dt*1.5);}}
+e.x+=e.vx*dt;e.y+=e.vy*dt;
 if(e.x<e.r||e.x>W-e.r)e.vx*=-1;
 if(e.y<e.r||e.y>H-e.r)e.vy*=-1;
 e.x=clamp(e.x,e.r,W-e.r);e.y=clamp(e.y,e.r,H-e.r);
@@ -326,7 +334,7 @@ for(const o of obstacles)drawObstacle(o);
 for(const c of targets)drawCoin(c);
 drawParticles();
 // Companion is decorative and never collides with enemies or collectibles.
-drawBunny(pet.x,pet.y,.72+state.petStage*.09,state.petMood<30?"#a9b3cf":"#ffb6d7",!paused&&petDist>3,1,state.petMood<30?"sad":"happy");
+drawBunny(pet.x,pet.y,.72+state.petStage*.09,state.petMood<30?"#a9b3cf":"#ffb6d7",!paused&&Math.hypot(petTarget.x-pet.x,petTarget.y-pet.y)>3,1,state.petMood<30?"sad":"happy");
 if(state.petEnergy<20){ctx.font="18px system-ui";ctx.fillText("Zzz",pet.x+16,pet.y-30);}
 for(const h of hearts){ctx.save();ctx.globalAlpha=Math.min(1,h.life);ctx.font="19px system-ui";ctx.fillText("❤",h.x,h.y);ctx.restore();}
 if(joystick){circle(joystick.start.x,joystick.start.y,56,"#365b77");
