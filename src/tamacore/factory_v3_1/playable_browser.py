@@ -67,7 +67,7 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect";
-let scenery=[],visualTime=0;
+let scenery=[],visualTime=0,playerMoving=false,playerFacing=1;
 let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse")return;
@@ -195,6 +195,24 @@ b.addEventListener("pointerdown",e=>{e.preventDefault();b.setPointerCapture(e.po
 for(const event of ["pointerup","pointercancel","lostpointercapture"])b.addEventListener(event,()=>keys.delete(key));
 }
 function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+function drawBunny(x,y,scale,bodyColor,walking,face=1,expression="happy"){
+const bounce=walking?Math.abs(Math.sin(visualTime*12))*3:Math.sin(visualTime*2)*1.3;
+ctx.save();ctx.translate(x,y-bounce);ctx.scale(scale*face,scale);
+ctx.fillStyle="#10242b66";ctx.beginPath();ctx.ellipse(0,19,19,6,0,0,Math.PI*2);ctx.fill();
+ctx.fillStyle=bodyColor;
+ctx.beginPath();ctx.ellipse(-9,-23,7,20,-.15,0,Math.PI*2);ctx.ellipse(9,-23,7,20,.15,0,Math.PI*2);ctx.fill();
+ctx.fillStyle="#f4a7bb";ctx.beginPath();ctx.ellipse(-9,-24,3,13,-.15,0,Math.PI*2);ctx.ellipse(9,-24,3,13,.15,0,Math.PI*2);ctx.fill();
+circle(0,1,19,bodyColor);
+ctx.fillStyle="#ffffffaa";ctx.beginPath();ctx.ellipse(-5,10,9,6,0,0,Math.PI*2);ctx.fill();
+const blink=Math.sin(visualTime*1.8+x*.03)>.995;
+ctx.fillStyle="#243040";if(blink){ctx.fillRect(-11,-3,7,2);ctx.fillRect(5,-3,7,2);}else{
+ctx.beginPath();ctx.ellipse(-8,-3,3.4,4.8,0,0,Math.PI*2);ctx.ellipse(8,-3,3.4,4.8,0,0,Math.PI*2);ctx.fill();
+circle(-7,-5,1.3,"#ffffff");circle(9,-5,1.3,"#ffffff");}
+circle(0,5,2.7,"#e88099");
+ctx.strokeStyle="#75445a";ctx.lineWidth=1.6;ctx.beginPath();
+if(expression==="sad"){ctx.arc(0,15,4,Math.PI*1.1,Math.PI*1.9);}else{ctx.arc(0,8,5,.1,Math.PI-.1);}
+ctx.stroke();ctx.fillStyle="#ed91a5";circle(-14,6,3,"#ed91a577");circle(14,6,3,"#ed91a577");
+ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
 if(!paused)visualTime+=dt;
 ctx.clearRect(0,0,W,H);ctx.fillStyle=world().floor;ctx.fillRect(0,0,W,H);
@@ -221,7 +239,9 @@ let dx=Number(keys.has("d")||keys.has("arrowright"))-Number(keys.has("a")||keys.
 let dy=Number(keys.has("s")||keys.has("arrowdown"))-Number(keys.has("w")||keys.has("arrowup"));
 if(joystick){const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
 const length=Math.hypot(vx,vy);if(length>8){dx=vx/Math.max(60,length);dy=vy/Math.max(60,length);}}
-const len=Math.max(1,Math.hypot(dx,dy));moveAroundObstacles(player,dx/len*state.speed*dt,dy/len*state.speed*dt);
+const len=Math.max(1,Math.hypot(dx,dy));playerMoving=Math.hypot(dx,dy)>.1;
+if(Math.abs(dx)>.1)playerFacing=dx>0?1:-1;
+moveAroundObstacles(player,dx/len*state.speed*dt,dy/len*state.speed*dt);
 for(let i=targets.length-1;i>=0;i--)if(Math.hypot(player.x-targets[i].x,player.y-targets[i].y)<player.r+targets[i].r){
 targets.splice(i,1);collected++;state.coins+=10;
 if(questKind==="collect")advanceQuest(1);save();updateStats();}
@@ -239,20 +259,16 @@ circle(o.x-o.r*.2,o.y-o.r*.2,o.r*.32,"#ffffff25");}
 for(const c of targets){const pulse=1+Math.sin(visualTime*5+c.x*.07)*.12;
 circle(c.x,c.y,c.r*pulse+5,"#e5b54844");circle(c.x,c.y,c.r*pulse,"#ffd35a");
 ctx.fillStyle="#fff1aa";ctx.fillRect(c.x-1.5,c.y-5,3,10);}
-// The companion is decorative and never collides with enemies or collectibles.
-circle(pet.x,pet.y,16+state.petStage*2,state.petMood<30?"#a9b3cf":"#ffb6d7");
-ctx.textAlign="center";ctx.font=(20+state.petStage*2)+"px system-ui";
-ctx.fillText(state.petEnergy<20?"💤":state.petMood<30?"😢":state.petMood>80?"🥰":"🐣",pet.x,pet.y+8);
-ctx.textAlign="left";
+// Companion is decorative and never collides with enemies or collectibles.
+drawBunny(pet.x,pet.y,.72+state.petStage*.09,state.petMood<30?"#a9b3cf":"#ffb6d7",!paused&&petDist>3,1,state.petMood<30?"sad":"happy");
+if(state.petEnergy<20){ctx.font="18px system-ui";ctx.fillText("Zzz",pet.x+16,pet.y-30);}
 if(joystick){circle(joystick.start.x,joystick.start.y,56,"#365b77");
 const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
 const len=Math.max(1,Math.hypot(vx,vy));circle(joystick.start.x+vx/len*Math.min(48,len),joystick.start.y+vy/len*Math.min(48,len),24,"#9acbdc");}
 for(const e of enemies){circle(e.x,e.y,e.r+3,"#9e3447");circle(e.x,e.y,e.r,"#fb6570");
 circle(e.x-5,e.y-3,3,"#fff");circle(e.x+5,e.y-3,3,"#fff");
 circle(e.x-4,e.y-3,1.5,"#222");circle(e.x+6,e.y-3,1.5,"#222");}
-circle(player.x,player.y,player.r,invincible>0?"#ffffff":"#79e0d0");
-ctx.font=(30+state.petStage*3)+"px system-ui";ctx.textAlign="center";
-ctx.fillText(state.petStage>=5?"🐉":state.petStage>=3?"🐱":"🐾",player.x,player.y+10);
+drawBunny(player.x,player.y,.9,invincible>0?"#ffffff":"#79e0d0",!paused&&playerMoving,playerFacing);
 if(state.equippedCosmetic){ctx.font="23px system-ui";ctx.fillText("✦",player.x+17,player.y-13);}
 ctx.textAlign="left";
 ctx.fillStyle="#ffffff";ctx.font="bold 18px system-ui";ctx.fillText(world().name+"  •  Coins left: "+targets.length,16,30);
