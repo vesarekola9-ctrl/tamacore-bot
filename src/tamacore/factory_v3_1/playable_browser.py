@@ -44,6 +44,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 <div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button></div>
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
+<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><p id="petStatus"></p></div>
 <small>Move: WASD / arrow keys or touch buttons. Collect yellow coins. Avoid red enemies. Progress saves automatically in this browser.</small></div>
 </main><script id="config" type="application/json">__GAME_CONFIG__</script><script>
 "use strict";
@@ -54,9 +55,9 @@ const $=id=>document.getElementById(id);
 $("title").textContent=cfg.name;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>a+Math.random()*(b-a);
-const state={coins:250,speed:200,level:0,owned:{},petHunger:75};
+const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75};
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object"){
-for(const k of ["coins","speed","level","petHunger"])if(Number.isFinite(saved[k]))state[k]=saved[k];
+for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness"])if(Number.isFinite(saved[k]))state[k]=saved[k];
 if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
@@ -81,7 +82,8 @@ updateStats();}
 function updateStats(){const lv=cfg.levels[state.level]||{};
 $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Coins: "+state.coins+
 "  •  Collected: "+collected+"/"+Math.min(150,lv.coinCount||0)+"  •  Speed: "+state.speed+
-"  •  Pet hunger: "+Math.round(state.petHunger);}
+"  •  Pet hunger: "+Math.round(state.petHunger);
+$("petStatus").textContent="Hunger "+Math.round(state.petHunger)+"/100 • Energy "+Math.round(state.petEnergy)+"/100 • Mood "+Math.round(state.petMood)+"/100 • Cleanliness "+Math.round(state.petCleanliness)+"/100";}
 function finishLevel(){if(state.level+1>=cfg.levels.length){won=true;msg("🏆 All levels completed! Open New game to play again.");}
 else{state.level++;save();startLevel();}save();}
 function renderShop(){const box=$("items");box.replaceChildren();
@@ -94,15 +96,22 @@ state.coins-=upgrade.cost;state.owned[id]=true;
 const effect=upgrade.effect||{};
 state.speed+=Number(effect.playerMaxSpeedAdd)||0;
 state.coins+=Number(effect.coinsAdd)||0;
-state.petHunger=clamp(state.petHunger+(Number(effect.moodAdd)||0),0,100);
+state.petMood=clamp(state.petMood+(Number(effect.moodAdd)||0),0,100);
+state.petEnergy=clamp(state.petEnergy+(Number(effect.energyAdd)||0),0,100);
+state.petCleanliness=clamp(state.petCleanliness+(Number(effect.cleanlinessAdd)||0),0,100);
 save();renderShop();updateStats();msg("Purchased "+upgrade.name);};box.appendChild(b);}}
 $("shopToggle").onclick=()=>{$("shop").classList.toggle("open");renderShop();};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;won=false;save();startLevel();renderShop();};
-$("feed").onclick=()=>{const food=cfg.foods[0];if(!food){msg("No food available.");return;}
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;won=false;save();startLevel();renderShop();};
+function feedPet(){const food=cfg.foods[Number($("foodChoice").value)];if(!food){msg("No food available.");return;}
 if(state.coins<food.price){msg("Not enough coins to feed your pet.");return;}
-state.coins-=food.price;state.petHunger=clamp(state.petHunger+food.hunger,0,100);
-save();updateStats();msg("Fed pet: "+food.name);};
+state.coins-=food.price;state.petHunger=clamp(state.petHunger+(Number(food.hunger)||0),0,100);
+state.petEnergy=clamp(state.petEnergy+(Number(food.energy)||0),0,100);
+state.petMood=clamp(state.petMood+(Number(food.mood)||0),0,100);
+save();updateStats();msg("Fed pet: "+food.name);}
+for(const [index,food] of cfg.foods.entries()){const option=document.createElement("option");option.value=index;
+option.textContent=food.name+" ("+food.price+" coins)";$("foodChoice").appendChild(option);}
+$("feed").onclick=feedPet;$("feedSelected").onclick=feedPet;
 addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());});
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 addEventListener("blur",()=>keys.clear());
