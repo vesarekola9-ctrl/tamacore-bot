@@ -20,6 +20,16 @@ class PetRuntimeTests(unittest.TestCase):
         self.assertEqual(next(v for v in project["variables"] if v["name"] == "Pet_State")["value"], "Sleep")
         self.assertEqual(sum(v["name"] == "Pet_State" for v in project["globalVariables"]), 1)
 
+    def test_care_stats_are_numeric_gdevelop_variables(self):
+        project = {"variables": []}
+        apply_pet_runtime(project)
+        variables = {v["name"]: v for v in project["variables"]}
+        for name in ("Pet_Hunger", "Pet_Happiness", "Pet_Energy", "Pet_Health"):
+            self.assertEqual(variables[name]["type"], "number")
+            self.assertEqual(variables[name]["value"], 100)
+        self.assertEqual(variables["Pet_State"]["type"], "string")
+
+
 
 if __name__ == "__main__":
     unittest.main()
