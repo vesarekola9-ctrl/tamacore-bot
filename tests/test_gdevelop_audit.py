@@ -57,6 +57,22 @@ class GDevelopAuditTests(unittest.TestCase):
             self.assertIn("Scene Home has duplicate object: Pet", problems)
             self.assertIn("Scene Home instance references missing object: Ghost", problems)
 
+    def test_rejects_duplicate_generated_gameplay_events(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / "game.json"
+            project.write_text(json.dumps({
+                "resources": {"resources": []},
+                "layouts": [{"name": "Home", "objects": [{"name": "Player"}],
+                             "events": [
+                                 {"name": "TamaCorePetClick_Feed"},
+                                 {"name": "TamaCorePetClick_Feed"},
+                             ]}],
+            }), encoding="utf-8")
+            self.assertIn(
+                "Scene Home has duplicate TamaCore event: TamaCorePetClick_Feed",
+                audit_project(project),
+            )
+
     def test_accepts_basic_nonempty_structure(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
