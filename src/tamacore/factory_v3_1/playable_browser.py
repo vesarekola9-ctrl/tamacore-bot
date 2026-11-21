@@ -794,7 +794,7 @@ ctx.stroke();ctx.fillStyle="#ed91a5";circle(-14,6,3,"#ed91a577");circle(14,6,3,"
 ctx.strokeStyle="#ffffff99";ctx.lineWidth=.9;
 for(const side of [-1,1])for(const angle of [-.24,.14]){ctx.beginPath();ctx.moveTo(side*11,7);
 ctx.lineTo(side*26,7+angle*20);ctx.stroke();}
-const outfit=boutiqueSelected("outfit");if(outfit){ctx.save();ctx.scale(face,1);ctx.font="22px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";const yOffsets={outfit_sunhat:-36,outfit_bow:-21,outfit_hoodie:13,outfit_glasses:-4,outfit_cape:15,outfit_crown:-36,outfit_pajamas:13,outfit_boots:22};ctx.fillText(outfit.emoji,0,yOffsets[outfit.id]??-25);ctx.restore();}
+const outfit=boutiqueSelected("outfit");if(outfit){ctx.save();ctx.scale(face,1);ctx.font="22px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";const yOffsets={outfit_sunhat:-36,outfit_bow:-21,outfit_hoodie:13,outfit_glasses:-4,outfit_cape:15,outfit_crown:-36,outfit_pajamas:13,outfit_boots:22};const baseId=outfit.theme?outfit.id.slice(0,-outfit.theme.length-1):outfit.id;Object.assign(yOffsets,{outfit_scarf:8,outfit_cap:-36,outfit_tophat:-38,outfit_dress:17,outfit_shirt:12,outfit_mittens:20,outfit_backpack:15,outfit_headphones:-15});boutiqueThemeEffect(outfit);ctx.fillText(outfit.emoji,0,yOffsets[baseId]??-25);ctx.restore();}
 ctx.restore();}
 const homeWander={x:400,target:400,next:0,step:0};
 function advancePetWander(dt){if(state.petSleeping||state.petSick||state.petStage===1)return;if(visualTime>=homeWander.next){homeWander.target=170+Math.random()*450;homeWander.next=visualTime+4+Math.random()*7;}const dx=homeWander.target-homeWander.x;homeWander.step=Math.abs(dx)>3?Math.sign(dx):0;homeWander.x+=homeWander.step*Math.min(Math.abs(dx),dt*(state.petEnergy<25?22:45));}
@@ -830,8 +830,8 @@ if(state.roomEquipped.furniture==="bed"){ctx.font="85px system-ui";ctx.textAlign
 if(typeof extra!=="undefined"&&extra&&extra.living){ctx.save();ctx.font="45px system-ui";ctx.textAlign="center";ctx.fillText(({ball:"⚽",plush:"🧸",blocks:"🧱",drum:"🥁",kite:"🪁",robot:"🤖",puzzle:"🧩",train:"🚂"})[extra.living.favoriteToy]||"⚽",homeWander.x+85,455);ctx.restore();}
 if(state.roomEquipped.toy!=="none"){ctx.font="54px system-ui";ctx.textAlign="center";ctx.fillText(state.roomEquipped.toy==="ball"?"⚽":"🧩",190,460);}
 ctx.save();ctx.textAlign="center";const boutiqueFurniture=boutiqueSelected("furniture"),boutiqueToy=boutiqueSelected("toy");
-if(boutiqueFurniture){ctx.font="85px system-ui";ctx.fillText(boutiqueFurniture.emoji,560,420);}
-if(boutiqueToy){ctx.font="48px system-ui";ctx.fillText(boutiqueToy.emoji,260,475);}
+if(boutiqueFurniture){ctx.save();boutiqueThemeEffect(boutiqueFurniture);ctx.font="85px system-ui";ctx.fillText(boutiqueFurniture.emoji,560,420);ctx.restore();}
+if(boutiqueToy){ctx.save();boutiqueThemeEffect(boutiqueToy);ctx.font="48px system-ui";ctx.fillText(boutiqueToy.emoji,260,475);ctx.restore();}
 ctx.restore();
 ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ctx.fillText((state.petSpecies==="kitten"?"🐱":state.petSpecies==="puppy"?"🐶":"🐰")+" "+state.petName.toUpperCase()+"\u0027S HOME",W/2,142);
 ctx.font="bold 16px system-ui";ctx.fillText(phase==="night"?"Nighttime":phase==="evening"?"Evening":"Daytime",W/2,164);
@@ -1130,6 +1130,10 @@ function normalizeBoutique(input){
 let boutiqueSave=normalizeBoutique(state.boutique);
 if(!state.boutique){try{boutiqueSave=normalizeBoutique(JSON.parse(localStorage.getItem(boutiqueKey)||"{}"));}catch(_error){}}
 state.boutique=boutiqueSave;
+function boutiqueThemeEffect(item){
+ const colors={pastel:"#efb9df",royal:"#e8ca77",winter:"#a9dfef",garden:"#a4d5a3"};
+ ctx.shadowColor=colors[item.theme]||"transparent";ctx.shadowBlur=item.theme?12:0;
+}
 function boutiqueSelected(category){const id=boutiqueSave.equipped[category];return (cfg.collectibles||[]).find(item=>item.id===id&&item.category===category&&boutiqueSave.owned[id]===true);}
 let boutiqueCategory="outfit";
 const boutiqueCategories=["outfit","furniture","wallpaper","toy"];
