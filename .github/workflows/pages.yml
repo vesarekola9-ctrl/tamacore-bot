@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/tamacore/factory_v3_1/playable_browser.py'
+      - 'src/tamacore/factory_v3_1/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 permissions:
@@ -21,7 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
       - name: Build standalone playable HTML
         run: |
           python - <<'PY'
@@ -46,6 +45,13 @@ jobs:
           (out / "index.html").write_text(game.read_text(encoding="utf-8"), encoding="utf-8")
           print("Built", out / "index.html")
           PY
+      - name: Upload playable browser game for direct download
+        uses: actions/upload-artifact@v4
+        with:
+          name: tamacore-browser-game
+          path: _site/index.html
+          if-no-files-found: error
+      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
