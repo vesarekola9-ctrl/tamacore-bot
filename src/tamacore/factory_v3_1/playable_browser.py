@@ -14,7 +14,7 @@ def write_playable_browser_game(game_dir: Path, pack: dict, levels: list, shop: 
         "name": pack.get("name", "TamaCore"),
         "levels": levels,
         "shop": shop.get("upgrades", []),
-        "foods": pack.get("foods", []),
+        "foods": [{**food, "price": max(0, float(food.get("price", food.get("cost", 0)) or 0)), "energy": float(food.get("energy", 0) or 0)} for food in pack.get("foods", []) if isinstance(food, dict)],
         "cosmetics": pack.get("cosmetics", []),
         "pet": pack.get("pet", {}),
     }
