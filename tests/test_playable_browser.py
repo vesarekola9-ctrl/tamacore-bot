@@ -37,6 +37,15 @@ class PlayableBrowserTests(unittest.TestCase):
             self.assertIn('id="' + element_id + '"', html)
         self.assertIn('boutiqueSave.owned', html)
 
+    def test_boutique_items_are_rendered_in_live_game(self):
+        html = self.build({"name": "TamaCore"})
+        for category in ("outfit", "furniture", "wallpaper", "toy"):
+            self.assertIn('boutiqueSelected("' + category + '")', html)
+        self.assertIn("ctx.fillText(outfit.emoji", html)
+        self.assertIn("ctx.fillText(boutiqueFurniture.emoji", html)
+        self.assertIn("ctx.fillText(boutiqueToy.emoji", html)
+        self.assertIn("state.coins-=item.coinPrice", html)
+
     def test_legacy_food_cost_is_normalized(self):
         html = self.build({"foods": [{"id": "apple", "cost": 7, "energy": 2}]})
         match = re.search(r'<script id="config" type="application/json">(.*?)</script>', html, re.S)
