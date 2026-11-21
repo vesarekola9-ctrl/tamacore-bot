@@ -25,6 +25,18 @@ class PlayableBrowserTests(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertEqual(json.loads(match.group(1))["name"], "TamaCore Test")
 
+    def test_collectible_boutique_has_visual_preview_and_catalog(self):
+        html = self.build({"name": "TamaCore", "foods": [], "cosmetics": []})
+        match = re.search(r'<script id="config" type="application/json">(.*?)</script>', html, re.S)
+        self.assertIsNotNone(match)
+        catalog = json.loads(match.group(1))["collectibles"]
+        self.assertGreaterEqual(len(catalog), 20)
+        for element_id in ("boutiquePreview", "boutiquePreviewOutfit",
+                           "boutiquePreviewFurniture", "boutiquePreviewWallpaper",
+                           "boutiquePreviewToy"):
+            self.assertIn('id="' + element_id + '"', html)
+        self.assertIn('boutiqueSave.owned', html)
+
     def test_legacy_food_cost_is_normalized(self):
         html = self.build({"foods": [{"id": "apple", "cost": 7, "energy": 2}]})
         match = re.search(r'<script id="config" type="application/json">(.*?)</script>', html, re.S)
