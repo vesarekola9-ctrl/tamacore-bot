@@ -140,8 +140,18 @@ def run_factory_v3_1(
     from .pet_sprite_generator import generate_pet_sprites
     pet_config = raw_pack.get("pet") or {}
     pet_species = pet_config.get("species", "bunny") if isinstance(pet_config, dict) else "bunny"
-    generate_pet_sprites(game_dir, str(pet_species))
+    generated_pet_frames = generate_pet_sprites(game_dir, str(pet_species))
     apply_character_animations(project, scene, game_dir)
+    write_json(game_dir / "PET_ANIMATION_MANIFEST.json", {
+        "species": str(pet_species),
+        "format": "RGBA PNG",
+        "frameSize": [128, 128],
+        "animations": [animation["name"] for animation in
+                       next((obj.get("animations", []) for obj in scene.get("objects", [])
+                             if isinstance(obj, dict) and obj.get("name") == "Player"), [])],
+        "generatedFramePaths": [path.relative_to(game_dir).as_posix()
+                                for path in generated_pet_frames],
+    })
 
     # Preserve every registered v3.1 subsystem.
     project = build_game_json(project, enable_v3_2=enable_v3_2)
