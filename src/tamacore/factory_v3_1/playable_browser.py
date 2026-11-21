@@ -208,10 +208,18 @@ const bounce=walking?Math.abs(Math.sin(visualTime*12))*3:Math.sin(visualTime*2)*
 ctx.save();ctx.translate(x,y-bounce);ctx.scale(scale*face,scale);
 ctx.fillStyle="#10242b66";ctx.beginPath();ctx.ellipse(0,19,19,6,0,0,Math.PI*2);ctx.fill();
 ctx.fillStyle=bodyColor;
+const earSway=Math.sin(visualTime*(walking?10:2.2)+x*.02)*.09;
+ctx.save();ctx.rotate(earSway);
 ctx.beginPath();ctx.ellipse(-9,-23,7,20,-.15,0,Math.PI*2);ctx.ellipse(9,-23,7,20,.15,0,Math.PI*2);ctx.fill();
-ctx.fillStyle="#f4a7bb";ctx.beginPath();ctx.ellipse(-9,-24,3,13,-.15,0,Math.PI*2);ctx.ellipse(9,-24,3,13,.15,0,Math.PI*2);ctx.fill();
-circle(0,1,19,bodyColor);
+ctx.fillStyle="#f4a7bb";ctx.beginPath();ctx.ellipse(-9,-24,3,13,-.15,0,Math.PI*2);ctx.ellipse(9,-24,3,13,.15,0,Math.PI*2);ctx.fill();ctx.restore();
+// Tiny feet and tail make the character readable at mobile sizes.
+const step=walking?Math.sin(visualTime*12)*3:0;
+circle(-12,16+step,8,bodyColor);circle(12,16-step,8,bodyColor);
+circle(17,9,7,"#ffffffbb");
+const fur=ctx.createRadialGradient(-8,-8,2,0,2,25);fur.addColorStop(0,"#ffffffbb");fur.addColorStop(.35,bodyColor);fur.addColorStop(1,bodyColor);
+circle(0,1,19,fur);
 ctx.fillStyle="#ffffffaa";ctx.beginPath();ctx.ellipse(-5,10,9,6,0,0,Math.PI*2);ctx.fill();
+ctx.fillStyle="#ffffff55";ctx.beginPath();ctx.ellipse(-11,-10,5,3,-.5,0,Math.PI*2);ctx.fill();
 const blink=Math.sin(visualTime*1.8+x*.03)>.995;
 ctx.fillStyle="#243040";if(blink){ctx.fillRect(-11,-3,7,2);ctx.fillRect(5,-3,7,2);}else{
 ctx.beginPath();ctx.ellipse(-8,-3,3.4,4.8,0,0,Math.PI*2);ctx.ellipse(8,-3,3.4,4.8,0,0,Math.PI*2);ctx.fill();
@@ -220,6 +228,10 @@ circle(0,5,2.7,"#e88099");
 ctx.strokeStyle="#75445a";ctx.lineWidth=1.6;ctx.beginPath();
 if(expression==="sad"){ctx.arc(0,15,4,Math.PI*1.1,Math.PI*1.9);}else{ctx.arc(0,8,5,.1,Math.PI-.1);}
 ctx.stroke();ctx.fillStyle="#ed91a5";circle(-14,6,3,"#ed91a577");circle(14,6,3,"#ed91a577");
+// Fine whiskers and cheek highlights.
+ctx.strokeStyle="#ffffff99";ctx.lineWidth=.9;
+for(const side of [-1,1])for(const angle of [-.24,.14]){ctx.beginPath();ctx.moveTo(side*11,7);
+ctx.lineTo(side*26,7+angle*20);ctx.stroke();}
 ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
 if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
