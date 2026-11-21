@@ -41,7 +41,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 #welcome{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#071323dd;padding:18px;backdrop-filter:blur(10px)}#welcome[hidden]{display:none}#welcomeCard{width:min(100%,480px);background:linear-gradient(150deg,#345579,#15263f);border:2px solid #a6d9f3;border-radius:24px;padding:clamp(20px,5vw,36px);text-align:center;box-shadow:0 24px 80px #0009}#welcomeCard h2{font-size:clamp(26px,5vw,38px);color:#ffe6a8;margin:8px 0}#welcomeCard p{color:#d6e9fa;line-height:1.6}#welcomeCard button{font-size:19px;min-height:54px;width:100%;margin-top:14px;background:linear-gradient(135deg,#49a990,#287d91)}
 #victory{position:fixed;inset:0;z-index:110;display:grid;place-items:center;background:#071323e8;padding:18px;backdrop-filter:blur(10px)}#victory[hidden]{display:none}#victoryCard{width:min(100%,490px);padding:clamp(22px,5vw,38px);text-align:center;border-radius:25px;border:2px solid #ffdd8c;background:linear-gradient(155deg,#42577e,#17243d);box-shadow:0 25px 90px #000b}#victoryCard h2{color:#ffe3a1;font-size:clamp(26px,5vw,39px);margin:10px 0}#victoryCard p{line-height:1.6;color:#dceeff}#victoryCard button{width:100%;font-size:17px;margin-top:12px;min-height:50px}
 </style></head><body><div id="victory" role="dialog" aria-modal="true" aria-labelledby="victoryTitle" hidden><div id="victoryCard"><div style="font-size:64px">🏆🐰🎉</div><h2 id="victoryTitle">Adventure Complete!</h2><p id="victorySummary"></p><button id="victoryClose">✨ View my achievements</button><button id="victoryRestart">🔄 Start a new adventure</button></div></div><div id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle"><div id="welcomeCard"><div style="font-size:58px">🐰✨</div><h2 id="welcomeTitle">Welcome to TamaCore!</h2><p>Collect coins, dodge enemies and explore new worlds with your bunny companion. Feed, train and evolve your pet as you play.</p><p><strong>Move:</strong> WASD, arrow keys or touch controls<br><strong>Dash:</strong> Space or 💨 button<br><strong>Pet:</strong> Tap your bunny companion</p><button id="startGame">▶ Start adventure</button></div></div><main><header><h1 id="title">TamaCore</h1><div>
-<button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="musicToggle" aria-pressed="false">🎵 Music off</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="exportSave">💾 Export save</button><button id="importSave">📂 Import save</button><input id="saveFile" type="file" accept=".json,application/json" hidden><button id="reset">New game</button></div></header>
+<button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="musicToggle" aria-pressed="false">🎵 Music off</button><button id="effectsToggle" aria-pressed="false">✨ Full effects</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="exportSave">💾 Export save</button><button id="importSave">📂 Import save</button><input id="saveFile" type="file" accept=".json,application/json" hidden><button id="reset">New game</button></div></header>
 <div id="stats" aria-live="polite"></div><div id="quickHud" aria-label="Game status"><span id="hudLevel"></span><span id="hudCoins"></span><span id="hudPet"></span><span id="hudPower"></span></div>
 <canvas id="game" width="800" height="600" aria-label="Playable game field"></canvas>
 <div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button><button id="dash">💨 Dash</button></div>
@@ -56,7 +56,10 @@ const cfg=JSON.parse(document.getElementById("config").textContent);
 const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height,KEY="tamacore_browser_save_v1";
 const $=id=>document.getElementById(id);
-let soundEnabled=false,musicEnabled=false,audioCtx=null,musicClock=0,musicStep=0;
+let soundEnabled=false,musicEnabled=false,reducedEffects=false,audioCtx=null,musicClock=0,musicStep=0;
+try{reducedEffects=localStorage.getItem("tamacore_reduced_effects")==="1"||(!localStorage.getItem("tamacore_reduced_effects")&&window.matchMedia("(prefers-reduced-motion: reduce)").matches);}catch(_){}
+function updateEffectsButton(){$("effectsToggle").textContent=reducedEffects?"🌿 Lite effects":"✨ Full effects";$("effectsToggle").setAttribute("aria-pressed",String(reducedEffects));}
+$("effectsToggle").onclick=()=>{reducedEffects=!reducedEffects;try{localStorage.setItem("tamacore_reduced_effects",reducedEffects?"1":"0");}catch(_){}updateEffectsButton();};updateEffectsButton();
 const melodies=[[392,440,523,440,349,392,440,330],[330,392,494,392,294,330,392,262],[440,523,587,523,392,440,523,349],[349,392,466,392,330,349,392,294]];
 function musicTick(dt){if(!musicEnabled||paused||won)return;
 musicClock-=dt;if(musicClock>0)return;musicClock=.42;
@@ -171,9 +174,9 @@ else if(theme===1){ctx.fillStyle=d.kind%2?"#9ad9f8":"#d6a9ff";ctx.beginPath();ct
 else if(theme===2){ctx.strokeStyle="#efc184";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,d.size,0,Math.PI);ctx.stroke();}
 else{ctx.fillStyle="#d8f6ff";for(let j=0;j<3;j++){ctx.save();ctx.rotate(j*Math.PI/3);ctx.fillRect(-1,-d.size,2,d.size*2);ctx.restore();}}
 ctx.restore();}}
-function burst(x,y,color,count=12){for(let i=0;i<count;i++){const angle=i*Math.PI*2/count+rand(-.15,.15),speed=rand(45,145);
+function burst(x,y,color,count=12){if(reducedEffects)count=Math.min(8,Math.ceil(count/4));for(let i=0;i<count;i++){const angle=i*Math.PI*2/count+rand(-.15,.15),speed=rand(45,145);
 particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-25,life:rand(.35,.85),maxLife:.85,r:rand(2,5),color});}
-if(particles.length>220)particles.splice(0,particles.length-220);}
+const limit=reducedEffects?60:220;if(particles.length>limit)particles.splice(0,particles.length-limit);}
 function drawParticles(){for(const p of particles){ctx.save();ctx.globalAlpha=clamp(p.life/p.maxLife,0,1);
 circle(p.x,p.y,p.r*p.life/p.maxLife,p.color);ctx.restore();}}
 function updateEvent(){const status=$("eventStatus");if(eventKind==="none"){status.textContent="";return;}
@@ -460,6 +463,7 @@ for(const side of [-1,1])for(const angle of [-.24,.14]){ctx.beginPath();ctx.move
 ctx.lineTo(side*26,7+angle*20);ctx.stroke();}
 ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
+if(document.hidden){requestAnimationFrame(frame);return;}
 musicTick(dt);
 if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
 levelBanner=Math.max(0,levelBanner-dt);hitFlash=Math.max(0,hitFlash-dt);
@@ -475,7 +479,7 @@ ctx.clearRect(0,0,W,H);drawWorldBackdrop();
 ctx.save();ctx.globalAlpha=.22;ctx.strokeStyle=world().grid;ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-ctx.restore();drawScenery();
+ctx.restore();if(!reducedEffects)drawScenery();
 if(!won&&!paused){hazardCooldown=Math.max(0,hazardCooldown-dt);
 for(const h of hazards){if(hazardCooldown<=0&&invincible<=0&&shieldTime<=0&&Math.hypot(player.x-h.x,player.y-h.y)<player.r+17){
 hazardCooldown=2;invincible=1.2;hit++;hitFlash=.35;state.coins=Math.max(0,state.coins-8);
