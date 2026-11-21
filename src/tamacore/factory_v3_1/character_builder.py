@@ -34,8 +34,7 @@ def apply_character_animations(project: Dict[str, Any], scene: Dict[str, Any], g
             })
             registered.add(image_path)
 
-    # GDevelop animation selection uses numeric indexes. Expose a stable map
-    # for future gameplay events instead of relying on implicit ordering.
+    # Keep a stable animation order for GDevelop event-sheet references.
     player["type"] = "Sprite"
     player["animations"] = []
     for state, paths in frames.items():
@@ -67,6 +66,7 @@ def apply_pet_animation_events(scene: Json) -> None:
         if isinstance(animation, dict)
     }
     events = scene.setdefault("events", [])
+    indexes = {animation.get("name"): index for index, animation in enumerate(player.get("animations", [])) if isinstance(animation, dict)}
     for name in ("Idle", "Walk", "Sleep", "Eat", "Play"):
         if name not in available:
             continue
@@ -81,8 +81,8 @@ def apply_pet_animation_events(scene: Json) -> None:
                 "parameters": ["Pet_State", "=", name],
             }],
             "actions": [{
-                "type": {"value": "SetAnimationName"},
-                "parameters": ["Player", name],
+                "type": {"value": "SetAnimation"},
+                "parameters": ["Player", str(indexes[name])],
             }],
         })
 
