@@ -816,6 +816,7 @@ ctx.fillStyle=wallColors[state.roomEquipped.wall]||wallColors.default;ctx.fillRe
 ctx.fillStyle=floorColors[state.roomEquipped.floor]||floorColors.default;ctx.fillRect(65,415,670,100);
 ctx.fillStyle=phase==="night"?"#07152b99":phase==="evening"?"#b95c4050":"#fff3bd15";ctx.fillRect(65,90,670,425);
 ctx.save();ctx.textAlign="center";ctx.font="40px system-ui";ctx.fillText(phase==="night"?"🌙":phase==="evening"?"🌇":"☀️",690,155);ctx.restore();
+if(typeof extra!=="undefined"&&extra){const room=extra.room||"cozy",decor=extra.decor||"plant";ctx.save();ctx.textAlign="center";ctx.font="55px system-ui";const roomIcons={cozy:"🛏️",kitchen:"🍳",bathroom:"🛁",playroom:"🧸",garden:"🌿"};ctx.fillText(roomIcons[room]||"🛏️",110,380);const decorIcons={plant:"🪴",lamp:"💡",rug:"🌈",poster:"🖼️",couch:"🛋️"};ctx.fillText(decorIcons[decor]||"🪴",675,385);ctx.font="bold 16px system-ui";ctx.fillStyle="#fff7d5";ctx.fillText(room.toUpperCase()+" • "+decor.toUpperCase(),400,215);ctx.restore();}
 ctx.strokeStyle="#ffffff55";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(65,415);ctx.lineTo(735,415);ctx.stroke();
 if(state.roomEquipped.furniture==="plant"){ctx.font="75px system-ui";ctx.textAlign="center";ctx.fillText("🪴",640,430);}
 if(state.roomEquipped.furniture==="bed"){ctx.font="85px system-ui";ctx.textAlign="center";ctx.fillText("🛏️",610,455);}
