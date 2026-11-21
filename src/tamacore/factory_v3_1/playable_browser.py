@@ -983,6 +983,25 @@ for(const game of extraGames){const button=document.createElement("button");butt
 $("extraDailyClaim").onclick=()=>{extraDaily();if(extra.daily.done<3||extra.daily.claimed)return;extra.daily.claimed=true;state.coins+=25;state.petMood=clamp(state.petMood+10,0,100);rememberPet("🎁 Daily playtime completed");extraSave();save();updateStats();extraRender();msg("🎁 Daily play reward: +25 coins!");};
 extraRender();
 
+
+/* TamaCore expansion: rooms, friends, expeditions and keepsakes */
+const townBox=document.createElement("section");townBox.id="townExpansion";townBox.innerHTML='<h3>🏡 Home, friends & the little town</h3><p id="townSummary"></p><div id="roomButtons"></div><div id="decorButtons"></div><div id="townButtons"></div><p id="townInventory"></p><p id="townPhoto"></p>';$("extraPlay").after(townBox);
+const rooms=[["cozy","🛏️ Cozy bedroom",0],["kitchen","🍳 Kitchen",90],["bathroom","🛁 Bathroom",90],["playroom","🧸 Playroom",110],["garden","🌳 Garden room",130]];
+const decorations=[["plant","🪴 Houseplant",0],["lamp","💡 Star lamp",35],["rug","🌈 Rainbow rug",45],["poster","🖼️ Bunny poster",60],["couch","🛋️ Soft couch",85]];
+extra.roomsOwned=Array.isArray(extra.roomsOwned)?extra.roomsOwned:["cozy"];extra.decorsOwned=Array.isArray(extra.decorsOwned)?extra.decorsOwned:["plant"];
+function townRender(){$("townSummary").textContent="🏡 "+extra.room+" • "+extra.decor+" • 💞 Friend visits "+extra.friends+" • 🧭 Expeditions "+extra.expedition;$("townInventory").textContent="🎒 Collection ("+extra.inventory.length+"): "+(extra.inventory.slice(-8).join(" · ")||"Empty");$("townPhoto").textContent="🖼️ Memory album: "+extra.photos.length+" moments";}
+for(const [id,label,cost] of rooms){const b=document.createElement("button");b.textContent=label+(cost?" · "+cost+" coins":"");b.onclick=()=>{if(!extra.roomsOwned.includes(id)){if(state.coins<cost){msg("🪙 Save more coins to unlock this room.");return;}state.coins-=cost;extra.roomsOwned.push(id);}extra.room=id;state.petMood=clamp(state.petMood+3,0,100);extraSave();save();updateStats();townRender();msg("🏡 Welcome to the "+id+"!");};$("roomButtons").appendChild(b);}
+for(const [id,label,cost] of decorations){const b=document.createElement("button");b.textContent=label+(cost?" · "+cost+" coins":"");b.onclick=()=>{if(!extra.decorsOwned.includes(id)){if(state.coins<cost){msg("🪙 Not enough coins.");return;}state.coins-=cost;extra.decorsOwned.push(id);}extra.decor=id;state.petMood=clamp(state.petMood+2,0,100);extraSave();save();updateStats();townRender();msg("🎨 New room decoration: "+id);};$("decorButtons").appendChild(b);}
+const townActions=[
+["☕ Visit the pet café",()=>{if(state.coins<5){msg("🪙 Café visit costs 5 coins.");return false;}state.coins-=5;state.petMood=clamp(state.petMood+12,0,100);extra.visits++;extra.inventory.push("☕ Café postcard");}],
+["🌳 Meet a friend at the park",()=>{state.petEnergy=clamp(state.petEnergy-5,0,100);state.petMood=clamp(state.petMood+12,0,100);extra.friends++;gainFriendship(3);if(extra.friends%5===0)extra.inventory.push("💌 Friendship badge");}],
+["🧭 Explore the forest",()=>{if(state.petEnergy<10){msg("💤 Too tired to explore.");return false;}state.petEnergy-=10;extra.expedition++;const loot=["🍄 Forest mushroom","🪶 Pretty feather","🪨 Shiny stone","🌿 Clover"];extra.inventory.push(loot[Math.floor(Math.random()*loot.length)]);state.coins+=6;}],
+["🏖️ Visit the beach",()=>{if(state.petEnergy<10){msg("💤 Rest before the beach.");return false;}state.petEnergy-=10;extra.expedition++;extra.inventory.push("🐚 Seashell");state.petMood=clamp(state.petMood+10,0,100);}],
+["📸 Take a memory photo",()=>{extra.photos.push({at:Date.now(),caption:state.petName+" at "+extra.room});extra.photos=extra.photos.slice(-40);state.petMood=clamp(state.petMood+3,0,100);}],
+["📖 Read a little story",()=>{extra.storyStep++;state.petMood=clamp(state.petMood+7,0,100);if(extra.storyStep%5===0){extra.inventory.push("📖 Story chapter "+extra.storyStep);state.coins+=15;}}]
+];
+for(const [label,action] of townActions){const b=document.createElement("button");b.textContent=label;b.onclick=()=>{if(state.petSleeping||state.petSick||state.petStage===1){msg("🐰 Your pet needs to be awake and healthy.");return;}if(action()===false)return;extra.inventory=extra.inventory.slice(-100);extraSave();save();updateStats();townRender();msg("✨ "+label+" with "+state.petName+"!");};$("townButtons").appendChild(b);}townRender();
+
 updatePetGrowth();startLevel();renderShop();renderWardrobe();updateStats();requestAnimationFrame(frame);
 </script></body></html>
 '''
