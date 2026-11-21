@@ -328,6 +328,7 @@ let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCoold
 let dashCooldown=0,dashRequested=false,homeMode=true;let joystick=null,paused=true,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{const tap=canvasPoint(e);
+if(homeMode){e.preventDefault();if(state.petStage===1){msg("🥚 Your little pet is still hatching!");return;}if(Math.hypot(tap.x-homeWander.x,tap.y-(H/2+60))<105){state.petMood=clamp(state.petMood+3,0,100);gainFriendship(1);petReaction("happy","💗 "+state.petName+" loves gentle pats!");if(typeof extra!=="undefined"&&extra&&extra.living){extra.living.petting++;extraSave();livingRender();}completePetWish("cuddle");save();updateStats();}else{homeWander.target=clamp(tap.x,170,620);homeWander.next=visualTime+7;petReaction("happy","🐾 "+state.petName+" comes to explore!");}return;}
 if(Math.hypot(tap.x-pet.x,tap.y-pet.y)<38){e.preventDefault();petCompanion();return;}
 if(e.pointerType==="mouse")return;
 if(joystick!==null)return;const p=canvasPoint(e);joystick={id:e.pointerId,start:p,now:p};canvas.setPointerCapture(e.pointerId);});
