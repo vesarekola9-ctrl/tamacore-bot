@@ -493,6 +493,7 @@ const choreChallenges=[
 {id:"challenge178",title:"Streak Starter",ready:()=>state.bestChoreStreak>=3,reward:12},
 {id:"challenge179",title:"Streak Superstar",ready:()=>state.bestChoreStreak>=10,reward:40},
 {id:"challenge180",title:"Unstoppable Duo",ready:()=>state.bestChoreStreak>=25,reward:100},
+{id:"challenge181",title:"Tidying Apprentice",ready:()=>state.tidyingSkill>=20,reward:20},
 /*CHORE_CHALLENGES*/
 ];
 function renderChoreChallenges(){const root=$("choreChallenges");if(!root)return;root.replaceChildren();for(const c of choreChallenges){const claimed=state.choreRewardsClaimed.includes(c.id),ready=c.ready();const line=document.createElement("div"),button=document.createElement("button");button.textContent=(claimed?"✅ ":ready?"🎁 ":"🔒 ")+c.title+" • "+c.reward+" coins";button.disabled=claimed||!ready;button.onclick=()=>{if(state.choreRewardsClaimed.includes(c.id)||!c.ready())return;state.choreRewardsClaimed.push(c.id);state.coins+=c.reward;state.petMood=clamp(state.petMood+2,0,100);rememberPet("🏆 Challenge: "+c.title);save();updateStats();msg("🏆 "+c.title+"! +"+c.reward+" coins.");};line.appendChild(button);root.appendChild(line);}}
