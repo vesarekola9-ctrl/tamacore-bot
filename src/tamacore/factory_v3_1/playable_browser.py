@@ -113,11 +113,11 @@ if(["feed","play","cuddle","clean","rest",""].includes(saved.petWish))state.petW
 for(const k of ["petWishAt","petWishCompleted","petNameCalls"])if(Number.isFinite(saved[k])&&saved[k]>=0)state[k]=saved[k];
 for(const k of ["petRecipesMade","petBaths","petTeethBrushed","petClinicVisits","petCookingSkill","petHygieneSkill"])if(Number.isFinite(saved[k]))state[k]=clamp(saved[k],0,99999);
 if(saved.petGarden&&typeof saved.petGarden==="object"){const g=saved.petGarden;state.petGarden={seed:["","carrot","flower","berry"].includes(g.seed)?g.seed:"",plantedAt:Number.isFinite(g.plantedAt)?g.plantedAt:0,wateredAt:Number.isFinite(g.wateredAt)?g.wateredAt:0,harvests:clamp(Number(g.harvests)||0,0,99999),flowers:clamp(Number(g.flowers)||0,0,99999)};}
-if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
-if(saved.achievements&&typeof saved.achievements==="object")state.achievements=saved.achievements;
-if(saved.claimedMilestones&&typeof saved.claimedMilestones==="object")state.claimedMilestones=saved.claimedMilestones;
-if(saved.claimedChallenges&&typeof saved.claimedChallenges==="object")state.claimedChallenges=saved.claimedChallenges;
-if(saved.cosmeticsOwned&&typeof saved.cosmeticsOwned==="object")state.cosmeticsOwned=saved.cosmeticsOwned;
+if(saved.owned&&typeof saved.owned==="object"&&!Array.isArray(saved.owned))state.owned=saved.owned;
+if(saved.achievements&&typeof saved.achievements==="object"&&!Array.isArray(saved.achievements))state.achievements=saved.achievements;
+if(saved.claimedMilestones&&typeof saved.claimedMilestones==="object"&&!Array.isArray(saved.claimedMilestones))state.claimedMilestones=saved.claimedMilestones;
+if(saved.claimedChallenges&&typeof saved.claimedChallenges==="object"&&!Array.isArray(saved.claimedChallenges))state.claimedChallenges=saved.claimedChallenges;
+if(saved.cosmeticsOwned&&typeof saved.cosmeticsOwned==="object"&&!Array.isArray(saved.cosmeticsOwned))state.cosmeticsOwned=saved.cosmeticsOwned;
 if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippedCosmetic;
 if(typeof saved.petSleeping==="boolean")state.petSleeping=saved.petSleeping;
 if(typeof saved.petSick==="boolean")state.petSick=saved.petSick;
@@ -157,6 +157,11 @@ if(saved.homeSurprise&&typeof saved.homeSurprise==="object"){const v=saved.homeS
 state.homeSurprise={kind:["gift","dance","discovery"].includes(v.kind)?v.kind:"",expires:Number.isFinite(v.expires)?Math.min(Date.now()+300000,v.expires):0,nextAt:Number.isFinite(v.nextAt)?Math.max(0,v.nextAt):Date.now()+90000};}
 if(saved.dailyCare&&typeof saved.dailyCare==="object"&&!Array.isArray(saved.dailyCare)){const d=saved.dailyCare;if(typeof d.date==="string")state.dailyCare={date:d.date,feed:Number(d.feed)||0,play:Number(d.play)||0,clean:Number(d.clean)||0,rest:Number(d.rest)||0,claimed:d.claimed===true};}
 }}catch(_){}
+// Normalize persisted values before any gameplay or rendering uses them.
+for(const k of ["petHunger","petEnergy","petMood","petCleanliness","petFullness","petSkill"])state[k]=clamp(state[k],0,100);
+for(const k of ["coins","petXP","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions","levelsCompleted","starTokens","bossChallengesWon"])state[k]=clamp(Math.floor(state[k]),0,Number.MAX_SAFE_INTEGER);
+state.speed=clamp(state.speed,1,10000);
+state.petStage=clamp(Math.floor(state.petStage),1,5);
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let reactionUntil=0,reactionText="",reactionKind="",lastCareAlert="",funnyEventUntil=0,funnyEventIcon="",funnyEventKind="",humorPending="",humorPendingUntil=0,prankSurprise="",prankSurpriseUntil=0,toyHidingSpot=0,toySearchTries=0,messPieces=0,messHelperClock=0,messHelperActions=0,choreVisualKind="",choreVisualUntil=0,choreVisualStart=0,choreToyMask=0,choreWaterCount=0,choreDrag=null,choreDifficulty=1,choreGoal=3,choreRetryKind="",feedingVisual={until:0,emoji:"",liked:false,disliked:false};
 if(!state.petPersonality)state.petPersonality=["playful","gentle","curious"][Math.floor(state.petBornAt/1000)%3];
