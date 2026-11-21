@@ -99,16 +99,31 @@ def apply_pet_keyboard_controls(scene: Json) -> None:
         return
     events = scene.setdefault("events", [])
     existing = {event.get("name") for event in events if isinstance(event, dict)}
-    for key, state in (("f", "Eat"), ("p", "Play"), ("s", "Sleep"), ("w", "Walk"), ("i", "Idle")):
+    # KeyReleased triggers once per press, avoiding repeated stat rewards
+    # every frame while a key is held down.
+    controls = (
+        ("f", "Eat", "Pet_Hunger", 15),
+        ("p", "Play", "Pet_Happiness", 12),
+        ("s", "Sleep", "Pet_Energy", 20),
+        ("w", "Walk", "Pet_Energy", -5),
+        ("i", "Idle", None, 0),
+    )
+    for key, state, stat, delta in controls:
         marker = f"TamaCorePetKey_{state}"
         if marker in existing:
             continue
+        actions = [{"type": {"value": "SetStringVariable"},
+                    "parameters": ["Pet_State", "=", f'"{state}"']}]
+        if stat is not None:
+            # GDevelop expression clamps the value to the 0..100 range.
+            expression = f"min(100, max(0, GlobalVariable({stat}) + ({delta})))"
+            actions.append({"type": {"value": "SetNumberVariable"},
+                            "parameters": [stat, "=", expression]})
         events.append({
             "type": "BuiltinCommonInstructions::Standard",
             "name": marker,
-            "conditions": [{"type": {"value": "KeyPressed"}, "parameters": [key]}],
-            "actions": [{"type": {"value": "SetStringVariable"},
-                         "parameters": ["Pet_State", "=", f'"{state}"']}],
+            "conditions": [{"type": {"value": "KeyReleased"}, "parameters": [key]}],
+            "actions": actions,
             "events": [],
             "disabled": False,
             "folded": False,
