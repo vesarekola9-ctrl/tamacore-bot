@@ -1119,12 +1119,13 @@ const panelStyle=document.createElement("style");panelStyle.textContent=".tamapa
 // Collectible boutique: soft currency only. No fake billing or premium entitlements.
 const boutiqueKey="tamacore_boutique_v1";
 function normalizeBoutique(input){
- const result={owned:{},equipped:{}};
+ const result={owned:{},equipped:{},claimed:{}};
  if(!input||typeof input!=="object")return result;
  for(const item of cfg.collectibles||[]){
    if(input.owned&&Object.prototype.hasOwnProperty.call(input.owned,item.id)&&input.owned[item.id]===true)result.owned[item.id]=true;
    if(result.owned[item.id]&&input.equipped&&input.equipped[item.category]===item.id)result.equipped[item.category]=item.id;
  }
+ for(const theme of ["pastel","royal","winter","garden"])if(input.claimed&&input.claimed[theme]===true)result.claimed[theme]=true;
  return result;
 }
 let boutiqueSave=normalizeBoutique(state.boutique);
@@ -1165,6 +1166,12 @@ function boutiqueRender(){
     const label=document.createElement("button");label.textContent=set.theme[0].toUpperCase()+set.theme.slice(1)+" "+set.owned+"/"+set.total+(set.total&&set.owned===set.total?" ★":"");
     label.onclick=()=>{document.getElementById("boutiqueTheme").value=set.theme;document.getElementById("boutiqueSearch").value="";document.getElementById("boutiqueOwnedOnly").checked=false;boutiqueRender();};
     collections.appendChild(label);
+    if(set.total>0&&set.owned===set.total){
+      const reward=document.createElement("button");const claimed=boutiqueSave.claimed[set.theme]===true;
+      reward.textContent=claimed?"Reward claimed":"Claim 500 coins";reward.disabled=claimed;
+      reward.onclick=()=>{if(boutiqueSave.claimed[set.theme])return;const current=boutiqueCollections().find(x=>x.theme===set.theme);if(!current||!current.total||current.owned!==current.total)return;boutiqueSave.claimed[set.theme]=true;state.coins+=500;save();updateStats();boutiqueRender();msg("Collection complete! +500 coins");};
+      collections.appendChild(reward);
+    }
   }
   document.getElementById("boutiqueCount").appendChild(collections);
   if(!results.length){const empty=document.createElement("p");empty.textContent="No matching items. Try a different search or collection.";grid.appendChild(empty);}
