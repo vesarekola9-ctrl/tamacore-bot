@@ -957,6 +957,32 @@ $("savePetStyle").onclick=()=>{state.petSpecies=$("petSpeciesSelect").value;stat
 $("petNameCall").onclick=()=>{state.petNameCalls++;state.petMood=clamp(state.petMood+1,0,100);petReaction("happy","👋 "+state.petName+" is listening!");save();updateStats();};
 $("petWishHelp").onclick=()=>{const kind=state.petWish;if(!kind)return;if(kind==="feed"){state.petHunger=clamp(state.petHunger+12,0,100);state.petFullness=clamp(state.petFullness+8,0,100);}else if(kind==="play"){state.petEnergy=clamp(state.petEnergy-3,0,100);state.petMood=clamp(state.petMood+12,0,100);}else if(kind==="clean")state.petCleanliness=clamp(state.petCleanliness+15,0,100);else if(kind==="rest")state.petEnergy=clamp(state.petEnergy+12,0,100);else state.petMood=clamp(state.petMood+8,0,100);completePetWish(kind);};
 $("petNameInput").value=state.petName;$("petSpeciesSelect").value=state.petSpecies;$("petColorSelect").value=state.petColor;
+
+/* TamaCore expansion: mini-games, daily play and keepsakes (261-320) */
+const extraKey=KEY+"_expansion_v2";
+const extraDefault=()=>({games:{},plays:0,wins:0,streak:0,lastPlay:"",daily:{date:"",done:0,claimed:false},inventory:[],photos:[],room:"cozy",decor:"plant",friends:0,visits:0,expedition:0,storyStep:0,seasonClaim:"",lastGift:""});
+let extra=extraDefault();
+try{const data=JSON.parse(localStorage.getItem(extraKey)||"null");if(data&&typeof data==="object"){extra={...extra,...data};extra.games=data.games&&typeof data.games==="object"?data.games:{};extra.inventory=Array.isArray(data.inventory)?data.inventory.slice(-100):[];extra.photos=Array.isArray(data.photos)?data.photos.slice(-40):[];}}catch(_){}
+const extraSave=()=>{try{localStorage.setItem(extraKey,JSON.stringify(extra));}catch(_){}};
+const extraDay=()=>new Date().toLocaleDateString("en-CA");
+const extraBox=document.createElement("section");extraBox.id="extraPlay";extraBox.innerHTML='<h3>🎮 Playroom & little adventures</h3><p id="extraStatus"></p><div id="extraGames"></div><p id="extraChallenge"></p><button id="extraDailyClaim">🎁 Claim daily play reward</button><p id="extraGameHistory"></p>';
+$("petGarden").before(extraBox);
+const extraGames=[
+{id:"ball",name:"⚽ Catch the ball",desc:"Tap when the ball is close",win:()=>Math.random()<.7},
+{id:"hide",name:"🙈 Hide and seek",desc:"Find your friend",win:()=>Math.random()<.65},
+{id:"memory",name:"🧠 Memory match",desc:"Remember the pattern",win:()=>Math.random()<.6},
+{id:"dance",name:"💃 Dance together",desc:"Follow the rhythm",win:()=>Math.random()<.75},
+{id:"obstacle",name:"🏃 Little obstacle course",desc:"Hop through the course",win:()=>Math.random()<.65},
+{id:"fishing",name:"🎣 Tiny fishing trip",desc:"Catch a fish",win:()=>Math.random()<.55},
+{id:"treasure",name:"🗝️ Treasure hunt",desc:"Look for hidden treasures",win:()=>Math.random()<.5},
+{id:"painting",name:"🎨 Paint a picture",desc:"Make a keepsake",win:()=>Math.random()<.85}
+];
+function extraDaily(){const day=extraDay();if(!extra.daily||extra.daily.date!==day)extra.daily={date:day,done:0,claimed:false};}
+function extraRender(){extraDaily();$("extraStatus").textContent="🎲 Plays "+extra.plays+" • 🏅 Wins "+extra.wins+" • 🔥 Best streak "+extra.streak;$("extraChallenge").textContent="📅 Daily play "+Math.min(3,extra.daily.done)+"/3"+(extra.daily.claimed?" • claimed":"");$("extraDailyClaim").disabled=extra.daily.done<3||extra.daily.claimed;$("extraGameHistory").textContent=extra.inventory.length?"🎁 Recent finds: "+extra.inventory.slice(-5).join(" · "):"🎁 Play to find little keepsakes!";}
+for(const game of extraGames){const button=document.createElement("button");button.textContent=game.name;button.title=game.desc;button.onclick=()=>{if(state.petSleeping||state.petSick||state.petStage===1){msg("🐰 Your pet needs to be awake and healthy.");return;}if(state.petEnergy<5){msg("💤 Rest before playing.");return;}const won=game.win();extra.plays++;extra.games[game.id]=(extra.games[game.id]||0)+1;extraDaily();extra.daily.done=Math.min(3,extra.daily.done+1);state.petEnergy=clamp(state.petEnergy-5,0,100);state.petMood=clamp(state.petMood+(won?9:3),0,100);if(won){extra.wins++;extra.streak++;state.coins+=8;gainFriendship(2);if(extra.wins%5===0){extra.inventory.push("🎖️ Play badge "+extra.wins);rememberPet("🎖️ Won "+extra.wins+" little games");}if(game.id==="painting"){extra.photos.push({at:Date.now(),caption:"A painting by "+state.petName});}}else extra.streak=0;petReaction(won?"play":"kind",won?"🎉 We did it together!":"💖 Let's try again!");msg(won?"🎉 "+game.name+": +8 coins!":"🐰 "+game.name+": good try!");extraSave();save();updateStats();extraRender();};$("extraGames").appendChild(button);}
+$("extraDailyClaim").onclick=()=>{extraDaily();if(extra.daily.done<3||extra.daily.claimed)return;extra.daily.claimed=true;state.coins+=25;state.petMood=clamp(state.petMood+10,0,100);rememberPet("🎁 Daily playtime completed");extraSave();save();updateStats();extraRender();msg("🎁 Daily play reward: +25 coins!");};
+extraRender();
+
 updatePetGrowth();startLevel();renderShop();renderWardrobe();updateStats();requestAnimationFrame(frame);
 </script></body></html>
 '''
