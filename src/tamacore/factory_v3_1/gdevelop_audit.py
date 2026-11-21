@@ -46,6 +46,19 @@ def audit_project(project_file: Path) -> list[str]:
             errors.append(f"Scene {name} has no objects or instances")
         if not scene.get("events"):
             errors.append(f"Scene {name} has no events")
+        # Catch broken scene instances and accidental duplicate object names.
+        objects = [obj for obj in scene.get("objects", []) if isinstance(obj, dict)]
+        object_names = [obj.get("name") for obj in objects if isinstance(obj.get("name"), str)]
+        duplicates = {item for item in object_names if object_names.count(item) > 1}
+        for duplicate in sorted(duplicates):
+            errors.append(f"Scene {name} has duplicate object: {duplicate}")
+        known = set(object_names)
+        for instance in scene.get("instances", []):
+            if not isinstance(instance, dict):
+                continue
+            target = instance.get("name") or instance.get("objectName")
+            if target and target not in known:
+                errors.append(f"Scene {name} instance references missing object: {target}")
         for obj in scene.get("objects", []):
             if not isinstance(obj, dict):
                 continue
