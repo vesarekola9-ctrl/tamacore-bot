@@ -124,7 +124,7 @@ state.homeSurprise={kind:["gift","dance","discovery"].includes(v.kind)?v.kind:""
 if(saved.dailyCare&&typeof saved.dailyCare==="object"&&!Array.isArray(saved.dailyCare)){const d=saved.dailyCare;if(typeof d.date==="string")state.dailyCare={date:d.date,feed:Number(d.feed)||0,play:Number(d.play)||0,clean:Number(d.clean)||0,rest:Number(d.rest)||0,claimed:d.claimed===true};}
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
-let reactionUntil=0,reactionText="",reactionKind="",lastCareAlert="",funnyEventUntil=0,funnyEventIcon="",feedingVisual={until:0,emoji:"",liked:false,disliked:false};
+let reactionUntil=0,reactionText="",reactionKind="",lastCareAlert="",funnyEventUntil=0,funnyEventIcon="",funnyEventKind="",feedingVisual={until:0,emoji:"",liked:false,disliked:false};
 if(!state.petPersonality)state.petPersonality=["playful","gentle","curious"][Math.floor(state.petBornAt/1000)%3];
 function dailyDate(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function dailyProgress(){const today=dailyDate();if(state.dailyCare.date!==today)state.dailyCare={date:today,feed:0,play:0,clean:0,rest:0,claimed:false};}
@@ -209,7 +209,7 @@ else if(state.petPersonality==="curious"&&roll<.65){kind="sneeze";icon="🤧";li
 else if(state.petPersonality==="playful"&&roll<.7){kind="trip";icon="💫";line="🙃 Whoops! Silly feet!";}
 else if(roll<.5){kind="sneeze";icon="🤧";line="🤧 Achoo! Excuse me!";}
 else{kind="trip";icon="💫";line="😵 Oopsie-daisy!";}
-funnyEventUntil=performance.now()+2200;funnyEventIcon=icon;petReaction(kind,line);sound(kind);}
+funnyEventUntil=performance.now()+3000;funnyEventIcon=icon;funnyEventKind=kind;petReaction(kind,line);sound(kind);}
 function careTick(dt){updatePetGrowth();morningTick();surpriseTick();careClock+=dt;if(careClock<20)return;careClock=0;
 state.petHunger=clamp(state.petHunger-1,0,100);state.petFullness=clamp(state.petFullness-2,0,100);
 if(Math.random()<.1)funnyPetMoment();
@@ -678,13 +678,17 @@ ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ct
 ctx.font="bold 16px system-ui";ctx.fillText(phase==="night"?"Nighttime":phase==="evening"?"Evening":"Daytime",W/2,164);
 const reacting=performance.now()<reactionUntil;
 const idle=state.petSleeping?"sleep":state.petSick?"sick":state.petTrait==="mischievous"?"zigzag":state.petTrait==="brave"?"bounce":state.petTrait==="kind"?"sway":state.petPersonality==="playful"?"bounce":state.petPersonality==="curious"?"look":"sway";
-const petMood=state.petSick||state.petMood<25?"sad":state.petSleeping||state.petEnergy<20?"sleepy":reacting&&reactionKind==="eat"?(feedingVisual.disliked?"sad":"excited"):reacting&&reactionKind==="play"?"excited":state.petHunger<25?"sad":"happy";
+const funnyActive=performance.now()<funnyEventUntil;
+const petMood=funnyActive&&(funnyEventKind==="trip"||funnyEventKind==="sneeze")?"sad":funnyActive&&funnyEventKind==="toot"?"sleepy":state.petSick||state.petMood<25?"sad":state.petSleeping||state.petEnergy<20?"sleepy":reacting&&reactionKind==="eat"?(feedingVisual.disliked?"sad":"excited"):reacting&&reactionKind==="play"?"excited":state.petHunger<25?"sad":"happy";
 ctx.font="bold 23px system-ui";ctx.fillStyle="#fff2bd";ctx.fillText(petLifeStages[Math.min(4,Math.max(0,state.petStage-1))]+" • Age "+petAgeLabel(),W/2,186);
 if(state.petStage===1){ctx.save();ctx.translate(W/2,H/2+60);ctx.rotate(Math.sin(visualTime*3)*.045);ctx.fillStyle="#f5e8d4";ctx.beginPath();ctx.ellipse(0,0,52,69,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#f8b7d6";ctx.lineWidth=5;ctx.stroke();ctx.restore();}
 else {ctx.save();const widthFactor=state.petWeight>=50?1+(state.petWeight-50)/85:Math.max(.62,1-(50-state.petWeight)/115);ctx.translate(W/2,H/2+60);const chubby=state.petWeight>=70&&!state.petSleeping,skinny=state.petWeight<=30&&!state.petSleeping;
+if(funnyActive&&funnyEventKind==="trip")ctx.rotate(-.22*Math.sin(Math.PI*Math.min(1,(funnyEventUntil-performance.now())/3000)));
+if(funnyActive&&funnyEventKind==="hiccup")ctx.scale(1,1+Math.sin(visualTime*18)*.035);
+if(funnyActive&&funnyEventKind==="sneeze")ctx.translate(Math.sin(visualTime*22)*5,0);
 if(chubby)ctx.rotate(Math.sin(visualTime*2.8)*.065);
 if(skinny)ctx.rotate(Math.sin(visualTime*1.3)*.035);
-ctx.scale(widthFactor*(chubby?1+Math.sin(visualTime*5)*.025:1),1+(chubby?Math.abs(Math.sin(visualTime*5))*.035:skinny?Math.sin(visualTime*2)*.018:0));ctx.translate(-W/2,-(H/2+60));drawBunny(W/2+(idle==="look"?Math.sin(visualTime*.9)*15:idle==="zigzag"?Math.sin(visualTime*2.8)*28:0),H/2+60+(reacting&&reactionKind==="play"?Math.sin(visualTime*16)*9:idle==="bounce"?Math.abs(Math.sin(visualTime*2.5))*7:idle==="zigzag"?Math.abs(Math.sin(visualTime*4))*4:0)+(chubby?Math.abs(Math.sin(visualTime*3))*5:skinny?Math.sin(visualTime*1.8)*3:0),Math.min(3.3,1.6+state.petStage*.35),"#f7f2ec",false,idle==="look"&&Math.sin(visualTime*.9)<-.7?-1:1,petMood);ctx.restore();}
+ctx.scale(widthFactor*(chubby?1+Math.sin(visualTime*5)*.025:1),1+(chubby?Math.abs(Math.sin(visualTime*5))*.035:skinny?Math.sin(visualTime*2)*.018:0));ctx.translate(-W/2,-(H/2+60));drawBunny(W/2+(idle==="look"?Math.sin(visualTime*.9)*15:idle==="zigzag"?Math.sin(visualTime*2.8)*28:0),H/2+60+(reacting&&reactionKind==="play"?Math.sin(visualTime*16)*9:idle==="bounce"?Math.abs(Math.sin(visualTime*2.5))*7:idle==="zigzag"?Math.abs(Math.sin(visualTime*4))*4:0)+(chubby?Math.abs(Math.sin(visualTime*3))*5:skinny?Math.sin(visualTime*1.8)*3:0),Math.min(3.3,1.6+state.petStage*.35),"#f7f2ec",false,funnyActive&&funnyEventKind==="toot"?Math.sin(visualTime*4)<0?-1:1:idle==="look"&&Math.sin(visualTime*.9)<-.7?-1:1,petMood);ctx.restore();}
 if(!state.petSleeping&&state.petStage>1&&(state.petWeight>=75||state.petWeight<=25)){ctx.save();ctx.textAlign="center";ctx.font="26px system-ui";ctx.fillText(state.petWeight>=75?"🎈":"🍃",W/2+120+Math.sin(visualTime*1.7)*9,H/2-15+Math.sin(visualTime*2.4)*8);ctx.restore();}
 if(performance.now()<feedingVisual.until&&!state.petSleeping){const remaining=(feedingVisual.until-performance.now())/3000;ctx.save();ctx.textAlign="center";ctx.font="38px system-ui";ctx.fillText(feedingVisual.emoji,W/2-95+Math.sin(visualTime*5)*8,H/2+65-Math.sin(visualTime*9)*4);ctx.font="27px system-ui";ctx.fillText(feedingVisual.liked?"💖":feedingVisual.disliked?"💧":"✨",W/2+85,H/2-65-Math.sin(visualTime*4)*10);ctx.globalAlpha=Math.min(1,Math.max(0,remaining));ctx.font="20px system-ui";ctx.fillText("•  •  •",W/2,H/2+128);ctx.restore();}
 if(state.petSleeping&&state.petStage>1){ctx.save();ctx.globalAlpha=.7+.3*Math.sin(visualTime*1.5)**2;ctx.textAlign="center";ctx.font="bold 26px system-ui";ctx.fillStyle="#dbe9ff";ctx.fillText("Z",W/2+92,H/2-70-Math.sin(visualTime*1.2)*10);ctx.font="bold 18px system-ui";ctx.fillText("z",W/2+120,H/2-100-Math.sin(visualTime*1.2)*15);
@@ -692,7 +696,9 @@ ctx.font="23px system-ui";ctx.fillText(state.dreamKind==="nightmare"?"☁️":st
 if(state.friendship>=85&&!state.petSleeping&&state.petStage>1){ctx.save();ctx.fillStyle="#ff9ecb";ctx.font="bold 19px system-ui";ctx.fillText("♥",W/2-85,H/2-80+Math.sin(visualTime*2)*7);ctx.restore();}
 if(state.petTrait==="kind"&&!state.petSleeping){ctx.fillStyle="#ffb9d7";ctx.font="bold 20px system-ui";ctx.fillText("♥",W/2+85,H/2-20+Math.sin(visualTime*2)*8);}
 if(state.petTrait==="brave"&&!state.petSleeping){ctx.fillStyle="#ffe08a";ctx.font="bold 22px system-ui";ctx.fillText("★",W/2-92,H/2-10+Math.sin(visualTime*2)*5);}
-if(performance.now()<funnyEventUntil){ctx.save();ctx.font="36px system-ui";ctx.fillText(funnyEventIcon,W/2+110,H/2+15+Math.sin(visualTime*12)*8);ctx.restore();}
+if(funnyActive){ctx.save();const elapsed=3000-(funnyEventUntil-performance.now());ctx.font="36px system-ui";ctx.fillText(funnyEventIcon,W/2+110,H/2+15+Math.sin(visualTime*12)*8);
+if(elapsed>1500){ctx.font="bold 22px system-ui";ctx.fillStyle="#ffe3aa";ctx.fillText(funnyEventKind==="toot"?"😇 Who, me?":funnyEventKind==="trip"?"😳 Nobody saw that!":funnyEventKind==="sneeze"?"🥺 Bless me!":"😅 Hic... okay!",W/2,H/2-105);}
+ctx.restore();}
 if(reacting){ctx.font="bold 25px system-ui";ctx.fillStyle="#fff1c4";ctx.fillText(reactionText,W/2,245);}
 if(performance.now()<hatchAnimationUntil){ctx.fillStyle="#ffedb5";ctx.font="bold 29px system-ui";ctx.fillText("✨ 🐣 HATCHED! ✨",W/2,260);
 for(let i=0;i<12;i++){const a=i*Math.PI/6+visualTime*.6,r=95+Math.sin(visualTime*5+i)*12;
