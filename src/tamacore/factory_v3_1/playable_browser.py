@@ -77,7 +77,7 @@ if(musicEnabled){try{const AC=window.AudioContext||window.webkitAudioContext;if(
 function sound(kind){if(!soundEnabled)return;
 try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
 if(!audioCtx)audioCtx=new AC();if(audioCtx.state==="suspended")audioCtx.resume();
-const now=audioCtx.currentTime;const notes=kind==="coin"?[[880,.06],[1175,.09]]:kind==="hit"?[[210,.13],[125,.16]]:kind==="win"?[[523,.12],[659,.12],[784,.16],[1047,.3]]:kind==="power"?[[440,.09],[660,.09],[880,.15]]:[[620,.08]];
+const now=audioCtx.currentTime;const notes=kind==="coin"?[[880,.06],[1175,.09]]:kind==="hit"?[[210,.13],[125,.16]]:kind==="win"?[[523,.12],[659,.12],[784,.16],[1047,.3]]:kind==="power"?[[440,.09],[660,.09],[880,.15]]:kind==="belly"?[[175,.12],[130,.18],[210,.13]]:kind==="skinny"?[[660,.08],[490,.12]]:[[620,.08]];
 let offset=0;for(const [frequency,duration] of notes){const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
 osc.type=kind==="hit"?"triangle":"sine";osc.frequency.setValueAtTime(frequency,now+offset);
 gain.gain.setValueAtTime(.0001,now+offset);gain.gain.exponentialRampToValueAtTime(.055,now+offset+.012);
@@ -521,7 +521,7 @@ if(isTreat)state.treatsToday++;
 const liked=index===state.favoriteFood,disliked=index===state.dislikedFood&&!liked;
 state.petMood=clamp(state.petMood+(Number(food.mood)||0)+(liked?12:disliked?-8:0),0,100);
 feedingVisual={until:performance.now()+3000,emoji:index===cfg.foods.length?"🍓":index===cfg.foods.length+1?"🥕":index===cfg.foods.length+2?"🍪":"🍽️",liked,disliked};
-gainFriendship(liked?4:disliked?1:2);gainPetXP(state.petPersonality==="curious"?11:8);recordCare("feed");petReaction(overfed?"belly":"eat",overfed?"🎈 Burp! My tummy is a balloon!":liked?"😍 My favorite!":disliked?"😕 Not my favorite...":"😋 Yummy!");save();updateStats();msg("Fed pet: "+food.name+(liked?" • Favorite food bonus!":disliked?" • Your pet wasn't thrilled.":""));}
+gainFriendship(liked?4:disliked?1:2);gainPetXP(state.petPersonality==="curious"?11:8);recordCare("feed");if(overfed)sound("belly");petReaction(overfed?"belly":"eat",overfed?"🎈 Burp! My tummy is a balloon!":liked?"😍 My favorite!":disliked?"😕 Not my favorite...":"😋 Yummy!");save();updateStats();msg("Fed pet: "+food.name+(liked?" • Favorite food bonus!":disliked?" • Your pet wasn't thrilled.":""));}
 for(const [index,food] of allPetFoods.entries()){const option=document.createElement("option");option.value=index;
 option.textContent=food.name+" ("+food.price+" coins)";$("foodChoice").appendChild(option);}
 $("feed").onclick=feedPet;$("feedSelected").onclick=feedPet;
@@ -541,7 +541,7 @@ state.petEnergy=clamp(state.petEnergy-12,0,100);
 state.petMood=clamp(state.petMood+(state.petPersonality==="playful"?28:22)+(state.roomEquipped.toy!=="none"?10:0),0,100);
 state.petHunger=clamp(state.petHunger-6,0,100);
 state.petCleanliness=clamp(state.petCleanliness-5,0,100);
-gainFriendship(5);petReaction("play","🎾 Wheee!");recordCare("play");gainPetXP((state.petPersonality==="playful"?20:15)+(state.roomEquipped.toy==="blocks"?5:0));save();updateStats();msg("Your pet loved playing!");};
+gainFriendship(5);if(state.petWeight>=75){petReaction("belly","🎈 Boing-boing! Belly bounce!");sound("belly");}else if(state.petWeight<=25){petReaction("skinny","🍃 Whoosh! A tiny breeze!");sound("skinny");}else petReaction("play","🎾 Wheee!");recordCare("play");gainPetXP((state.petPersonality==="playful"?20:15)+(state.roomEquipped.toy==="blocks"?5:0));save();updateStats();msg("Your pet loved playing!");};
 $("restPet").onclick=()=>{if(state.petEnergy>=100){msg("Your pet is fully rested.");return;}
 state.petEnergy=clamp(state.petEnergy+(state.roomEquipped.furniture==="bed"?45:30),0,100);
 state.petHunger=clamp(state.petHunger-5,0,100);
@@ -671,7 +671,11 @@ const idle=state.petSleeping?"sleep":state.petSick?"sick":state.petTrait==="misc
 const petMood=state.petSick||state.petMood<25?"sad":state.petSleeping||state.petEnergy<20?"sleepy":reacting&&reactionKind==="eat"?(feedingVisual.disliked?"sad":"excited"):reacting&&reactionKind==="play"?"excited":state.petHunger<25?"sad":"happy";
 ctx.font="bold 23px system-ui";ctx.fillStyle="#fff2bd";ctx.fillText(petLifeStages[Math.min(4,Math.max(0,state.petStage-1))]+" • Age "+petAgeLabel(),W/2,186);
 if(state.petStage===1){ctx.save();ctx.translate(W/2,H/2+60);ctx.rotate(Math.sin(visualTime*3)*.045);ctx.fillStyle="#f5e8d4";ctx.beginPath();ctx.ellipse(0,0,52,69,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#f8b7d6";ctx.lineWidth=5;ctx.stroke();ctx.restore();}
-else {ctx.save();const widthFactor=state.petWeight>=50?1+(state.petWeight-50)/85:Math.max(.62,1-(50-state.petWeight)/115);ctx.translate(W/2,H/2+60);ctx.scale(widthFactor,1);ctx.translate(-W/2,-(H/2+60));drawBunny(W/2+(idle==="look"?Math.sin(visualTime*.9)*15:idle==="zigzag"?Math.sin(visualTime*2.8)*28:0),H/2+60+(reacting&&reactionKind==="play"?Math.sin(visualTime*16)*9:idle==="bounce"?Math.abs(Math.sin(visualTime*2.5))*7:idle==="zigzag"?Math.abs(Math.sin(visualTime*4))*4:0),Math.min(3.3,1.6+state.petStage*.35),"#f7f2ec",false,idle==="look"&&Math.sin(visualTime*.9)<-.7?-1:1,petMood);ctx.restore();}
+else {ctx.save();const widthFactor=state.petWeight>=50?1+(state.petWeight-50)/85:Math.max(.62,1-(50-state.petWeight)/115);ctx.translate(W/2,H/2+60);const chubby=state.petWeight>=70&&!state.petSleeping,skinny=state.petWeight<=30&&!state.petSleeping;
+if(chubby)ctx.rotate(Math.sin(visualTime*2.8)*.065);
+if(skinny)ctx.rotate(Math.sin(visualTime*1.3)*.035);
+ctx.scale(widthFactor*(chubby?1+Math.sin(visualTime*5)*.025:1),1+(chubby?Math.abs(Math.sin(visualTime*5))*.035:skinny?Math.sin(visualTime*2)*.018:0));ctx.translate(-W/2,-(H/2+60));drawBunny(W/2+(idle==="look"?Math.sin(visualTime*.9)*15:idle==="zigzag"?Math.sin(visualTime*2.8)*28:0),H/2+60+(reacting&&reactionKind==="play"?Math.sin(visualTime*16)*9:idle==="bounce"?Math.abs(Math.sin(visualTime*2.5))*7:idle==="zigzag"?Math.abs(Math.sin(visualTime*4))*4:0)+(chubby?Math.abs(Math.sin(visualTime*3))*5:skinny?Math.sin(visualTime*1.8)*3:0),Math.min(3.3,1.6+state.petStage*.35),"#f7f2ec",false,idle==="look"&&Math.sin(visualTime*.9)<-.7?-1:1,petMood);ctx.restore();}
+if(!state.petSleeping&&state.petStage>1&&(state.petWeight>=75||state.petWeight<=25)){ctx.save();ctx.textAlign="center";ctx.font="26px system-ui";ctx.fillText(state.petWeight>=75?"🎈":"🍃",W/2+120+Math.sin(visualTime*1.7)*9,H/2-15+Math.sin(visualTime*2.4)*8);ctx.restore();}
 if(performance.now()<feedingVisual.until&&!state.petSleeping){const remaining=(feedingVisual.until-performance.now())/3000;ctx.save();ctx.textAlign="center";ctx.font="38px system-ui";ctx.fillText(feedingVisual.emoji,W/2-95+Math.sin(visualTime*5)*8,H/2+65-Math.sin(visualTime*9)*4);ctx.font="27px system-ui";ctx.fillText(feedingVisual.liked?"💖":feedingVisual.disliked?"💧":"✨",W/2+85,H/2-65-Math.sin(visualTime*4)*10);ctx.globalAlpha=Math.min(1,Math.max(0,remaining));ctx.font="20px system-ui";ctx.fillText("•  •  •",W/2,H/2+128);ctx.restore();}
 if(state.petSleeping&&state.petStage>1){ctx.save();ctx.globalAlpha=.7+.3*Math.sin(visualTime*1.5)**2;ctx.textAlign="center";ctx.font="bold 26px system-ui";ctx.fillStyle="#dbe9ff";ctx.fillText("Z",W/2+92,H/2-70-Math.sin(visualTime*1.2)*10);ctx.font="bold 18px system-ui";ctx.fillText("z",W/2+120,H/2-100-Math.sin(visualTime*1.2)*15);
 ctx.font="23px system-ui";ctx.fillText(state.dreamKind==="nightmare"?"☁️":state.dreamKind==="adventure"?"🚀":"💗",W/2+135,H/2-145-Math.sin(visualTime*.8)*8);ctx.restore();}
