@@ -57,9 +57,9 @@ const $=id=>document.getElementById(id);
 $("title").textContent=cfg.name;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>a+Math.random()*(b-a);
-const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{}};
+const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0};
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object"){
-for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions","petSkill","levelsCompleted"])if(Number.isFinite(saved[k]))state[k]=saved[k];
+for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions","petSkill","levelsCompleted","starTokens"])if(Number.isFinite(saved[k]))state[k]=saved[k];
 if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
 if(saved.achievements&&typeof saved.achievements==="object")state.achievements=saved.achievements;
 if(saved.claimedMilestones&&typeof saved.claimedMilestones==="object")state.claimedMilestones=saved.claimedMilestones;
@@ -141,7 +141,7 @@ obstacles=[];
 for(let i=0;i<Math.min(14,3+state.level);i++){
 const p=point(rand(20,32));if(Math.hypot(p.x-W/2,p.y-H/2)>115&&!blocked(p.x,p.y,p.r))obstacles.push(p);}
 targets=Array.from({length:Math.min(150,Math.max(0,lv.coinCount||0))},()=>safePoint(10));
-treasures=Array.from({length:Math.min(5,1+Math.floor(state.level/3))},(_,i)=>({...safePoint(14),kind:["gem","magnet","shield","boost"][((state.level+i)%4)]}));
+treasures=Array.from({length:Math.min(5,1+Math.floor(state.level/3))},(_,i)=>({...safePoint(14),kind:["gem","magnet","shield","boost","star"][((state.level+i)%5)]}));
 magnetTime=0;shieldTime=0;boostTime=0;hazardCooldown=0;
 hazards=state.level>=5?Array.from({length:Math.min(6,1+Math.floor(state.level/4))},()=>({...safePoint(24),phase:rand(0,Math.PI*2)})):[];
 eventKind=state.level>0&&state.level%3===0?"rush":state.level>0&&state.level%5===0?"treasure":"none";
@@ -178,7 +178,8 @@ const achievementDefs=[
 {id:"evolution",name:"🐰 Growing Up",desc:"Reach pet evolution stage 3",test:()=>state.petStage>=3},
 {id:"evolution_max",name:"👑 Best Friend",desc:"Reach pet evolution stage 5",test:()=>state.petStage>=5},
 {id:"trainer",name:"🎓 Dedicated Trainer",desc:"Complete 10 training sessions",test:()=>state.trainingSessions>=10},
-{id:"skill_master",name:"✨ Skill Master",desc:"Upgrade companion skill to level 3",test:()=>state.petSkill>=3}
+{id:"skill_master",name:"✨ Skill Master",desc:"Upgrade companion skill to level 3",test:()=>state.petSkill>=3},
+{id:"star_collector",name:"🌟 Star Collector",desc:"Collect 5 star tokens",test:()=>state.starTokens>=5}
 ];
 function refreshAchievements(){let changed=false;
 for(const a of achievementDefs){if(!state.achievements[a.id]&&a.test()){
@@ -206,7 +207,7 @@ $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Co
 "  •  Pet hunger: "+Math.round(state.petHunger)+"  •  Pet stage: "+state.petStage+
 "  •  Medals: 🥇"+state.goldMedals+" 🥈"+state.silverMedals+" 🥉"+state.bronzeMedals+
 "  •  Difficulty: "+(state.level>=7?"Hard":state.level>=3?"Medium":"Easy")+
-"  •  Hazards: "+hazards.length+
+"  •  Hazards: "+hazards.length+"  •  🌟 Stars: "+state.starTokens+
 (boostTime>0?"  •  ⚡ Speed boost: "+Math.ceil(boostTime)+"s":"")+
 (shieldTime>0?"  •  🛡️ Shield: "+Math.ceil(shieldTime)+"s":"")+
 (magnetTime>0?"  •  🧲 Magnet: "+Math.ceil(magnetTime)+"s":"");
@@ -251,7 +252,7 @@ state.equippedCosmetic=item.id;save();renderWardrobe();updateStats();msg("Equipp
 $("shopToggle").onclick=()=>{$("shop").classList.toggle("open");renderShop();};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
 $("trainPet").onclick=()=>{if(paused||won){msg("Resume playing to train your companion.");return;}
 if(trainingCooldown>0){msg("Your companion needs a break before training again.");return;}
 if(state.coins<20){msg("Training costs 20 coins.");return;}
@@ -321,10 +322,10 @@ ctx.fillStyle="#e4fbff";ctx.beginPath();ctx.moveTo(-o.r*.55,-o.r*.6);ctx.lineTo(
 ctx.restore();}
 function drawTreasure(t){const bob=Math.sin(visualTime*3+t.x*.1)*3;
 ctx.save();ctx.translate(t.x,t.y+bob);circle(0,0,20,"#fff8ad22");
-const color=t.kind==="gem"?"#7de7ff":t.kind==="magnet"?"#f6c46a":t.kind==="boost"?"#e9b0ff":"#9ef7b8";
+const color=t.kind==="gem"?"#7de7ff":t.kind==="magnet"?"#f6c46a":t.kind==="boost"?"#e9b0ff":t.kind==="star"?"#ffe18a":"#9ef7b8";
 ctx.fillStyle=color;ctx.strokeStyle="#ffffff";ctx.lineWidth=2;
 ctx.beginPath();ctx.moveTo(0,-13);ctx.lineTo(12,-3);ctx.lineTo(8,10);ctx.lineTo(-8,10);ctx.lineTo(-12,-3);ctx.closePath();ctx.fill();ctx.stroke();
-ctx.fillStyle="#24354d";ctx.font="bold 16px system-ui";ctx.textAlign="center";ctx.fillText(t.kind==="gem"?"★":t.kind==="magnet"?"M":t.kind==="boost"?"⚡":"✚",0,5);ctx.restore();}
+ctx.fillStyle="#24354d";ctx.font="bold 16px system-ui";ctx.textAlign="center";ctx.fillText(t.kind==="gem"?"★":t.kind==="magnet"?"M":t.kind==="boost"?"⚡":t.kind==="star"?"★":"✚",0,5);ctx.restore();}
 function drawCoin(c){const pulse=1+Math.sin(visualTime*5+c.x*.07)*.1;
 const r=c.r*pulse;circle(c.x,c.y,r+6,"#ffd55b33");
 const shine=ctx.createRadialGradient(c.x-r*.35,c.y-r*.4,1,c.x,c.y,r);
@@ -433,6 +434,8 @@ if(t.kind==="gem"){eventCollect("gem");state.coins+=75;gainPetXP(12);msg("💎 R
 else if(t.kind==="magnet"){magnetTime=12;msg("🧲 Coin magnet active for 12 seconds!");}
 else if(t.kind==="shield"){shieldTime=12;msg("🛡️ Shield active for 12 seconds!");}
 else if(t.kind==="boost"){boostTime=10;msg("⚡ Speed boost active for 10 seconds!");}
+else if(t.kind==="star"){state.starTokens++;state.coins+=100;gainPetXP(25);
+msg("🌟 Star token collected! +100 coins and +25 pet XP.");}
 save();updateStats();}}
 if(magnetTime>0)for(const c of targets){const d=Math.hypot(player.x-c.x,player.y-c.y);
 if(d>1&&d<145){const speed=Math.min(d,220*dt);c.x+=(player.x-c.x)/d*speed;c.y+=(player.y-c.y)/d*speed;}}
