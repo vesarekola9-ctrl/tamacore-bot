@@ -499,6 +499,7 @@ const choreChallenges=[
 {id:"challenge184",title:"Gardening Apprentice",ready:()=>state.gardeningSkill>=20,reward:20},
 {id:"challenge185",title:"Gardening Specialist",ready:()=>state.gardeningSkill>=50,reward:45},
 {id:"challenge186",title:"Gardening Master",ready:()=>state.gardeningSkill>=90,reward:100},
+{id:"challenge187",title:"Balanced Helper",ready:()=>state.tidyingSkill>=25&&state.gardeningSkill>=25,reward:30},
 /*CHORE_CHALLENGES*/
 ];
 function renderChoreChallenges(){const root=$("choreChallenges");if(!root)return;root.replaceChildren();for(const c of choreChallenges){const claimed=state.choreRewardsClaimed.includes(c.id),ready=c.ready();const line=document.createElement("div"),button=document.createElement("button");button.textContent=(claimed?"✅ ":ready?"🎁 ":"🔒 ")+c.title+" • "+c.reward+" coins";button.disabled=claimed||!ready;button.onclick=()=>{if(state.choreRewardsClaimed.includes(c.id)||!c.ready())return;state.choreRewardsClaimed.push(c.id);state.coins+=c.reward;state.petMood=clamp(state.petMood+2,0,100);rememberPet("🏆 Challenge: "+c.title);save();updateStats();msg("🏆 "+c.title+"! +"+c.reward+" coins.");};line.appendChild(button);root.appendChild(line);}}
