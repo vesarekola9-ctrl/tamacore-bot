@@ -97,6 +97,20 @@ if(!blocked(entity.x,ny,entity.r))entity.y=ny;}
 function generateScenery(){scenery=[];
 for(let i=0;i<65;i++){const x=((i*127+state.level*59)%W),y=((i*211+state.level*83)%H);
 scenery.push({x,y,size:3+(i%5)*2,kind:i%4,phase:i*.67});}}
+function drawWorldBackdrop(){const theme=state.level%worlds.length;
+const colors=[["#346c63","#132c41"],["#4c3b82","#16192f"],["#b87549","#53352d"],["#609cb5","#213e5a"]][theme];
+const gradient=ctx.createLinearGradient(0,0,0,H);gradient.addColorStop(0,colors[0]);gradient.addColorStop(1,colors[1]);
+ctx.fillStyle=gradient;ctx.fillRect(0,0,W,H);
+ctx.save();ctx.globalAlpha=.18;
+for(let layer=0;layer<3;layer++){const offset=Math.sin(visualTime*.16+layer)*12;
+ctx.fillStyle=theme===0?"#b2f5c8":theme===1?"#b9a1f7":theme===2?"#f6ca80":"#d6f3ff";
+ctx.beginPath();ctx.moveTo(0,H);for(let x=0;x<=W+20;x+=20){const y=H*(.68+layer*.11)+Math.sin(x*.011+layer*2)*20+Math.sin(x*.023+layer)*8+offset;ctx.lineTo(x,y);}ctx.lineTo(W,H);ctx.closePath();ctx.fill();}
+ctx.restore();
+// Animated light shafts and atmosphere are subtle enough not to obscure gameplay.
+ctx.save();ctx.globalAlpha=.055;ctx.fillStyle="#ffffff";
+for(let i=0;i<5;i++){const x=((i*179+visualTime*6)%(W+240))-120;
+ctx.beginPath();ctx.moveTo(x-65,0);ctx.lineTo(x+5,0);ctx.lineTo(x+180,H);ctx.lineTo(x+80,H);ctx.closePath();ctx.fill();}
+ctx.restore();}
 function drawScenery(){const theme=state.level%worlds.length;
 for(const d of scenery){ctx.save();ctx.translate(d.x,d.y);ctx.globalAlpha=.25+(Math.sin(visualTime*1.3+d.phase)+1)*.12;
 if(theme===0){ctx.fillStyle=d.kind%2?"#b0e8a2":"#f6c0e2";
@@ -237,11 +251,11 @@ function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
 if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
 for(const h of hearts){h.x+=h.vx*dt;h.y+=h.vy*dt;h.life-=dt;}
 hearts=hearts.filter(h=>h.life>0);}
-ctx.clearRect(0,0,W,H);ctx.fillStyle=world().floor;ctx.fillRect(0,0,W,H);
-ctx.strokeStyle=world().grid;ctx.lineWidth=1;
+ctx.clearRect(0,0,W,H);drawWorldBackdrop();
+ctx.save();ctx.globalAlpha=.22;ctx.strokeStyle=world().grid;ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-drawScenery();
+ctx.restore();drawScenery();
 if(!won&&!paused){if(questKind==="survive"){petMoodClock+=dt;
 if(petMoodClock>=1){petMoodClock-=1;advanceQuest(1);}}
 petWander-=dt;
