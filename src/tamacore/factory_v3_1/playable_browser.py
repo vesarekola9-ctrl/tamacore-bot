@@ -46,7 +46,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
 <div id="wardrobe"><h2>Wardrobe</h2><div id="cosmetics"></div></div>
-<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button><button id="petPet">❤️ Pet companion</button></div><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p></div><section id="achievements"><h2>🏅 Achievements</h2><div id="achievementList"></div></section>
+<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button><button id="petPet">❤️ Pet companion</button><button id="trainPet">🎓 Train (20 coins)</button></div><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p></div><section id="achievements"><h2>🏅 Achievements</h2><div id="achievementList"></div></section>
 <small>Move: WASD / arrow keys or touch buttons. Collect yellow coins. Avoid red enemies. Progress saves automatically in this browser.</small></div>
 </main><script id="config" type="application/json">__GAME_CONFIG__</script><script>
 "use strict";
@@ -57,9 +57,9 @@ const $=id=>document.getElementById(id);
 $("title").textContent=cfg.name;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>a+Math.random()*(b-a);
-const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{}};
+const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0};
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object"){
-for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected"])if(Number.isFinite(saved[k]))state[k]=saved[k];
+for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions"])if(Number.isFinite(saved[k]))state[k]=saved[k];
 if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
 if(saved.achievements&&typeof saved.achievements==="object")state.achievements=saved.achievements;
 if(saved.cosmeticsOwned&&typeof saved.cosmeticsOwned==="object")state.cosmeticsOwned=saved.cosmeticsOwned;
@@ -67,7 +67,7 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
-let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0;
+let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0,trainingCooldown=0;
 let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0,treasures=[],magnetTime=0,shieldTime=0;
 let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
@@ -160,7 +160,8 @@ const achievementDefs=[
 {id:"quests_10",name:"🌟 Quest Master",desc:"Complete 10 quests",test:()=>state.questsCompleted>=10},
 {id:"gold",name:"🥇 Perfect Run",desc:"Earn a gold medal",test:()=>state.goldMedals>=1},
 {id:"evolution",name:"🐰 Growing Up",desc:"Reach pet evolution stage 3",test:()=>state.petStage>=3},
-{id:"evolution_max",name:"👑 Best Friend",desc:"Reach pet evolution stage 5",test:()=>state.petStage>=5}
+{id:"evolution_max",name:"👑 Best Friend",desc:"Reach pet evolution stage 5",test:()=>state.petStage>=5},
+{id:"trainer",name:"🎓 Dedicated Trainer",desc:"Complete 10 training sessions",test:()=>state.trainingSessions>=10}
 ];
 function refreshAchievements(){let changed=false;
 for(const a of achievementDefs){if(!state.achievements[a.id]&&a.test()){
@@ -178,7 +179,8 @@ $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Co
 $("petStatus").textContent="Hunger "+Math.round(state.petHunger)+"/100 • Energy "+Math.round(state.petEnergy)+"/100 • Mood "+Math.round(state.petMood)+"/100 • Cleanliness "+Math.round(state.petCleanliness)+"/100";
 $("petProgress").textContent="Pet evolution: stage "+state.petStage+" • XP "+state.petXP+"/"+(state.petStage*100)+
 (state.petStage>=3?" • 🪙 Companion coin helper":" • Coin helper unlocks at stage 3")+
-(state.petStage>=5?" • ⚡ Happy speed boost":"");
+(state.petStage>=5?" • ⚡ Happy speed boost":"")+
+" • Training sessions: "+state.trainingSessions;
 $("petEmotion").textContent="Pet mood: "+petEmotion()+" • Quests completed: "+state.questsCompleted;}
 function gainPetXP(amount){state.petXP+=amount;let evolved=false;
 while(state.petStage<5&&state.petXP>=state.petStage*100){state.petXP-=state.petStage*100;state.petStage++;evolved=true;}
@@ -213,7 +215,16 @@ state.equippedCosmetic=item.id;save();renderWardrobe();updateStats();msg("Equipp
 $("shopToggle").onclick=()=>{$("shop").classList.toggle("open");renderShop();};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;state.questsCompleted=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;state.questsCompleted=0;state.trainingSessions=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+$("trainPet").onclick=()=>{if(paused||won){msg("Resume playing to train your companion.");return;}
+if(trainingCooldown>0){msg("Your companion needs a break before training again.");return;}
+if(state.coins<20){msg("Training costs 20 coins.");return;}
+if(state.petEnergy<15||state.petHunger<15){msg("Feed or rest your companion before training.");return;}
+state.coins-=20;state.petEnergy=clamp(state.petEnergy-15,0,100);
+state.petHunger=clamp(state.petHunger-8,0,100);state.petMood=clamp(state.petMood+6,0,100);
+state.trainingSessions++;trainingCooldown=25;
+burst(pet.x,pet.y,"#b5eaff",22);gainPetXP(25);save();updateStats();
+msg("🎓 Great training! +25 pet XP. Sessions: "+state.trainingSessions);};
 function petCompanion(){if(paused||won){msg("Resume playing to interact with your pet.");return;}
 if(petCooldown>0){msg("Your pet needs a moment before more cuddles.");return;}
 petCooldown=4;state.petMood=clamp(state.petMood+8,0,100);
@@ -316,6 +327,7 @@ ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
 if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
 levelBanner=Math.max(0,levelBanner-dt);hitFlash=Math.max(0,hitFlash-dt);
+trainingCooldown=Math.max(0,trainingCooldown-dt);
 companionCollectCooldown=Math.max(0,companionCollectCooldown-dt);
 magnetTime=Math.max(0,magnetTime-dt);shieldTime=Math.max(0,shieldTime-dt);
 for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=90*dt;p.life-=dt;}
