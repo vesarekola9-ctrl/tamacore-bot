@@ -46,6 +46,16 @@ def audit_project(project_file: Path) -> list[str]:
             errors.append(f"Scene {name} has no objects or instances")
         if not scene.get("events"):
             errors.append(f"Scene {name} has no events")
+        # Named TamaCore generated events must be unique. Duplicates would
+        # apply pet care rewards or decay more than once per interaction.
+        generated_names = [
+            event.get("name") for event in scene.get("events", [])
+            if isinstance(event, dict)
+            and isinstance(event.get("name"), str)
+            and event["name"].startswith("TamaCore")
+        ]
+        for event_name in sorted({item for item in generated_names if generated_names.count(item) > 1}):
+            errors.append(f"Scene {name} has duplicate TamaCore event: {event_name}")
         # Catch broken scene instances and accidental duplicate object names.
         objects = [obj for obj in scene.get("objects", []) if isinstance(obj, dict)]
         object_names = [obj.get("name") for obj in objects if isinstance(obj.get("name"), str)]
