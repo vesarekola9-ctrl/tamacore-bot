@@ -831,7 +831,7 @@ if(typeof extra!=="undefined"&&extra&&extra.living){ctx.save();ctx.font="45px sy
 if(state.roomEquipped.toy!=="none"){ctx.font="54px system-ui";ctx.textAlign="center";ctx.fillText(state.roomEquipped.toy==="ball"?"⚽":"🧩",190,460);}
 ctx.save();ctx.textAlign="center";const boutiqueFurniture=boutiqueSelected("furniture"),boutiqueToy=boutiqueSelected("toy");
 if(boutiqueFurniture){ctx.save();boutiqueThemeEffect(boutiqueFurniture);ctx.font="85px system-ui";ctx.fillText(boutiqueFurniture.emoji,boutiqueSave.positions.furniture?.x??560,boutiqueSave.positions.furniture?.y??420);ctx.restore();}
-for(const [i,id] of boutiqueSave.displayed.entries()){if(boutiqueFurniture&&id===boutiqueFurniture.id)continue;const item=(cfg.collectibles||[]).find(x=>x.id===id);if(item){ctx.save();boutiqueThemeEffect(item);ctx.font="55px system-ui";ctx.fillText(item.emoji,125+i*130,395);ctx.restore();}}
+for(const [i,id] of boutiqueSave.displayed.entries()){if(boutiqueFurniture&&id===boutiqueFurniture.id)continue;const item=(cfg.collectibles||[]).find(x=>x.id===id);if(item){ctx.save();boutiqueThemeEffect(item);ctx.font="55px system-ui";const pos=boutiqueSave.positions[id];ctx.fillText(item.emoji,pos?.x??125+i*130,pos?.y??395);ctx.restore();}}
 if(boutiqueToy){ctx.save();boutiqueThemeEffect(boutiqueToy);ctx.font="48px system-ui";ctx.fillText(boutiqueToy.emoji,boutiqueSave.positions.toy?.x??260,boutiqueSave.positions.toy?.y??475);ctx.restore();}
 ctx.restore();
 ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ctx.fillText((state.petSpecies==="kitten"?"🐱":state.petSpecies==="puppy"?"🐶":"🐰")+" "+state.petName.toUpperCase()+"\u0027S HOME",W/2,142);
@@ -1128,6 +1128,7 @@ function normalizeBoutique(input){
  }
  for(const category of ["furniture","toy"]){const pos=input.positions&&input.positions[category];if(pos&&Number.isFinite(pos.x))result.positions[category]={x:Math.max(130,Math.min(670,pos.x)),y:Number.isFinite(pos.y)?Math.max(355,Math.min(495,pos.y)):(category==="furniture"?420:475)};}
  if(Array.isArray(input.displayed))result.displayed=[...new Set(input.displayed)].filter(id=>result.owned[id]&&(cfg.collectibles||[]).some(item=>item.id===id&&item.category==="furniture")).slice(0,3);
+ for(const id of result.displayed){const pos=input.positions&&input.positions[id];if(pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.y))result.positions[id]={x:Math.max(130,Math.min(670,pos.x)),y:Math.max(355,Math.min(495,pos.y))};}
  for(const theme of ["pastel","royal","winter","garden"])if(input.claimed&&input.claimed[theme]===true)result.claimed[theme]=true;
  return result;
 }
@@ -1215,6 +1216,13 @@ function boutiqueRender(){
       const display=document.createElement("button");const shown=boutiqueSave.displayed.includes(item.id);
       display.textContent=shown?"Remove from display":"Add to display";display.disabled=!shown&&boutiqueSave.displayed.length>=3;
       display.onclick=()=>{if(boutiqueSave.displayed.includes(item.id))boutiqueSave.displayed=boutiqueSave.displayed.filter(id=>id!==item.id);else if(boutiqueSave.displayed.length<3)boutiqueSave.displayed.push(item.id);save();boutiqueRender();};card.appendChild(display);
+      if(shown){
+        const i=boutiqueSave.displayed.indexOf(item.id);
+        const pos=boutiqueSave.positions[item.id]||{x:125+i*130,y:395};
+        const x=document.createElement("input"),y=document.createElement("input");
+        for(const [el,min,max,value,label] of [[x,130,670,pos.x,"Horizontal"],[y,355,495,pos.y,"Vertical"]]){el.type="range";el.min=String(min);el.max=String(max);el.value=String(value);el.step="5";el.setAttribute("aria-label",label+" position for "+item.name);card.append(label,el);}
+        x.oninput=y.oninput=()=>{boutiqueSave.positions[item.id]={x:Number(x.value),y:Number(y.value)};save();};
+      }
     }
     grid.appendChild(card)
   });
