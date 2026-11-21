@@ -42,6 +42,12 @@ jobs:
           test -s build/gdevelop_game/game.json
           test -s build/gdevelop_game/PLAY_GAME.html
           python -m json.tool build/gdevelop_game/game.json > /dev/null
+      - name: Audit GDevelop scenes, resources and animation frames
+        run: |
+          python -m tamacore.factory_v3_1.gdevelop_audit build/gdevelop_game/game.json > build/GDEVELOP_AUDIT.txt 2>&1 || {
+            cat build/GDEVELOP_AUDIT.txt
+            echo "::warning::Generated GDevelop project needs review; see GDEVELOP_AUDIT.txt"
+          }
       - name: Upload GDevelop project and preview
         uses: actions/upload-artifact@v4
         with:
@@ -49,6 +55,7 @@ jobs:
           path: |
             build/gdevelop_game/
             build/ai_pack/
+            build/GDEVELOP_AUDIT.txt
             build/release_bundle/
           if-no-files-found: error
           retention-days: 30
