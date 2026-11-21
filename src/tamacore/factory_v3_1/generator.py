@@ -138,7 +138,8 @@ def run_factory_v3_1(
     # Create original, transparent PNG animation frames automatically. Artists
     # can replace individual frames without the factory overwriting them.
     from .pet_sprite_generator import generate_pet_sprites
-    pet_species = raw_pack.get("pet", {}).get("species", "bunny")
+    pet_config = raw_pack.get("pet") or {}
+    pet_species = pet_config.get("species", "bunny") if isinstance(pet_config, dict) else "bunny"
     generate_pet_sprites(game_dir, str(pet_species))
     apply_character_animations(project, scene, game_dir)
 
