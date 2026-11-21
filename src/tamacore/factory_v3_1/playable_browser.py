@@ -1002,6 +1002,28 @@ const townActions=[
 ];
 for(const [label,action] of townActions){const b=document.createElement("button");b.textContent=label;b.onclick=()=>{if(state.petSleeping||state.petSick||state.petStage===1){msg("🐰 Your pet needs to be awake and healthy.");return;}if(action()===false)return;extra.inventory=extra.inventory.slice(-100);extraSave();save();updateStats();townRender();msg("✨ "+label+" with "+state.petName+"!");};$("townButtons").appendChild(b);}townRender();
 
+
+/* TamaCore expansion: progression, long-term goals and events */
+const goalsBox=document.createElement("section");goalsBox.id="longTermGoals";goalsBox.innerHTML='<h3>🏆 Goals & seasonal celebrations</h3><p id="goalSummary"></p><div id="goalButtons"></div><p id="seasonInfo"></p><button id="seasonReward">🎊 Claim seasonal gift</button><p id="skillTreeInfo"></p><button id="skillTreeTrain">🌟 Train a special trick · 20 coins</button>';
+$("townExpansion").after(goalsBox);
+extra.goalClaims=Array.isArray(extra.goalClaims)?extra.goalClaims:[];
+extra.trickLevel=Number.isFinite(extra.trickLevel)?Math.max(0,Math.min(50,extra.trickLevel)):0;
+const goalList=[
+["First playmate",()=>extra.plays>=1,10],["Little champion",()=>extra.wins>=10,25],["Game master",()=>extra.wins>=50,100],
+["Friendly face",()=>extra.friends>=5,25],["Social butterfly",()=>extra.friends>=25,100],
+["Forest explorer",()=>extra.expedition>=10,40],["Wanderer",()=>extra.expedition>=50,125],
+["Room collector",()=>extra.roomsOwned.length>=3,40],["Interior designer",()=>extra.decorsOwned.length>=4,40],
+["Photographer",()=>extra.photos.length>=10,35],["Storyteller",()=>extra.storyStep>=20,75],
+["Careful gardener",()=>state.petGarden.harvests>=10,50],["Skilled cook",()=>state.petCookingSkill>=50,50],
+["Happy companion",()=>state.friendship>=90,80],["Master of tricks",()=>extra.trickLevel>=10,100],
+["Lifetime helper",()=>state.choreTotal>=100,150]
+];
+function goalsRender(){extraDaily();$("goalSummary").textContent="🏆 "+extra.goalClaims.length+"/"+goalList.length+" goals claimed • ⭐ Trick level "+extra.trickLevel;const month=new Date().getMonth();const seasons=["❄️ Winter","🌷 Spring","☀️ Summer","🍂 Autumn"];const season=seasons[Math.floor(month/3)%4];const key=new Date().getFullYear()+"-"+Math.floor(month/3);$("seasonInfo").textContent=season+" • "+(extra.seasonClaim===key?"Gift claimed":"Seasonal gift available");$("seasonReward").disabled=extra.seasonClaim===key;$("skillTreeInfo").textContent="🌟 Special trick level "+extra.trickLevel+" • Every level makes your pet happier.";}
+for(let i=0;i<goalList.length;i++){const [name,ready,reward]=goalList[i],b=document.createElement("button");b.textContent="🏅 "+name+" · "+reward+" coins";b.onclick=()=>{if(extra.goalClaims.includes(i)||!ready())return;extra.goalClaims.push(i);state.coins+=reward;state.petMood=clamp(state.petMood+4,0,100);rememberPet("🏅 Goal completed: "+name);extraSave();save();updateStats();goalsRender();msg("🏅 "+name+"! +"+reward+" coins.");};$("goalButtons").appendChild(b);}
+$("seasonReward").onclick=()=>{const key=new Date().getFullYear()+"-"+Math.floor(new Date().getMonth()/3);if(extra.seasonClaim===key)return;extra.seasonClaim=key;state.coins+=50;extra.inventory.push("🎊 Seasonal keepsake "+key);extraSave();save();updateStats();goalsRender();townRender();msg("🎊 Seasonal gift! +50 coins.");};
+$("skillTreeTrain").onclick=()=>{if(extra.trickLevel>=50){msg("🌟 All tricks mastered!");return;}if(state.coins<20){msg("🪙 Need 20 coins to train.");return;}if(state.petEnergy<8||state.petSleeping){msg("💤 Your pet needs energy to learn.");return;}state.coins-=20;state.petEnergy-=8;extra.trickLevel++;state.petMood=clamp(state.petMood+Math.min(15,4+Math.floor(extra.trickLevel/5)),0,100);gainFriendship(2);if(extra.trickLevel%5===0)rememberPet("🌟 Learned trick level "+extra.trickLevel);extraSave();save();updateStats();goalsRender();msg("🌟 New trick learned!");};
+goalsRender();
+
 updatePetGrowth();startLevel();renderShop();renderWardrobe();updateStats();requestAnimationFrame(frame);
 </script></body></html>
 '''
