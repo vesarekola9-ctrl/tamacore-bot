@@ -94,6 +94,17 @@ jobs:
               assert.ok(outfit && purchased.boutique.owned[outfit], 'Purchased outfit must be owned and equipped');
               await page.locator('#boutiqueItems').getByRole('button', {name: '✓ Equipped', exact: true}).click();
               assert.equal((await readSave()).coins, purchased.coins, 'Equipping again must not charge coins');
+              await page.locator('#boutiqueCount').getByRole('button', {name: 'Cosmic', exact: true}).click();
+              await page.locator('#boutiqueCount').getByRole('button', {name: 'Save 1', exact: true}).click();
+              await page.locator('#boutiqueCount').getByRole('button', {name: 'Cozy', exact: true}).click();
+              await page.locator('#boutiqueCount').getByRole('button', {name: 'Load 1', exact: true}).click();
+              assert.equal(await page.getByLabel('Home architecture', {exact: true}).inputValue(), 'observatory');
+              const rewardBefore = await readSave();
+              await page.getByRole('button', {name: 'First purchase: Claim your reward', exact: true}).click();
+              const rewarded = await readSave();
+              assert.equal(rewarded.coins, rewardBefore.coins + 25);
+              assert.equal(rewarded.boutique.roomAwards.firstItem, true);
+              assert.ok(await page.getByRole('button', {name: 'First purchase: Reward already collected', exact: true}).isDisabled());
               await page.locator('#petNameInput').fill('Browser Test Pet');
               await page.locator('#savePetName').click();
               assert.equal(await page.locator('#petNameInput').inputValue(), 'Browser Test Pet');
@@ -104,7 +115,11 @@ jobs:
               const restored = await readSave();
               assert.ok(restored.boutique.owned[outfit], 'Purchase must survive reload');
               assert.equal(restored.boutique.equipped.outfit, outfit);
-              assert.equal(restored.coins, purchased.coins);
+              assert.equal(restored.coins, rewarded.coins);
+              assert.equal(restored.boutique.roomAwards.firstItem, true);
+              assert.equal(restored.boutique.layouts['1'].roomTheme, 'observatory');
+              assert.equal(restored.boutique.roomTheme, 'observatory');
+              assert.ok(await page.getByRole('button', {name: 'First purchase: Reward already collected', exact: true}).isDisabled());
               await page.waitForTimeout(500);
               assert.deepEqual(errors, [], 'Uncaught browser errors');
             } finally { await browser.close(); }
