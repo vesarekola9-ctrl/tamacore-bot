@@ -217,6 +217,30 @@ b.addEventListener("pointerdown",e=>{e.preventDefault();b.setPointerCapture(e.po
 for(const event of ["pointerup","pointercancel","lostpointercapture"])b.addEventListener(event,()=>keys.delete(key));
 }
 function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+function drawObstacle(o){const theme=state.level%worlds.length;
+ctx.save();ctx.translate(o.x,o.y);ctx.fillStyle="#101c2b77";ctx.beginPath();ctx.ellipse(4,o.r*.7,o.r*1.1,o.r*.43,0,0,Math.PI*2);ctx.fill();
+if(theme===0){ctx.fillStyle="#785a42";ctx.fillRect(-o.r*.2,-o.r*.15,o.r*.4,o.r*.95);
+for(let j=0;j<3;j++)circle((j-1)*o.r*.35,-o.r*.35-(j%2)*o.r*.25,o.r*.55,j===1?"#6fc184":"#3e996c");
+circle(-o.r*.3,-o.r*.65,o.r*.12,"#d5f4aa");}
+else if(theme===1){ctx.fillStyle="#483c7e";ctx.beginPath();ctx.ellipse(0,o.r*.3,o.r*.8,o.r*.4,0,0,Math.PI*2);ctx.fill();
+for(let j=-1;j<=1;j++){ctx.fillStyle=j===0?"#a9e8ff":"#a88fe9";ctx.beginPath();ctx.moveTo(j*o.r*.5-o.r*.23,o.r*.25);ctx.lineTo(j*o.r*.5,-o.r*(j===0?1.25:.7));ctx.lineTo(j*o.r*.5+o.r*.28,o.r*.25);ctx.closePath();ctx.fill();}}
+else if(theme===2){circle(0,0,o.r,"#b7814f");circle(-o.r*.23,-o.r*.22,o.r*.62,"#d8a36a");
+ctx.strokeStyle="#8b603f";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-o.r*.4,-o.r*.1);ctx.lineTo(0,o.r*.16);ctx.lineTo(o.r*.3,-o.r*.1);ctx.stroke();}
+else{ctx.fillStyle="#a5dbe9";ctx.beginPath();ctx.moveTo(-o.r,o.r*.6);ctx.lineTo(-o.r*.55,-o.r*.6);ctx.lineTo(0,-o.r*1.15);ctx.lineTo(o.r*.8,-o.r*.35);ctx.lineTo(o.r,o.r*.6);ctx.closePath();ctx.fill();
+ctx.fillStyle="#e4fbff";ctx.beginPath();ctx.moveTo(-o.r*.55,-o.r*.6);ctx.lineTo(0,-o.r*1.15);ctx.lineTo(o.r*.32,-o.r*.68);ctx.lineTo(0,-o.r*.42);ctx.closePath();ctx.fill();}
+ctx.restore();}
+function drawCoin(c){const pulse=1+Math.sin(visualTime*5+c.x*.07)*.1;
+const r=c.r*pulse;circle(c.x,c.y,r+6,"#ffd55b33");
+const shine=ctx.createRadialGradient(c.x-r*.35,c.y-r*.4,1,c.x,c.y,r);
+shine.addColorStop(0,"#fff9bf");shine.addColorStop(.5,"#ffd85c");shine.addColorStop(1,"#d78b28");circle(c.x,c.y,r,shine);
+ctx.strokeStyle="#fff0a5";ctx.lineWidth=1.7;ctx.beginPath();ctx.arc(c.x,c.y,r*.7,0,Math.PI*2);ctx.stroke();
+ctx.fillStyle="#a86c24";ctx.font="bold "+Math.round(r*1.25)+"px system-ui";ctx.textAlign="center";ctx.fillText("★",c.x,c.y+r*.44);ctx.textAlign="left";}
+function drawEnemy(e){ctx.save();ctx.translate(e.x,e.y+Math.sin(visualTime*6+e.x*.02)*2);
+circle(2,4,e.r+3,"#511d3d88");const g=ctx.createRadialGradient(-5,-7,1,0,0,e.r+2);
+g.addColorStop(0,"#ffb0b3");g.addColorStop(.55,"#f45e83");g.addColorStop(1,"#ac365c");circle(0,0,e.r,g);
+for(const side of [-1,1]){ctx.fillStyle="#a83b65";ctx.beginPath();ctx.moveTo(side*e.r*.55,-e.r*.6);ctx.lineTo(side*e.r*.8,-e.r*1.22);ctx.lineTo(side*e.r*.08,-e.r*.87);ctx.closePath();ctx.fill();}
+circle(-5,-3,4,"#fff");circle(6,-3,4,"#fff");circle(-4,-3,2,"#28203a");circle(7,-3,2,"#28203a");
+ctx.strokeStyle="#802744";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-4,7);ctx.lineTo(4,7);ctx.stroke();ctx.restore();}
 function drawBunny(x,y,scale,bodyColor,walking,face=1,expression="happy"){
 const bounce=walking?Math.abs(Math.sin(visualTime*12))*3:Math.sin(visualTime*2)*1.3;
 ctx.save();ctx.translate(x,y-bounce);ctx.scale(scale*face,scale);
@@ -290,11 +314,8 @@ if(questKind==="survive"){questProgress=0;petMoodClock=0;updateQuest();}
 hit++;invincible=1.2;state.coins=Math.max(0,state.coins-5);msg("Enemy hit! Lost 5 coins.");updateStats();}}
 invincible=Math.max(0,invincible-dt);
 if(!targets.length)finishLevel();}
-for(const o of obstacles){circle(o.x+3,o.y+5,o.r+3,"#172331");circle(o.x,o.y,o.r,world().obstacle);
-circle(o.x-o.r*.2,o.y-o.r*.2,o.r*.32,"#ffffff25");}
-for(const c of targets){const pulse=1+Math.sin(visualTime*5+c.x*.07)*.12;
-circle(c.x,c.y,c.r*pulse+5,"#e5b54844");circle(c.x,c.y,c.r*pulse,"#ffd35a");
-ctx.fillStyle="#fff1aa";ctx.fillRect(c.x-1.5,c.y-5,3,10);}
+for(const o of obstacles)drawObstacle(o);
+for(const c of targets)drawCoin(c);
 // Companion is decorative and never collides with enemies or collectibles.
 drawBunny(pet.x,pet.y,.72+state.petStage*.09,state.petMood<30?"#a9b3cf":"#ffb6d7",!paused&&petDist>3,1,state.petMood<30?"sad":"happy");
 if(state.petEnergy<20){ctx.font="18px system-ui";ctx.fillText("Zzz",pet.x+16,pet.y-30);}
@@ -302,9 +323,7 @@ for(const h of hearts){ctx.save();ctx.globalAlpha=Math.min(1,h.life);ctx.font="1
 if(joystick){circle(joystick.start.x,joystick.start.y,56,"#365b77");
 const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
 const len=Math.max(1,Math.hypot(vx,vy));circle(joystick.start.x+vx/len*Math.min(48,len),joystick.start.y+vy/len*Math.min(48,len),24,"#9acbdc");}
-for(const e of enemies){circle(e.x,e.y,e.r+3,"#9e3447");circle(e.x,e.y,e.r,"#fb6570");
-circle(e.x-5,e.y-3,3,"#fff");circle(e.x+5,e.y-3,3,"#fff");
-circle(e.x-4,e.y-3,1.5,"#222");circle(e.x+6,e.y-3,1.5,"#222");}
+for(const e of enemies)drawEnemy(e);
 drawBunny(player.x,player.y,.9,invincible>0?"#ffffff":"#79e0d0",!paused&&playerMoving,playerFacing);
 if(state.equippedCosmetic){ctx.font="23px system-ui";ctx.fillText("✦",player.x+17,player.y-13);}
 ctx.textAlign="left";
