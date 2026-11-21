@@ -51,6 +51,42 @@ jobs:
           name: tamacore-browser-game
           path: _site/index.html
           if-no-files-found: error
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test engine
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Smoke test playable game in Chromium
+        run: |
+          node <<'JS'
+          const { chromium } = require('playwright');
+          const assert = require('node:assert/strict');
+          (async () => {
+            const browser = await chromium.launch();
+            try {
+              const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+              const errors = [];
+              page.on('pageerror', error => errors.push(error.message));
+              await page.route('http://localhost:8765/**', route => route.fulfill({path: '_site/index.html', contentType: 'text/html'}));
+              await page.goto('http://localhost:8765/');
+              await page.locator('#startGame').click();
+              await page.locator('#hudCoins').waitFor({state: 'visible'});
+              assert.ok((await page.locator('#hudCoins').innerText()).trim());
+              await page.locator('#homeToggle').click();
+              await page.waitForTimeout(500);
+              assert.ok(await page.locator('#game').evaluate(canvas => {
+                const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+                return pixels.some((value, i) => i % 4 === 3 && value > 0);
+              }), 'Canvas must contain rendered pixels');
+              await page.locator('#boutiqueSearch').fill('zz_no_matching_product_zz');
+              await page.reload();
+              await page.waitForTimeout(500);
+              assert.deepEqual(errors, [], 'Uncaught browser errors');
+            } finally { await browser.close(); }
+          })().catch(error => { console.error(error); process.exitCode = 1; });
+          JS
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
