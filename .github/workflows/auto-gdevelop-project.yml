@@ -41,6 +41,18 @@ jobs:
           test -s build/gdevelop_game/assets/generated/player/player_sleep_01.png
           python -m json.tool build/gdevelop_game/game.json > /dev/null
           python -m json.tool build/gdevelop_game/PET_ANIMATION_MANIFEST.json > /dev/null
+      - name: Verify pet animation events are present in generated GDevelop project
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          project = json.loads(Path("build/gdevelop_game/game.json").read_text(encoding="utf-8"))
+          scenes = project.get("layouts", [])
+          events = [event for scene in scenes for event in scene.get("events", []) if isinstance(event, dict)]
+          for name in ("Idle", "Walk", "Sleep", "Eat", "Play"):
+              assert any(event.get("name") == f"TamaCorePetAnimation_{name}" for event in events), name
+          print("Five pet animation events found in GDevelop project")
+          PY
       - name: Audit GDevelop scenes, resources and animation frames
         run: |
           python -m tamacore.factory_v3_1.gdevelop_audit build/gdevelop_game/game.json > build/GDEVELOP_AUDIT.txt 2>&1 || {
