@@ -35,7 +35,7 @@ main{max-width:850px;margin:auto;padding:12px}header{display:flex;justify-conten
 h1{font-size:23px;margin:8px 0}button{background:#334c7e;color:#fff;border:1px solid #6783ad;border-radius:10px;padding:10px 14px;cursor:pointer}
 button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display:block;width:100%;height:auto;max-height:65vh;aspect-ratio:4/3;border:2px solid #4c7b9e;border-radius:16px;background:#142b3d;touch-action:none}
 #panel{background:#182841;border-radius:12px;padding:12px;margin-top:10px}#shop{display:none}#shop.open{display:block}
-#shop button{margin:4px}#message{min-height:24px;color:#ffe68c}#touch{display:flex;justify-content:space-between;margin-top:10px}
+#shop button,#careActions button{margin:4px}#message{min-height:24px;color:#ffe68c}#touch{display:flex;justify-content:space-between;margin-top:10px}
 #touch button{min-width:64px;min-height:50px}small{color:#b8c9dc}
 </style></head><body><main><header><h1 id="title">TamaCore</h1><div>
 <button id="shopToggle">Shop</button><button id="reset">New game</button></div></header>
@@ -44,7 +44,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 <div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button></div>
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
-<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><p id="petStatus"></p></div>
+<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button></div><p id="petStatus"></p></div>
 <small>Move: WASD / arrow keys or touch buttons. Collect yellow coins. Avoid red enemies. Progress saves automatically in this browser.</small></div>
 </main><script id="config" type="application/json">__GAME_CONFIG__</script><script>
 "use strict";
@@ -112,6 +112,20 @@ save();updateStats();msg("Fed pet: "+food.name);}
 for(const [index,food] of cfg.foods.entries()){const option=document.createElement("option");option.value=index;
 option.textContent=food.name+" ("+food.price+" coins)";$("foodChoice").appendChild(option);}
 $("feed").onclick=feedPet;$("feedSelected").onclick=feedPet;
+$("cleanPet").onclick=()=>{if(state.coins<15){msg("Cleaning costs 15 coins.");return;}
+if(state.petCleanliness>=100){msg("Your pet is already clean.");return;}
+state.coins-=15;state.petCleanliness=clamp(state.petCleanliness+35,0,100);
+state.petMood=clamp(state.petMood+5,0,100);save();updateStats();msg("Your pet feels fresh!");};
+$("playPet").onclick=()=>{if(state.petEnergy<12){msg("Your pet is too tired. Let it rest.");return;}
+state.petEnergy=clamp(state.petEnergy-12,0,100);
+state.petMood=clamp(state.petMood+22,0,100);
+state.petHunger=clamp(state.petHunger-6,0,100);
+state.petCleanliness=clamp(state.petCleanliness-5,0,100);
+save();updateStats();msg("Your pet loved playing!");};
+$("restPet").onclick=()=>{if(state.petEnergy>=100){msg("Your pet is fully rested.");return;}
+state.petEnergy=clamp(state.petEnergy+30,0,100);
+state.petHunger=clamp(state.petHunger-5,0,100);
+save();updateStats();msg("Your pet had a nice nap.");};
 addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());});
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 addEventListener("blur",()=>keys.clear());
