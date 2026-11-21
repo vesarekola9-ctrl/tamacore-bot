@@ -30,9 +30,9 @@ jobs:
 
       - name: Make demo game
         run: |
-          python -m tamacore.cli make-game --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out demo_game --with-demo-layout --export-out exports --export-web --export-zip --bundle-release --bundle-out release_bundle
+          python -m tamacore.cli make-game --v31 --v32 --pack assets/packs/demo_pack --template templates/gdevelop_template --out demo_game --with-demo-layout --export-out exports --export-zip --bundle-release --bundle-out release_bundle
 
-      - name: Validate build
+      # A GDevelop HTML5 export requires the GDevelop compiler. The factory\n      # creates a separate playable PLAY_GAME.html for browser testing.\n      - name: Verify playable browser edition\n        run: |\n          test -s demo_game/PLAY_GAME.html\n\n      - name: Validate build
         run: |
           python -m tamacore.cli validate --game-dir demo_game
 
