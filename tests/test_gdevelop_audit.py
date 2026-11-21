@@ -43,6 +43,20 @@ class GDevelopAuditTests(unittest.TestCase):
             }), encoding="utf-8")
             self.assertIn("Unsafe resource path: ../secret.png", audit_project(project))
 
+    def test_rejects_duplicate_objects_and_unknown_instances(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / "game.json"
+            project.write_text(json.dumps({
+                "resources": {"resources": []},
+                "layouts": [{"name": "Home", "objects": [
+                    {"name": "Pet"}, {"name": "Pet"}],
+                    "instances": [{"name": "Ghost", "x": 1, "y": 2}],
+                    "events": [{"type": "BuiltinCommonInstructions::Standard"}]}],
+            }), encoding="utf-8")
+            problems = audit_project(project)
+            self.assertIn("Scene Home has duplicate object: Pet", problems)
+            self.assertIn("Scene Home instance references missing object: Ghost", problems)
+
     def test_accepts_basic_nonempty_structure(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
