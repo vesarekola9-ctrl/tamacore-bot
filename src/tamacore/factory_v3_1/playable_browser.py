@@ -31,13 +31,13 @@ _HTML = r'''<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>TamaCore — Play</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0b1224;color:#fff;font:16px system-ui,sans-serif}
-main{max-width:850px;margin:auto;padding:12px}header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-h1{font-size:23px;margin:8px 0}button{background:#334c7e;color:#fff;border:1px solid #6783ad;border-radius:10px;padding:10px 14px;cursor:pointer}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 0%,#304e79 0%,#141f39 43%,#0b1224 100%);color:#fff;font:16px system-ui,sans-serif}
+main{max-width:950px;margin:auto;padding:clamp(10px,2vw,22px)}header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;background:#ffffff0c;border:1px solid #ffffff25;border-radius:18px;margin-bottom:12px;box-shadow:0 12px 28px #0002}
+h1{font-size:clamp(21px,3vw,29px);margin:6px 0;color:#ffe6a8;text-shadow:0 2px 10px #0006}button{background:linear-gradient(160deg,#567db7,#314b81);color:#fff;border:1px solid #86a4d0;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:650;box-shadow:0 3px 0 #172d54;transition:filter .15s,transform .15s}button:active{transform:translateY(2px);box-shadow:0 1px 0 #172d54}button:disabled{opacity:.5;cursor:not-allowed}
 button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display:block;width:100%;height:auto;max-height:65vh;aspect-ratio:4/3;border:2px solid #4c7b9e;border-radius:16px;background:#142b3d;touch-action:none}
-#panel{background:#182841;border-radius:12px;padding:12px;margin-top:10px}#shop{display:none}#shop.open{display:block}
+#panel{background:linear-gradient(145deg,#213756,#14233c);border:1px solid #54749c;border-radius:18px;padding:16px;margin-top:12px;box-shadow:0 12px 28px #0003}#shop{display:none}#shop.open{display:block}
 #shop button,#careActions button{margin:4px}#message{min-height:24px;color:#ffe68c}#touch{display:flex;justify-content:space-between;margin-top:10px}
-#touch button{min-width:64px;min-height:50px}small{color:#b8c9dc}
+#touch button{min-width:64px;min-height:50px}small{color:#b8c9dc}#stats{background:#ffffff0b;border:1px solid #ffffff20;border-radius:12px;padding:10px 12px;font-weight:650;line-height:1.5}#foodMenu,#wardrobe{margin-top:16px;padding:14px;background:#ffffff09;border:1px solid #ffffff1c;border-radius:14px}#foodMenu h2,#wardrobe h2,#shop h2{font-size:19px;margin:0 0 12px;color:#ffe5aa}#foodChoice{background:#233c5f;color:#fff;border:1px solid #7f9dbb;border-radius:10px;padding:10px;max-width:100%;margin:0 8px 8px 0}#petStatus{line-height:1.7}#message{font-weight:650}#game{box-shadow:0 12px 32px #0005}#touch{gap:10px;flex-wrap:wrap}#careActions{display:flex;gap:6px;flex-wrap:wrap}#careActions button{flex:1 1 130px}@media(max-width:600px){#touch button{min-width:52px;padding:10px}#touch>div{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;flex:1}#touch>button{flex:1}header>div{display:flex;gap:5px;flex-wrap:wrap}header button{padding:9px}#panel{padding:12px}}
 </style></head><body><main><header><h1 id="title">TamaCore</h1><div>
 <button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="reset">New game</button></div></header>
 <div id="stats" aria-live="polite"></div>
