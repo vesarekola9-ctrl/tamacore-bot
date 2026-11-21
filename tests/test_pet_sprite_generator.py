@@ -12,7 +12,7 @@ class PetSpriteGeneratorTests(unittest.TestCase):
     def test_png_signature_and_dimensions(self):
         for species in ("bunny", "cat", "dog"):
             data = render_pet(species, "idle", 0)
-            self.assertEqual(data[:8], b"\\x89PNG\\r\\n\\x1a\\n")
+            self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
             self.assertEqual(struct.unpack(">II", data[16:24]), (128, 128))
 
     def test_generate_ten_frames_and_preserve_custom_art(self):
