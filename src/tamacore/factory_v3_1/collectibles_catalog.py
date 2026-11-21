@@ -71,8 +71,24 @@ def collectible_catalog() -> dict:
                 "name": name, "emoji": emoji, "coinPrice": coins,
                 "premiumOnly": False, "cashPrice": None,
             })
+    # Permanent themed variants give players more decorative choices.
+    themes = [
+        ("pastel", "Pastel", 20), ("royal", "Royal", 65),
+        ("winter", "Winter", 35), ("garden", "Garden", 30),
+    ]
+    originals = list(items)
+    for item in originals:
+        if item["category"] == "wallpaper":
+            continue
+        for theme, label, surcharge in themes:
+            items.append({
+                **item, "id": item["id"] + "_" + theme,
+                "name": label + " " + item["name"],
+                "coinPrice": item["coinPrice"] + surcharge,
+                "theme": theme,
+            })
     return {
-        "version": 1,
+        "version": 2,
         "items": items,
         "rules": {
             "permanentOwnership": True,
