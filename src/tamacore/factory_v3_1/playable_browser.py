@@ -403,18 +403,23 @@ const cost=100*(state.petSkill+1);if(state.coins<cost){msg("Skill upgrade costs 
 if(state.trainingSessions<(state.petSkill+1)*3){msg("Complete "+((state.petSkill+1)*3)+" training sessions to upgrade.");return;}
 state.coins-=cost;state.petSkill++;burst(pet.x,pet.y,"#e4c2ff",25);
 save();updateStats();msg("✨ Companion skill upgraded to "+state.petSkill+"/3!");};
-function petCompanion(){if(paused||won){msg("Resume playing to interact with your pet.");return;}
+function petCompanion(){if((paused&&!homeMode)||won){msg("Resume playing to interact with your pet.");return;}
+if(state.petSleeping){msg("Your pet is asleep. Let it rest.");return;}
 if(petCooldown>0){msg("Your pet needs a moment before more cuddles.");return;}
-petCooldown=4;state.petMood=clamp(state.petMood+8,0,100);
+petCooldown=4;state.petMood=clamp(state.petMood+(state.petPersonality==="gentle"?15:8),0,100);
+petReaction("cuddle",state.petPersonality==="gentle"?"❤️ More cuddles!":"💕 Thank you!");
 hearts.push(...Array.from({length:6},(_,i)=>({x:pet.x+(i-2.5)*7,y:pet.y-25,vx:(i-2.5)*12,vy:-35-rand(0,25),life:1.3})));
-gainPetXP(3);save();updateStats();msg("❤️ Your companion loves the attention! +3 XP.");}
+const cuddleXP=state.petPersonality==="gentle"?6:3;gainPetXP(cuddleXP);save();updateStats();msg("❤️ Your companion loves the attention! +"+cuddleXP+" XP.");}
 $("petPet").onclick=petCompanion;
+canvas.addEventListener("pointerdown",e=>{if(!homeMode||state.petStage===1)return;
+const bounds=canvas.getBoundingClientRect(),x=(e.clientX-bounds.left)*W/bounds.width,y=(e.clientY-bounds.top)*H/bounds.height;
+if(Math.abs(x-W/2)<110&&Math.abs(y-(H/2+60))<135)petCompanion();});
 function feedPet(){const food=cfg.foods[Number($("foodChoice").value)];if(!food){msg("No food available.");return;}
 if(state.coins<food.price){msg("Not enough coins to feed your pet.");return;}
 state.coins-=food.price;state.petHunger=clamp(state.petHunger+(Number(food.hunger)||0),0,100);
 state.petEnergy=clamp(state.petEnergy+(Number(food.energy)||0),0,100);
 state.petMood=clamp(state.petMood+(Number(food.mood)||0),0,100);
-gainPetXP(8);recordCare("feed");petReaction("eat","😋 Yummy!");save();updateStats();msg("Fed pet: "+food.name);}
+gainPetXP(state.petPersonality==="curious"?11:8);recordCare("feed");petReaction("eat","😋 Yummy!");save();updateStats();msg("Fed pet: "+food.name);}
 for(const [index,food] of cfg.foods.entries()){const option=document.createElement("option");option.value=index;
 option.textContent=food.name+" ("+food.price+" coins)";$("foodChoice").appendChild(option);}
 $("feed").onclick=feedPet;$("feedSelected").onclick=feedPet;
@@ -424,7 +429,7 @@ state.coins-=15;state.petCleanliness=clamp(state.petCleanliness+35,0,100);
 state.petMood=clamp(state.petMood+5,0,100);petReaction("clean","🫧 So fresh!");recordCare("clean");gainPetXP(10);save();updateStats();msg("Your pet feels fresh!");};
 $("playPet").onclick=()=>{if(state.petEnergy<12){msg("Your pet is too tired. Let it rest.");return;}
 state.petEnergy=clamp(state.petEnergy-12,0,100);
-state.petMood=clamp(state.petMood+22,0,100);
+state.petMood=clamp(state.petMood+(state.petPersonality==="playful"?28:22),0,100);
 state.petHunger=clamp(state.petHunger-6,0,100);
 state.petCleanliness=clamp(state.petCleanliness-5,0,100);
 petReaction("play","🎾 Wheee!");recordCare("play");gainPetXP(state.petPersonality==="playful"?20:15);save();updateStats();msg("Your pet loved playing!");};
@@ -518,7 +523,7 @@ ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
 if(document.hidden){requestAnimationFrame(frame);return;}
 musicTick(dt);
-if(homeMode)careTick(dt);
+if(homeMode){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);careTick(dt);}
 if(!paused&&!homeMode){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
 levelBanner=Math.max(0,levelBanner-dt);hitFlash=Math.max(0,hitFlash-dt);
 trainingCooldown=Math.max(0,trainingCooldown-dt);dashCooldown=Math.max(0,dashCooldown-dt);
@@ -537,10 +542,11 @@ ctx.restore();if(!reducedEffects)drawScenery();
 if(homeMode){ctx.fillStyle="#10253bbb";ctx.fillRect(65,90,670,425);
 ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ctx.fillText("🐰 YOUR PET HOME",W/2,142);
 const reacting=performance.now()<reactionUntil;
+const idle=state.petSleeping?"sleep":state.petSick?"sick":state.petPersonality==="playful"?"bounce":state.petPersonality==="curious"?"look":"sway";
 const petMood=state.petSick||state.petMood<25?"sad":state.petSleeping||state.petEnergy<20?"sleepy":reacting&&reactionKind==="play"?"excited":state.petHunger<25?"sad":"happy";
 ctx.font="bold 23px system-ui";ctx.fillStyle="#fff2bd";ctx.fillText(petLifeStages[Math.min(4,Math.max(0,state.petStage-1))]+" • Age "+petAgeLabel(),W/2,186);
 if(state.petStage===1){ctx.save();ctx.translate(W/2,H/2+60);ctx.rotate(Math.sin(visualTime*3)*.045);ctx.fillStyle="#f5e8d4";ctx.beginPath();ctx.ellipse(0,0,52,69,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#f8b7d6";ctx.lineWidth=5;ctx.stroke();ctx.restore();}
-else drawBunny(W/2,H/2+60+(reacting&&reactionKind==="play"?Math.sin(visualTime*16)*9:0),Math.min(3.3,1.6+state.petStage*.35),"#f7f2ec",false,1,petMood);
+else drawBunny(W/2+(idle==="look"?Math.sin(visualTime*.9)*15:0),H/2+60+(reacting&&reactionKind==="play"?Math.sin(visualTime*16)*9:idle==="bounce"?Math.abs(Math.sin(visualTime*2.5))*7:0),Math.min(3.3,1.6+state.petStage*.35),"#f7f2ec",false,idle==="look"&&Math.sin(visualTime*.9)<-.7?-1:1,petMood);
 if(reacting){ctx.font="bold 25px system-ui";ctx.fillStyle="#fff1c4";ctx.fillText(reactionText,W/2,245);}
 if(performance.now()<hatchAnimationUntil){ctx.fillStyle="#ffedb5";ctx.font="bold 29px system-ui";ctx.fillText("✨ 🐣 HATCHED! ✨",W/2,260);
 for(let i=0;i<12;i++){const a=i*Math.PI/6+visualTime*.6,r=95+Math.sin(visualTime*5+i)*12;
