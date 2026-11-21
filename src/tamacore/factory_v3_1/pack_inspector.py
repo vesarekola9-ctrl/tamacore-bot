@@ -254,12 +254,12 @@ def _validate_spawns(data: Dict[str, object]) -> List[str]:
         if not str(spawn.get("objectName", "")).strip():
             errors.append(f"pack.json: {key}.objectName missing")
 
-        for field in ["count", "minDistanceFromPlayer"]:
-            try:
-                if int(spawn.get(field, 0)) < 0:
-                    errors.append(f"pack.json: {key}.{field} must be >= 0")
-            except Exception:
-                errors.append(f"pack.json: {key}.{field} invalid")
+        for field in ("count", "minDistanceFromPlayer"):
+            value = spawn.get(field)
+            if isinstance(value, bool) or not isinstance(value, int):
+                errors.append(f"pack.json: {key}.{field} must be an integer")
+            elif value < 0:
+                errors.append(f"pack.json: {key}.{field} must be >= 0")
 
     return errors
 
