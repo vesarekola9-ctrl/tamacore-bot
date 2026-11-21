@@ -135,6 +135,11 @@ def run_factory_v3_1(
         raise ValueError(f"Generated GDevelop scene not found: {cfg.scene}")
 
     apply_v3_1_rules(project, scene, cfg)
+    # Create original, transparent PNG animation frames automatically. Artists
+    # can replace individual frames without the factory overwriting them.
+    from .pet_sprite_generator import generate_pet_sprites
+    pet_species = raw_pack.get("pet", {}).get("species", "bunny")
+    generate_pet_sprites(game_dir, str(pet_species))
     apply_character_animations(project, scene, game_dir)
 
     # Preserve every registered v3.1 subsystem.
