@@ -1137,6 +1137,13 @@ function boutiqueThemeEffect(item){
 function boutiqueSelected(category){const id=boutiqueSave.equipped[category];return (cfg.collectibles||[]).find(item=>item.id===id&&item.category===category&&boutiqueSave.owned[id]===true);}
 let boutiqueCategory="outfit";
 const boutiqueCategories=["outfit","furniture","wallpaper","toy"];
+function boutiqueCollections(){
+ const all=cfg.collectibles||[];
+ return ["pastel","royal","winter","garden"].map(theme=>{
+   const items=all.filter(item=>item.theme===theme);
+   return {theme,total:items.length,owned:items.filter(item=>boutiqueSave.owned[item.id]).length};
+ });
+}
 function boutiqueRender(){
   const balance=document.getElementById("boutiqueBalance");
   if(!balance)return;
@@ -1153,6 +1160,13 @@ function boutiqueRender(){
   const collected=allItems.filter(item=>boutiqueSave.owned[item.id]).length;
   const progress=document.createElement("progress");progress.max=Math.max(1,allItems.length);progress.value=collected;progress.style.width="100%";progress.setAttribute("aria-label","Collection completion");
   document.getElementById("boutiqueCount").append(" / "+allItems.length+" · "+Math.floor(100*collected/Math.max(1,allItems.length))+"%",progress);
+  const collections=document.createElement("div");collections.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+  for(const set of boutiqueCollections()){
+    const label=document.createElement("button");label.textContent=set.theme[0].toUpperCase()+set.theme.slice(1)+" "+set.owned+"/"+set.total+(set.total&&set.owned===set.total?" ★":"");
+    label.onclick=()=>{document.getElementById("boutiqueTheme").value=set.theme;document.getElementById("boutiqueSearch").value="";document.getElementById("boutiqueOwnedOnly").checked=false;boutiqueRender();};
+    collections.appendChild(label);
+  }
+  document.getElementById("boutiqueCount").appendChild(collections);
   if(!results.length){const empty=document.createElement("p");empty.textContent="No matching items. Try a different search or collection.";grid.appendChild(empty);}
 
   results.forEach(item=>{
