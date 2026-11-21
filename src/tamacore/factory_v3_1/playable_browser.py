@@ -474,6 +474,7 @@ state.claimedChallenges[challenge.id]=true;state.coins+=challenge.coins;gainPetX
 save();updateStats();msg("🏆 "+challenge.name+" completed! +"+challenge.coins+" coins and +"+challenge.xp+" XP.");};
 item.append(info,button);box.append(item);}}
 const choreChallenges=[
+{id:"challenge162",title:"Toy Tamer",ready:()=>state.choreToyWins>=3,reward:12},
 /*CHORE_CHALLENGES*/
 ];
 function renderChoreChallenges(){const root=$("choreChallenges");if(!root)return;root.replaceChildren();for(const c of choreChallenges){const claimed=state.choreRewardsClaimed.includes(c.id),ready=c.ready();const line=document.createElement("div"),button=document.createElement("button");button.textContent=(claimed?"✅ ":ready?"🎁 ":"🔒 ")+c.title+" • "+c.reward+" coins";button.disabled=claimed||!ready;button.onclick=()=>{if(state.choreRewardsClaimed.includes(c.id)||!c.ready())return;state.choreRewardsClaimed.push(c.id);state.coins+=c.reward;state.petMood=clamp(state.petMood+2,0,100);rememberPet("🏆 Challenge: "+c.title);save();updateStats();msg("🏆 "+c.title+"! +"+c.reward+" coins.");};line.appendChild(button);root.appendChild(line);}}
