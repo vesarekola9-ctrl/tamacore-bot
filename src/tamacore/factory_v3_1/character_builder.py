@@ -127,7 +127,7 @@ def _find_candidate_frames(generated_dir: Path) -> Dict[str, List[str]]:
     for path in candidates:
         rel = path.relative_to(generated_dir.parent.parent).as_posix()
         name = path.stem.lower()
-        state = next((key for key in ("walk", "sleep", "eat", "play") if key in name), "idle")
+        # The common prefix "player_" contains "play": only classify the\n        # animation suffix, not the character identifier.\n        animation_name = name.removeprefix("player_").removeprefix("pet_").removeprefix("character_")\n        state = next((key for key in ("walk", "sleep", "eat", "play") if animation_name.startswith(key)), "idle")
         out[state].append(rel)
 
     if not out["idle"] and out["walk"]:
