@@ -46,7 +46,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
 <div id="wardrobe"><h2>Wardrobe</h2><div id="cosmetics"></div></div>
-<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button></div><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p></div>
+<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button><button id="petPet">❤️ Pet companion</button></div><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p></div>
 <small>Move: WASD / arrow keys or touch buttons. Collect yellow coins. Avoid red enemies. Progress saves automatically in this browser.</small></div>
 </main><script id="config" type="application/json">__GAME_CONFIG__</script><script>
 "use strict";
@@ -67,10 +67,12 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect";
-let scenery=[],visualTime=0,playerMoving=false,playerFacing=1;
+let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0;
 let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
-canvas.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse")return;
+canvas.addEventListener("pointerdown",e=>{const tap=canvasPoint(e);
+if(Math.hypot(tap.x-pet.x,tap.y-pet.y)<38){e.preventDefault();petCompanion();return;}
+if(e.pointerType==="mouse")return;
 if(joystick!==null)return;const p=canvasPoint(e);joystick={id:e.pointerId,start:p,now:p};canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener("pointermove",e=>{if(joystick&&joystick.id===e.pointerId)joystick.now=canvasPoint(e);});
 function releaseJoystick(e){if(joystick&&joystick.id===e.pointerId)joystick=null;}
@@ -162,7 +164,13 @@ state.equippedCosmetic=item.id;save();renderWardrobe();updateStats();msg("Equipp
 $("shopToggle").onclick=()=>{$("shop").classList.toggle("open");renderShop();};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;state.questsCompleted=0;state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;state.questsCompleted=0;state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+function petCompanion(){if(paused||won){msg("Resume playing to interact with your pet.");return;}
+if(petCooldown>0){msg("Your pet needs a moment before more cuddles.");return;}
+petCooldown=4;state.petMood=clamp(state.petMood+8,0,100);
+hearts.push(...Array.from({length:6},(_,i)=>({x:pet.x+(i-2.5)*7,y:pet.y-25,vx:(i-2.5)*12,vy:-35-rand(0,25),life:1.3})));
+gainPetXP(3);save();updateStats();msg("❤️ Your companion loves the attention! +3 XP.");}
+$("petPet").onclick=petCompanion;
 function feedPet(){const food=cfg.foods[Number($("foodChoice").value)];if(!food){msg("No food available.");return;}
 if(state.coins<food.price){msg("Not enough coins to feed your pet.");return;}
 state.coins-=food.price;state.petHunger=clamp(state.petHunger+(Number(food.hunger)||0),0,100);
@@ -214,7 +222,9 @@ if(expression==="sad"){ctx.arc(0,15,4,Math.PI*1.1,Math.PI*1.9);}else{ctx.arc(0,8
 ctx.stroke();ctx.fillStyle="#ed91a5";circle(-14,6,3,"#ed91a577");circle(14,6,3,"#ed91a577");
 ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
-if(!paused)visualTime+=dt;
+if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
+for(const h of hearts){h.x+=h.vx*dt;h.y+=h.vy*dt;h.life-=dt;}
+hearts=hearts.filter(h=>h.life>0);}
 ctx.clearRect(0,0,W,H);ctx.fillStyle=world().floor;ctx.fillRect(0,0,W,H);
 ctx.strokeStyle=world().grid;ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
@@ -262,6 +272,7 @@ ctx.fillStyle="#fff1aa";ctx.fillRect(c.x-1.5,c.y-5,3,10);}
 // Companion is decorative and never collides with enemies or collectibles.
 drawBunny(pet.x,pet.y,.72+state.petStage*.09,state.petMood<30?"#a9b3cf":"#ffb6d7",!paused&&petDist>3,1,state.petMood<30?"sad":"happy");
 if(state.petEnergy<20){ctx.font="18px system-ui";ctx.fillText("Zzz",pet.x+16,pet.y-30);}
+for(const h of hearts){ctx.save();ctx.globalAlpha=Math.min(1,h.life);ctx.font="19px system-ui";ctx.fillText("❤",h.x,h.y);ctx.restore();}
 if(joystick){circle(joystick.start.x,joystick.start.y,56,"#365b77");
 const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
 const len=Math.max(1,Math.hypot(vx,vy));circle(joystick.start.x+vx/len*Math.min(48,len),joystick.start.y+vy/len*Math.min(48,len),24,"#9acbdc");}
