@@ -34,8 +34,15 @@ class PetAnimationEventTests(unittest.TestCase):
         self.assertEqual(len(scene["events"]), 5)
         for event, (key, state) in zip(scene["events"],
                                        (("f", "Eat"), ("p", "Play"), ("s", "Sleep"), ("w", "Walk"), ("i", "Idle"))):
+            self.assertEqual(event["conditions"][0]["type"]["value"], "KeyReleased")
             self.assertEqual(event["conditions"][0]["parameters"], [key])
             self.assertEqual(event["actions"][0]["parameters"], ["Pet_State", "=", f'"{state}"'])
+            if state == "Idle":
+                self.assertEqual(len(event["actions"]), 1)
+            else:
+                self.assertEqual(len(event["actions"]), 2)
+                self.assertEqual(event["actions"][1]["type"]["value"], "SetNumberVariable")
+                self.assertIn("min(100, max(0,", event["actions"][1]["parameters"][2])
 
 
 
