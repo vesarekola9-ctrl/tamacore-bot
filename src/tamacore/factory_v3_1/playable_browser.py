@@ -830,8 +830,8 @@ if(state.roomEquipped.furniture==="bed"){ctx.font="85px system-ui";ctx.textAlign
 if(typeof extra!=="undefined"&&extra&&extra.living){ctx.save();ctx.font="45px system-ui";ctx.textAlign="center";ctx.fillText(({ball:"⚽",plush:"🧸",blocks:"🧱",drum:"🥁",kite:"🪁",robot:"🤖",puzzle:"🧩",train:"🚂"})[extra.living.favoriteToy]||"⚽",homeWander.x+85,455);ctx.restore();}
 if(state.roomEquipped.toy!=="none"){ctx.font="54px system-ui";ctx.textAlign="center";ctx.fillText(state.roomEquipped.toy==="ball"?"⚽":"🧩",190,460);}
 ctx.save();ctx.textAlign="center";const boutiqueFurniture=boutiqueSelected("furniture"),boutiqueToy=boutiqueSelected("toy");
-if(boutiqueFurniture){ctx.save();boutiqueThemeEffect(boutiqueFurniture);ctx.font="85px system-ui";ctx.fillText(boutiqueFurniture.emoji,560,420);ctx.restore();}
-if(boutiqueToy){ctx.save();boutiqueThemeEffect(boutiqueToy);ctx.font="48px system-ui";ctx.fillText(boutiqueToy.emoji,260,475);ctx.restore();}
+if(boutiqueFurniture){ctx.save();boutiqueThemeEffect(boutiqueFurniture);ctx.font="85px system-ui";ctx.fillText(boutiqueFurniture.emoji,boutiqueSave.positions.furniture?.x??560,420);ctx.restore();}
+if(boutiqueToy){ctx.save();boutiqueThemeEffect(boutiqueToy);ctx.font="48px system-ui";ctx.fillText(boutiqueToy.emoji,boutiqueSave.positions.toy?.x??260,475);ctx.restore();}
 ctx.restore();
 ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ctx.fillText((state.petSpecies==="kitten"?"🐱":state.petSpecies==="puppy"?"🐶":"🐰")+" "+state.petName.toUpperCase()+"\u0027S HOME",W/2,142);
 ctx.font="bold 16px system-ui";ctx.fillText(phase==="night"?"Nighttime":phase==="evening"?"Evening":"Daytime",W/2,164);
@@ -1119,12 +1119,13 @@ const panelStyle=document.createElement("style");panelStyle.textContent=".tamapa
 // Collectible boutique: soft currency only. No fake billing or premium entitlements.
 const boutiqueKey="tamacore_boutique_v1";
 function normalizeBoutique(input){
- const result={owned:{},equipped:{},claimed:{}};
+ const result={owned:{},equipped:{},claimed:{},positions:{}};
  if(!input||typeof input!=="object")return result;
  for(const item of cfg.collectibles||[]){
    if(input.owned&&Object.prototype.hasOwnProperty.call(input.owned,item.id)&&input.owned[item.id]===true)result.owned[item.id]=true;
    if(result.owned[item.id]&&input.equipped&&input.equipped[item.category]===item.id)result.equipped[item.category]=item.id;
  }
+ for(const category of ["furniture","toy"]){const pos=input.positions&&input.positions[category];if(pos&&Number.isFinite(pos.x))result.positions[category]={x:Math.max(130,Math.min(670,pos.x))};}
  for(const theme of ["pastel","royal","winter","garden"])if(input.claimed&&input.claimed[theme]===true)result.claimed[theme]=true;
  return result;
 }
@@ -1175,6 +1176,13 @@ function boutiqueRender(){
   }
   document.getElementById("boutiqueCount").appendChild(collections);
   if(!results.length){const empty=document.createElement("p");empty.textContent="No matching items. Try a different search or collection.";grid.appendChild(empty);}
+  if(["furniture","toy"].includes(boutiqueCategory)&&boutiqueSelected(boutiqueCategory)){
+    const category=boutiqueCategory;
+    const controls=document.createElement("label");controls.textContent="Position in home";
+    const range=document.createElement("input");range.type="range";range.min="130";range.max="670";range.step="10";range.value=String(boutiqueSave.positions[category]?.x??(category==="furniture"?560:260));
+    range.oninput=()=>{boutiqueSave.positions[category]={x:Number(range.value)};save();};
+    controls.appendChild(range);grid.appendChild(controls);
+  }
 
   results.forEach(item=>{
     const card=document.createElement("div");card.style.cssText="padding:10px;background:#223b5a;border:1px solid #5b7d9e;border-radius:12px";
