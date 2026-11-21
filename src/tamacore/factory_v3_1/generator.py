@@ -348,6 +348,11 @@ def run_factory_v3_1(
     })
     write_json(manifest_path, manifest)
 
+    # Export monetization configuration for the future Google Play client.
+    # This does not enable purchases without verified Google Play Billing.
+    from .monetization import monetization_manifest
+    write_json(game_dir / "MONETIZATION_MANIFEST.json", monetization_manifest())
+
     # Produce a playable browser edition directly from the same game pack.
     # This is deliberately separate from GDevelop's compiled HTML5 export.
     from .playable_browser import write_playable_browser_game
