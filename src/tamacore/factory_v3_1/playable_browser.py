@@ -1036,6 +1036,25 @@ $("extraExport").onclick=()=>{const payload={format:"tamacore-complete-save",ver
 $("extraImport").onchange=async e=>{const file=e.target.files&&e.target.files[0];if(!file)return;try{if(file.size>2000000)throw Error("File is too large");const data=JSON.parse(await file.text());if(data.format!=="tamacore-complete-save"||data.version!==2||!data.progress||!data.expansion||typeof data.progress!=="object"||typeof data.expansion!=="object")throw Error("Invalid TamaCore save format");if(!confirm("Replace current progress with the imported save?"))return;localStorage.setItem(KEY,JSON.stringify(data.progress));localStorage.setItem(extraKey,JSON.stringify(data.expansion));location.reload();}catch(err){$("extraSettingsStatus").textContent="⚠️ Import failed: "+String(err.message||err);}};
 comfortApply();
 
+
+/* TamaCore: Pet-led living room, interactive care and collectible toys */
+const living=document.createElement("section");living.id="livingExpansion";living.innerHTML='<h3>🐾 Living with your pet</h3><p id="livingMood"></p><p id="livingNarrative" aria-live="polite"></p><div id="livingActions"></div><h4>🧸 Toy collection</h4><div id="livingToys"></div><p id="livingProgress"></p>';
+$("petIdentity").after(living);
+extra.living=extra.living&&typeof extra.living==="object"?extra.living:{bondMoments:0,walks:0,stories:0,napTimes:0,petting:0,playedToys:0,toys:["ball"],favoriteToy:"ball",lastAction:0};
+const toyCatalog=[["ball","⚽ Bouncy ball",0],["plush","🧸 Plush bear",35],["blocks","🧱 Building blocks",45],["drum","🥁 Tiny drum",55],["kite","🪁 Rainbow kite",70],["robot","🤖 Mini robot",100],["puzzle","🧩 Puzzle set",120],["train","🚂 Toy train",150]];
+const livingActs=[
+["🤗 Give a cuddle","cuddle",()=>{state.petMood=clamp(state.petMood+7,0,100);gainFriendship(3);extra.living.petting++;}],
+["🐾 Take a little walk","walk",()=>{state.petEnergy=clamp(state.petEnergy-7,0,100);state.petMood=clamp(state.petMood+11,0,100);state.petWeight=clamp(state.petWeight-.7,5,100);extra.living.walks++;}],
+["📚 Read a bedtime story","story",()=>{state.petMood=clamp(state.petMood+5,0,100);state.petEnergy=clamp(state.petEnergy+4,0,100);extra.living.stories++;}],
+["🎵 Sing a silly song","sing",()=>{state.petMood=clamp(state.petMood+9,0,100);state.petDiscipline=clamp(state.petDiscipline+1,0,100);}],
+["🫶 Teach a high-five","highfive",()=>{state.petMood=clamp(state.petMood+5,0,100);state.petDiscipline=clamp(state.petDiscipline+2,0,100);extra.living.bondMoments++;}],
+["😴 Take a calm nap","nap",()=>{state.petEnergy=clamp(state.petEnergy+14,0,100);state.petMood=clamp(state.petMood+2,0,100);extra.living.napTimes++;}]
+];
+function livingRender(){const l=extra.living;$("livingMood").textContent="🐰 "+state.petName+" • Mood "+Math.round(state.petMood)+" • Energy "+Math.round(state.petEnergy)+" • Bond "+Math.round(state.friendship);$("livingProgress").textContent="💞 Cuddles "+l.petting+" • 🚶 Walks "+l.walks+" • 📚 Stories "+l.stories+" • 🧸 Toy games "+l.playedToys+" • Toys "+l.toys.length+"/"+toyCatalog.length;}
+for(const [label,kind,action] of livingActs){const b=document.createElement("button");b.textContent=label;b.onclick=()=>{if(state.petSleeping||state.petSick||state.petStage===1){msg("🐰 Wake up and feel better first.");return;}if(Date.now()-extra.living.lastAction<8000){msg("⏳ Give your pet a little moment between activities.");return;}if(kind==="walk"&&state.petEnergy<8){msg("💤 Too tired for a walk.");return;}extra.living.lastAction=Date.now();action();if(kind==="cuddle")completePetWish("cuddle");if(kind==="walk"||kind==="sing")completePetWish("play");if(kind==="nap")completePetWish("rest");$("livingNarrative").textContent=["💗 "+state.petName+" wiggles happily!","🐾 What a lovely moment together!","✨ "+state.petName+" looks up at you with a smile!"][Math.floor(Math.random()*3)];petReaction("happy",$("livingNarrative").textContent);extraSave();save();updateStats();livingRender();};$("livingActions").appendChild(b);}
+for(const [id,label,cost] of toyCatalog){const b=document.createElement("button");b.textContent=label+(cost?" · "+cost+" coins":"");b.onclick=()=>{const l=extra.living;if(!l.toys.includes(id)){if(state.coins<cost){msg("🪙 Not enough coins for this toy.");return;}state.coins-=cost;l.toys.push(id);extraSave();save();updateStats();msg("🧸 New toy unlocked!");return;}if(state.petSleeping||state.petSick||state.petEnergy<5){msg("💤 Your pet cannot play right now.");return;}if(Date.now()-l.lastAction<8000){msg("⏳ Wait a little before playing again.");return;}l.lastAction=Date.now();l.favoriteToy=id;l.playedToys++;state.petEnergy=clamp(state.petEnergy-5,0,100);state.petMood=clamp(state.petMood+8,0,100);gainFriendship(2);completePetWish("play");$("livingNarrative").textContent="🎉 "+state.petName+" plays with "+label+"!";petReaction("play",$("livingNarrative").textContent);extraSave();save();updateStats();livingRender();};$("livingToys").appendChild(b);}
+livingRender();
+
 updatePetGrowth();startLevel();renderShop();renderWardrobe();updateStats();requestAnimationFrame(frame);
 </script></body></html>
 '''
