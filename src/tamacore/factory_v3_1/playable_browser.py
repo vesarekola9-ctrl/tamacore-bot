@@ -41,7 +41,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 #welcome{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#071323dd;padding:18px;backdrop-filter:blur(10px)}#welcome[hidden]{display:none}#welcomeCard{width:min(100%,480px);background:linear-gradient(150deg,#345579,#15263f);border:2px solid #a6d9f3;border-radius:24px;padding:clamp(20px,5vw,36px);text-align:center;box-shadow:0 24px 80px #0009}#welcomeCard h2{font-size:clamp(26px,5vw,38px);color:#ffe6a8;margin:8px 0}#welcomeCard p{color:#d6e9fa;line-height:1.6}#welcomeCard button{font-size:19px;min-height:54px;width:100%;margin-top:14px;background:linear-gradient(135deg,#49a990,#287d91)}
 #victory{position:fixed;inset:0;z-index:110;display:grid;place-items:center;background:#071323e8;padding:18px;backdrop-filter:blur(10px)}#victory[hidden]{display:none}#victoryCard{width:min(100%,490px);padding:clamp(22px,5vw,38px);text-align:center;border-radius:25px;border:2px solid #ffdd8c;background:linear-gradient(155deg,#42577e,#17243d);box-shadow:0 25px 90px #000b}#victoryCard h2{color:#ffe3a1;font-size:clamp(26px,5vw,39px);margin:10px 0}#victoryCard p{line-height:1.6;color:#dceeff}#victoryCard button{width:100%;font-size:17px;margin-top:12px;min-height:50px}
 </style></head><body><div id="victory" role="dialog" aria-modal="true" aria-labelledby="victoryTitle" hidden><div id="victoryCard"><div style="font-size:64px">🏆🐰🎉</div><h2 id="victoryTitle">Adventure Complete!</h2><p id="victorySummary"></p><button id="victoryClose">✨ View my achievements</button><button id="victoryRestart">🔄 Start a new adventure</button></div></div><div id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle"><div id="welcomeCard"><div style="font-size:58px">🐰✨</div><h2 id="welcomeTitle">Welcome to TamaCore!</h2><p>Collect coins, dodge enemies and explore new worlds with your bunny companion. Feed, train and evolve your pet as you play.</p><p><strong>Move:</strong> WASD, arrow keys or touch controls<br><strong>Dash:</strong> Space or 💨 button<br><strong>Pet:</strong> Tap your bunny companion</p><button id="startGame">▶ Start adventure</button></div></div><main><header><h1 id="title">TamaCore</h1><div>
-<button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="reset">New game</button></div></header>
+<button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="reset">New game</button></div></header>
 <div id="stats" aria-live="polite"></div><div id="quickHud" aria-label="Game status"><span id="hudLevel"></span><span id="hudCoins"></span><span id="hudPet"></span><span id="hudPower"></span></div>
 <canvas id="game" width="800" height="600" aria-label="Playable game field"></canvas>
 <div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button><button id="dash">💨 Dash</button></div>
@@ -56,6 +56,18 @@ const cfg=JSON.parse(document.getElementById("config").textContent);
 const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height,KEY="tamacore_browser_save_v1";
 const $=id=>document.getElementById(id);
+let soundEnabled=false,audioCtx=null;
+function sound(kind){if(!soundEnabled)return;
+try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+if(!audioCtx)audioCtx=new AC();if(audioCtx.state==="suspended")audioCtx.resume();
+const now=audioCtx.currentTime;const notes=kind==="coin"?[[880,.06],[1175,.09]]:kind==="hit"?[[210,.13],[125,.16]]:kind==="win"?[[523,.12],[659,.12],[784,.16],[1047,.3]]:kind==="power"?[[440,.09],[660,.09],[880,.15]]:[[620,.08]];
+let offset=0;for(const [frequency,duration] of notes){const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+osc.type=kind==="hit"?"triangle":"sine";osc.frequency.setValueAtTime(frequency,now+offset);
+gain.gain.setValueAtTime(.0001,now+offset);gain.gain.exponentialRampToValueAtTime(.055,now+offset+.012);
+gain.gain.exponentialRampToValueAtTime(.0001,now+offset+duration);
+osc.connect(gain);gain.connect(audioCtx.destination);osc.start(now+offset);osc.stop(now+offset+duration+.015);offset+=duration*.75;}
+}catch(_){}}
+$("soundToggle").onclick=()=>{soundEnabled=!soundEnabled;$("soundToggle").textContent=soundEnabled?"🔊 Sound on":"🔇 Sound off";$("soundToggle").setAttribute("aria-pressed",String(soundEnabled));if(soundEnabled)sound("power");};
 $("title").textContent=cfg.name;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>a+Math.random()*(b-a);
@@ -246,7 +258,7 @@ $("petEmotion").textContent="Pet mood: "+petEmotion()+" • Quests completed: "+
 function gainPetXP(amount){state.petXP+=amount;let evolved=false;
 while(state.petStage<5&&state.petXP>=state.petStage*100){state.petXP-=state.petStage*100;state.petStage++;evolved=true;}
 if(evolved)msg("✨ Your pet evolved to stage "+state.petStage+"!");save();updateStats();}
-function finishLevel(){burst(player.x,player.y,"#ffe88b",35);
+function finishLevel(){sound("win");burst(player.x,player.y,"#ffe88b",35);
 if((state.level+1)%5===0){burst(player.x,player.y,"#ff7fc4",45);
 hearts.push(...Array.from({length:10},(_,i)=>({x:player.x+(i-5)*8,y:player.y-20,vx:(i-5)*12,vy:-50-rand(0,30),life:1.6})));}
 const medal=hit===0&&questDone?"gold":hit<=2&&questDone?"silver":"bronze";
@@ -473,7 +485,7 @@ state.petEnergy=clamp(state.petEnergy-1,0,100);companionCollectCooldown=Math.max
 if(questKind==="collect")advanceQuest(1);save();updateStats();msg("🐰 Your companion found a coin!");}}
 for(let i=treasures.length-1;i>=0;i--){const t=treasures[i];
 if(Math.hypot(player.x-t.x,player.y-t.y)<player.r+15){
-burst(t.x,t.y,"#a5f5ff",18);treasures.splice(i,1);
+burst(t.x,t.y,"#a5f5ff",18);treasures.splice(i,1);sound("power");
 if(t.kind==="gem"){eventCollect("gem");state.coins+=75;gainPetXP(12);msg("💎 Rare gem! +75 coins and +12 pet XP.");}
 else if(t.kind==="magnet"){magnetTime=12;msg("🧲 Coin magnet active for 12 seconds!");}
 else if(t.kind==="shield"){shieldTime=12;msg("🛡️ Shield active for 12 seconds!");}
@@ -484,7 +496,7 @@ save();updateStats();}}
 if(magnetTime>0)for(const c of targets){const d=Math.hypot(player.x-c.x,player.y-c.y);
 if(d>1&&d<145){const speed=Math.min(d,220*dt);c.x+=(player.x-c.x)/d*speed;c.y+=(player.y-c.y)/d*speed;}}
 for(let i=targets.length-1;i>=0;i--)if(Math.hypot(player.x-targets[i].x,player.y-targets[i].y)<player.r+targets[i].r){
-burst(targets[i].x,targets[i].y,"#ffe57d",10);targets.splice(i,1);collected++;state.totalCoinsCollected++;state.coins+=10;eventCollect("coin");
+burst(targets[i].x,targets[i].y,"#ffe57d",10);targets.splice(i,1);collected++;state.totalCoinsCollected++;state.coins+=10;sound("coin");eventCollect("coin");
 if(questKind==="collect")advanceQuest(1);save();updateStats();}
 for(const e of enemies){
 if(e.type==="chaser"||e.type==="guardian"||e.type==="boss"){const vx=player.x-e.x,vy=player.y-e.y,d=Math.hypot(vx,vy);
@@ -497,7 +509,7 @@ e.x=clamp(e.x,e.r,W-e.r);e.y=clamp(e.y,e.r,H-e.r);
 if(invincible<=0&&shieldTime<=0&&Math.hypot(player.x-e.x,player.y-e.y)<player.r+e.r){
 if(questKind==="survive"&&!questDone){questProgress=0;petMoodClock=0;updateQuest();}
 hit++;invincible=1.2;hitFlash=.3;burst(player.x,player.y,"#ff7c96",20);
-const penalty=e.type==="boss"?20:e.type==="guardian"?15:5;state.coins=Math.max(0,state.coins-penalty);
+sound("hit");const penalty=e.type==="boss"?20:e.type==="guardian"?15:5;state.coins=Math.max(0,state.coins-penalty);
 if(e.type==="guardian"||e.type==="boss"){state.petMood=clamp(state.petMood-5,0,100);}
 msg(e.type==="boss"?"Boss hit! Lost 20 coins and 5 pet mood.":e.type==="guardian"?"Guardian hit! Lost 15 coins and 5 pet mood.":"Enemy hit! Lost 5 coins.");save();updateStats();}}
 invincible=Math.max(0,invincible-dt);
