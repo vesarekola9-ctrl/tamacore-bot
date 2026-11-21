@@ -821,6 +821,12 @@ if(homeMode){const phase=petDayPhase();const wallColors={default:"#10253b",mint:
 const boutiqueWall=boutiqueSelected("wallpaper");const boutiqueWallColors={wallpaper_sky:"#8acbe9",wallpaper_forest:"#497e5d",wallpaper_space:"#302459",wallpaper_candy:"#d890bf",wallpaper_ocean:"#287c9c",wallpaper_snow:"#a8c5d8",wallpaper_sunset:"#b76b49",wallpaper_garden:"#548d63"};
 ctx.fillStyle=(boutiqueWall&&boutiqueWallColors[boutiqueWall.id])||wallColors[state.roomEquipped.wall]||wallColors.default;ctx.fillRect(65,90,670,325);
 ctx.fillStyle=floorColors[state.roomEquipped.floor]||floorColors.default;ctx.fillRect(65,415,670,100);
+const roomTheme=boutiqueSave.roomTheme;
+ctx.save();
+if(roomTheme==="cottage"){ctx.strokeStyle="#936e4b";ctx.lineWidth=12;for(const x of [85,230,570,715]){ctx.beginPath();ctx.moveTo(x,90);ctx.lineTo(x,415);ctx.stroke();}ctx.fillStyle="#936e4b";ctx.fillRect(65,180,670,10);}
+if(roomTheme==="loft"){ctx.strokeStyle="#ffffff25";ctx.lineWidth=2;for(let y=155;y<415;y+=32){ctx.beginPath();ctx.moveTo(65,y);ctx.lineTo(735,y);ctx.stroke();for(let x=65+(y%64);x<735;x+=80){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+32);ctx.stroke();}}}
+if(roomTheme==="observatory"){ctx.fillStyle="#161d46";ctx.beginPath();ctx.arc(400,270,105,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#b2c9ed";ctx.lineWidth=8;ctx.stroke();ctx.fillStyle="#fff0b4";for(let i=0;i<20;i++){const a=i*2.39996,rad=85*Math.sqrt(i/20);ctx.fillRect(400+Math.cos(a)*rad,270+Math.sin(a)*rad,3,3);}}
+ctx.restore();
 ctx.fillStyle=phase==="night"?"#07152b99":phase==="evening"?"#b95c4050":"#fff3bd15";ctx.fillRect(65,90,670,425);
 ctx.save();ctx.textAlign="center";ctx.font="40px system-ui";ctx.fillText(phase==="night"?"🌙":phase==="evening"?"🌇":"☀️",690,155);ctx.restore();
 if(typeof extra!=="undefined"&&extra){const room=extra.room||"cozy",decor=extra.decor||"plant";ctx.save();ctx.textAlign="center";ctx.font="55px system-ui";const roomIcons={cozy:"🛏️",kitchen:"🍳",bathroom:"🛁",playroom:"🧸",garden:"🌿"};ctx.fillText(roomIcons[room]||"🛏️",110,380);const decorIcons={plant:"🪴",lamp:"💡",rug:"🌈",poster:"🖼️",couch:"🛋️"};ctx.fillText(decorIcons[decor]||"🪴",675,385);ctx.font="bold 16px system-ui";ctx.fillStyle="#fff7d5";ctx.fillText(room.toUpperCase()+" • "+decor.toUpperCase(),400,215);ctx.restore();}
@@ -1120,7 +1126,7 @@ const panelStyle=document.createElement("style");panelStyle.textContent=".tamapa
 // Collectible boutique: soft currency only. No fake billing or premium entitlements.
 const boutiqueKey="tamacore_boutique_v1";
 function normalizeBoutique(input){
- const result={owned:{},equipped:{},claimed:{},positions:{},displayed:[],layouts:{},wishlist:[]};
+ const result={owned:{},equipped:{},claimed:{},positions:{},displayed:[],layouts:{},wishlist:[],roomTheme:"classic"};
  if(!input||typeof input!=="object")return result;
  for(const item of cfg.collectibles||[]){
    if(input.owned&&Object.prototype.hasOwnProperty.call(input.owned,item.id)&&input.owned[item.id]===true)result.owned[item.id]=true;
@@ -1132,6 +1138,7 @@ function normalizeBoutique(input){
  for(const theme of ["pastel","royal","winter","garden"])if(input.claimed&&input.claimed[theme]===true)result.claimed[theme]=true;
  for(const slot of ["1","2","3"]){const layout=input.layouts&&input.layouts[slot];if(layout&&typeof layout==="object"){const clean=normalizeBoutique({owned:result.owned,equipped:layout.equipped,positions:layout.positions,displayed:layout.displayed});result.layouts[slot]={equipped:clean.equipped,positions:clean.positions,displayed:clean.displayed};}}
  if(Array.isArray(input.wishlist))result.wishlist=[...new Set(input.wishlist)].filter(id=>(cfg.collectibles||[]).some(item=>item.id===id)&&!result.owned[id]);
+ if(["classic","cottage","loft","observatory"].includes(input.roomTheme))result.roomTheme=input.roomTheme;
  return result;
 }
 let boutiqueSave=normalizeBoutique(state.boutique);
@@ -1170,6 +1177,7 @@ function boutiqueRender(){
   document.getElementById("boutiqueCount").append(" / "+allItems.length+" · "+Math.floor(100*collected/Math.max(1,allItems.length))+"%",progress);
   const wishItems=(cfg.collectibles||[]).filter(item=>boutiqueSave.wishlist.includes(item.id)&&!boutiqueSave.owned[item.id]);
   if(wishItems.length){const total=wishItems.reduce((sum,item)=>sum+item.coinPrice,0);const summary=document.createElement("p");summary.textContent="Wishlist: "+wishItems.length+" items · "+total+" coins total";const goal=document.createElement("span");goal.dataset.goal=String(total);goal.textContent=state.coins>=total?"Affordable":Math.ceil(total-state.coins)+" more coins needed";summary.append(" · ",goal);document.getElementById("boutiqueCount").appendChild(summary);}
+  const roomChoice=document.createElement("select");roomChoice.setAttribute("aria-label","Home architecture");for(const [id,name] of [["classic","Classic home"],["cottage","Wooden cottage"],["loft","City loft"],["observatory","Star observatory"]]){const option=document.createElement("option");option.value=id;option.textContent=name;roomChoice.appendChild(option);}roomChoice.value=boutiqueSave.roomTheme;roomChoice.onchange=()=>{boutiqueSave.roomTheme=roomChoice.value;save();};document.getElementById("boutiqueCount").append("Home style: ",roomChoice);
   const layouts=document.createElement("div");layouts.style.cssText="display:flex;gap:5px;flex-wrap:wrap";layouts.append("Saved room styles: ");
   for(const slot of ["1","2","3"]){
     const store=document.createElement("button"),load=document.createElement("button");
