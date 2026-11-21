@@ -318,6 +318,11 @@ def run_factory_v3_1(
     })
     write_json(manifest_path, manifest)
 
+    # Produce a playable browser edition directly from the same game pack.
+    # This is deliberately separate from GDevelop's compiled HTML5 export.
+    from .playable_browser import write_playable_browser_game
+    write_playable_browser_game(game_dir, raw_pack, levels, shop_output)
+
     # Always leave an actionable build report, even for incomplete projects.
     from .build_report import write_build_report
     from .validate import validate_build_output
