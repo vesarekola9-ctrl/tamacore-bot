@@ -57,17 +57,12 @@ def _validate_root(data: Dict[str, object]) -> List[str]:
         if mode not in {"portrait", "landscape"}:
             errors.append("pack.json: display.mode must be 'portrait' or 'landscape'")
 
-        try:
-            if int(display.get("virtualWidth", 0)) <= 0:
-                errors.append("pack.json: display.virtualWidth must be > 0")
-        except Exception:
-            errors.append("pack.json: display.virtualWidth invalid")
-
-        try:
-            if int(display.get("virtualHeight", 0)) <= 0:
-                errors.append("pack.json: display.virtualHeight must be > 0")
-        except Exception:
-            errors.append("pack.json: display.virtualHeight invalid")
+        for dimension in ("virtualWidth", "virtualHeight"):
+            value = display.get(dimension)
+            if isinstance(value, bool) or not isinstance(value, int):
+                errors.append(f"pack.json: display.{dimension} must be an integer")
+            elif value <= 0:
+                errors.append(f"pack.json: display.{dimension} must be > 0")
 
     camera = data.get("camera")
     if not isinstance(camera, dict):
