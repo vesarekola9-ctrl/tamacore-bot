@@ -92,8 +92,8 @@ def apply_pet_care_events(scene: dict, *, width: int = 720, height: int = 1280) 
             ], actions))
             event_names.add(marker)
 
-    # A one-second timer: needs decrease once per 60 seconds rather than
-    # once per rendered frame. The tick is bounded at zero.
+    # Needs decrease once per 60 seconds rather than once per rendered
+    # frame. The tick is bounded at zero.
     marker = "TamaCorePetNeedsDecay"
     if marker not in event_names:
         events.append(_event(marker, [
