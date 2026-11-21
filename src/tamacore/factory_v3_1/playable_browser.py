@@ -831,6 +831,7 @@ if(typeof extra!=="undefined"&&extra&&extra.living){ctx.save();ctx.font="45px sy
 if(state.roomEquipped.toy!=="none"){ctx.font="54px system-ui";ctx.textAlign="center";ctx.fillText(state.roomEquipped.toy==="ball"?"⚽":"🧩",190,460);}
 ctx.save();ctx.textAlign="center";const boutiqueFurniture=boutiqueSelected("furniture"),boutiqueToy=boutiqueSelected("toy");
 if(boutiqueFurniture){ctx.save();boutiqueThemeEffect(boutiqueFurniture);ctx.font="85px system-ui";ctx.fillText(boutiqueFurniture.emoji,boutiqueSave.positions.furniture?.x??560,boutiqueSave.positions.furniture?.y??420);ctx.restore();}
+for(const [i,id] of boutiqueSave.displayed.entries()){if(boutiqueFurniture&&id===boutiqueFurniture.id)continue;const item=(cfg.collectibles||[]).find(x=>x.id===id);if(item){ctx.save();boutiqueThemeEffect(item);ctx.font="55px system-ui";ctx.fillText(item.emoji,125+i*130,395);ctx.restore();}}
 if(boutiqueToy){ctx.save();boutiqueThemeEffect(boutiqueToy);ctx.font="48px system-ui";ctx.fillText(boutiqueToy.emoji,boutiqueSave.positions.toy?.x??260,boutiqueSave.positions.toy?.y??475);ctx.restore();}
 ctx.restore();
 ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ctx.fillText((state.petSpecies==="kitten"?"🐱":state.petSpecies==="puppy"?"🐶":"🐰")+" "+state.petName.toUpperCase()+"\u0027S HOME",W/2,142);
@@ -1119,13 +1120,14 @@ const panelStyle=document.createElement("style");panelStyle.textContent=".tamapa
 // Collectible boutique: soft currency only. No fake billing or premium entitlements.
 const boutiqueKey="tamacore_boutique_v1";
 function normalizeBoutique(input){
- const result={owned:{},equipped:{},claimed:{},positions:{}};
+ const result={owned:{},equipped:{},claimed:{},positions:{},displayed:[]};
  if(!input||typeof input!=="object")return result;
  for(const item of cfg.collectibles||[]){
    if(input.owned&&Object.prototype.hasOwnProperty.call(input.owned,item.id)&&input.owned[item.id]===true)result.owned[item.id]=true;
    if(result.owned[item.id]&&input.equipped&&input.equipped[item.category]===item.id)result.equipped[item.category]=item.id;
  }
  for(const category of ["furniture","toy"]){const pos=input.positions&&input.positions[category];if(pos&&Number.isFinite(pos.x))result.positions[category]={x:Math.max(130,Math.min(670,pos.x)),y:Number.isFinite(pos.y)?Math.max(355,Math.min(495,pos.y)):(category==="furniture"?420:475)};}
+ if(Array.isArray(input.displayed))result.displayed=[...new Set(input.displayed)].filter(id=>result.owned[id]&&(cfg.collectibles||[]).some(item=>item.id===id&&item.category==="furniture")).slice(0,3);
  for(const theme of ["pastel","royal","winter","garden"])if(input.claimed&&input.claimed[theme]===true)result.claimed[theme]=true;
  return result;
 }
@@ -1208,6 +1210,11 @@ function boutiqueRender(){
     };card.appendChild(btn);
     if(owned&&boutiqueSave.equipped[item.category]===item.id){
       const remove=document.createElement("button");remove.textContent="Unequip";remove.onclick=()=>{delete boutiqueSave.equipped[item.category];save();boutiqueRender();};card.appendChild(remove);
+    }
+    if(owned&&item.category==="furniture"){
+      const display=document.createElement("button");const shown=boutiqueSave.displayed.includes(item.id);
+      display.textContent=shown?"Remove from display":"Add to display";display.disabled=!shown&&boutiqueSave.displayed.length>=3;
+      display.onclick=()=>{if(boutiqueSave.displayed.includes(item.id))boutiqueSave.displayed=boutiqueSave.displayed.filter(id=>id!==item.id);else if(boutiqueSave.displayed.length<3)boutiqueSave.displayed.push(item.id);save();boutiqueRender();};card.appendChild(display);
     }
     grid.appendChild(card)
   });
