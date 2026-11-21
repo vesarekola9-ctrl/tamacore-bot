@@ -20,6 +20,19 @@ class GDevelopAuditTests(unittest.TestCase):
             self.assertTrue(any("no objects" in e for e in errors))
             self.assertTrue(any("no events" in e for e in errors))
 
+    def test_detects_missing_sprite_animation_frame(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / "game.json"
+            project.write_text(json.dumps({
+                "resources": {"resources": []},
+                "layouts": [{"name": "Home", "objects": [{
+                    "name": "Pet", "animations": [{
+                        "directions": [{"sprites": [{"image": "assets/pet_idle.png"}]}]
+                    }]
+                }], "events": [{"type": "BuiltinCommonInstructions::Standard"}]}],
+            }), encoding="utf-8")
+            self.assertIn("Missing animation frame: assets/pet_idle.png", audit_project(project))
+
     def test_accepts_basic_nonempty_structure(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
