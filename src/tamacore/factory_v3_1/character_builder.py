@@ -34,6 +34,8 @@ def apply_character_animations(project: Dict[str, Any], scene: Dict[str, Any], g
             })
             registered.add(image_path)
 
+    # GDevelop animation selection uses numeric indexes. Expose a stable map
+    # for future gameplay events instead of relying on implicit ordering.
     player["type"] = "Sprite"
     player["animations"] = []
     for state, paths in frames.items():
