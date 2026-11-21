@@ -88,7 +88,7 @@ $("soundToggle").onclick=()=>{soundEnabled=!soundEnabled;$("soundToggle").textCo
 $("title").textContent=cfg.name;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>a+Math.random()*(b-a);
-const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0,claimedChallenges:{},bossChallengesWon:0,petSleeping:false,petSick:false,petBornAt:Date.now(),petDiscipline:50,petMess:0,petPersonality:"",dailyCare:{date:"",feed:0,play:0,clean:0,rest:0,claimed:false}};
+const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0,claimedChallenges:{},bossChallengesWon:0,petSleeping:false,petSick:false,petBornAt:Date.now(),petDiscipline:50,petMess:0,careQuality:65,petTrait:"",petPersonality:"",dailyCare:{date:"",feed:0,play:0,clean:0,rest:0,claimed:false}};
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object"){
 for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions","petSkill","levelsCompleted","starTokens","bossChallengesWon"])if(Number.isFinite(saved[k]))state[k]=saved[k];
 if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
@@ -101,6 +101,8 @@ if(typeof saved.petSleeping==="boolean")state.petSleeping=saved.petSleeping;
 if(typeof saved.petSick==="boolean")state.petSick=saved.petSick;
 if(Number.isFinite(saved.petDiscipline))state.petDiscipline=clamp(saved.petDiscipline,0,100);
 if(Number.isFinite(saved.petMess))state.petMess=clamp(saved.petMess,0,5);
+if(Number.isFinite(saved.careQuality))state.careQuality=clamp(saved.careQuality,0,100);
+if(["kind","brave","mischievous"].includes(saved.petTrait))state.petTrait=saved.petTrait;
 if(Number.isFinite(saved.petBornAt)&&saved.petBornAt>0&&saved.petBornAt<=Date.now())state.petBornAt=saved.petBornAt;
 if(["playful","gentle","curious"].includes(saved.petPersonality))state.petPersonality=saved.petPersonality;
 if(saved.dailyCare&&typeof saved.dailyCare==="object"&&!Array.isArray(saved.dailyCare)){const d=saved.dailyCare;if(typeof d.date==="string")state.dailyCare={date:d.date,feed:Number(d.feed)||0,play:Number(d.play)||0,clean:Number(d.clean)||0,rest:Number(d.rest)||0,claimed:d.claimed===true};}
@@ -129,6 +131,7 @@ function petAgeMinutes(){return Math.max(0,(Date.now()-state.petBornAt)/60000);}
 function updatePetGrowth(){const age=petAgeMinutes();let stage=1;
 for(let i=1;i<growthMinutes.length;i++)if(age>=growthMinutes[i])stage=i+1;
 if(stage>state.petStage){const wasEgg=state.petStage===1;state.petStage=stage;if(wasEgg)hatchAnimationUntil=performance.now()+4500;
+if(stage>=3){state.petTrait=state.careQuality>=75&&state.petDiscipline>=60?"kind":state.petDiscipline>=75?"brave":"mischievous";}
 msg(wasEgg?"🐣 Your egg hatched!":"✨ Your pet grew into "+petLifeStages[stage-1]+"!");save();updateStats();}}
 function petAgeLabel(){const minutes=Math.floor(petAgeMinutes());return minutes<60?minutes+" min":Math.floor(minutes/60)+" h "+minutes%60+" min";}
 const careStampKey="tamacore_last_care_v1";
@@ -143,6 +146,9 @@ localStorage.setItem(careStampKey,String(now));}catch(_){}
 function careTick(dt){updatePetGrowth();careClock+=dt;if(careClock<20)return;careClock=0;
 state.petHunger=clamp(state.petHunger-1,0,100);state.petEnergy=clamp(state.petEnergy+(state.petSleeping?3:-1),0,100);
 state.petCleanliness=clamp(state.petCleanliness-(state.petMess>0?2:1),0,100);
+const wellCared=state.petHunger>=45&&state.petEnergy>=35&&state.petMood>=40&&state.petCleanliness>=45&&!state.petSick&&state.petMess<3;
+state.careQuality=clamp(state.careQuality+(wellCared?.3:-.6),0,100);
+if(state.petDiscipline<35&&Math.random()<.12){state.petMood=clamp(state.petMood-3,0,100);petReaction("mischief","🙃 Feeling mischievous!");}
 if(Math.random()<.16&&state.petMess<5){state.petMess++;if(state.petMess>=3)petReaction("mess","🚽 I need the toilet!");}
 if(state.petHunger<20||state.petCleanliness<20)state.petMood=clamp(state.petMood-1,0,100);
 if(state.petHunger<10||state.petCleanliness<10||state.petMess>=5)state.petSick=true;
@@ -323,7 +329,7 @@ save();updateStats();msg("🏆 "+challenge.name+" completed! +"+challenge.coins+
 item.append(info,button);box.append(item);}}
 function updateStats(){dailyProgress();const d=state.dailyCare;
 $("dailyCare").textContent="📅 Daily care: "+(d.feed?"✅":"⬜")+" Feed • "+(d.play?"✅":"⬜")+" Play • "+(d.clean?"✅":"⬜")+" Clean • "+(d.rest?"✅":"⬜")+" Rest"+(d.claimed?" • 🎁 Reward claimed":" • Complete all for 75 coins");
-$("petPersonality").textContent="🐰 Personality: "+state.petPersonality+" • "+(state.petPersonality==="playful"?"Loves games!":state.petPersonality==="gentle"?"Enjoys cuddles!":"Loves discovering things!");careAlert();refreshAchievements();renderMilestones();renderChallenges();const lv=cfg.levels[state.level]||{};
+$("petPersonality").textContent="🐰 Personality: "+state.petPersonality+(state.petTrait?" • Growing trait: "+state.petTrait:"")+" • Care quality "+Math.round(state.careQuality)+"/100 • "+" • "+(state.petPersonality==="playful"?"Loves games!":state.petPersonality==="gentle"?"Enjoys cuddles!":"Loves discovering things!");careAlert();refreshAchievements();renderMilestones();renderChallenges();const lv=cfg.levels[state.level]||{};
 $("hudLevel").textContent="🗺️ "+(state.level+1)+"/"+cfg.levels.length;
 $("hudCoins").textContent="🪙 "+state.coins;
 $("hudPet").textContent="🐰 "+state.petStage+" • ❤️ "+Math.round(state.petMood);
@@ -391,7 +397,7 @@ $("startGame").onclick=()=>{$("welcome").hidden=true;homeMode=true;paused=true;$
 $("pause").textContent="Resume";
 $("pause").onclick=()=>{if(!$("welcome").hidden)return;if(homeMode){homeMode=false;$("homeToggle").textContent="🏠 Pet home";}paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.claimedChallenges={};state.bossChallengesWon=0;state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.petBornAt=Date.now();state.petPersonality=["playful","gentle","curious"][Math.floor(Math.random()*3)];state.dailyCare={date:"",feed:0,play:0,clean:0,rest:0,claimed:false};hatchAnimationUntil=0;state.petSleeping=false;state.petSick=false;state.petMess=0;state.petDiscipline=50;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("victory").hidden=true;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.claimedChallenges={};state.bossChallengesWon=0;state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.petBornAt=Date.now();state.petPersonality=["playful","gentle","curious"][Math.floor(Math.random()*3)];state.dailyCare={date:"",feed:0,play:0,clean:0,rest:0,claimed:false};hatchAnimationUntil=0;state.petSleeping=false;state.petSick=false;state.petMess=0;state.petDiscipline=50;state.careQuality=65;state.petTrait="";state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("victory").hidden=true;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
 $("trainPet").onclick=()=>{if(paused||won){msg("Resume playing to train your companion.");return;}
 if(trainingCooldown>0){msg("Your companion needs a break before training again.");return;}
 if(state.coins<20){msg("Training costs 20 coins.");return;}
@@ -429,10 +435,10 @@ option.textContent=food.name+" ("+food.price+" coins)";$("foodChoice").appendChi
 $("feed").onclick=feedPet;$("feedSelected").onclick=feedPet;
 $("toiletPet").onclick=()=>{if(state.petMess===0){msg("🚽 Everything is already tidy.");return;}
 const amount=state.petMess;state.petMess=0;state.petCleanliness=clamp(state.petCleanliness+Math.min(20,amount*5),0,100);
-state.petMood=clamp(state.petMood+4,0,100);petReaction("toilet","🚽 All clean!");save();updateStats();msg("🚽 Cleaned up after your pet!");};
+state.petMood=clamp(state.petMood+4,0,100);state.careQuality=clamp(state.careQuality+2,0,100);petReaction("toilet","🚽 All clean!");save();updateStats();msg("🚽 Cleaned up after your pet!");};
 $("disciplinePet").onclick=()=>{if(state.petSleeping){msg("Let your pet sleep.");return;}
 if(state.petEnergy<10){msg("Your pet is too tired to learn.");return;}
-state.petEnergy=clamp(state.petEnergy-5,0,100);state.petDiscipline=clamp(state.petDiscipline+12,0,100);
+state.petEnergy=clamp(state.petEnergy-5,0,100);state.petDiscipline=clamp(state.petDiscipline+12,0,100);state.careQuality=clamp(state.careQuality+1,0,100);
 petReaction("learn","📣 Good manners!");gainPetXP(4);save();updateStats();msg("Your pet learned good manners!");};
 $("cleanPet").onclick=()=>{if(state.coins<15){msg("Cleaning costs 15 coins.");return;}
 if(state.petCleanliness>=100){msg("Your pet is already clean.");return;}
