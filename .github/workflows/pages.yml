@@ -81,7 +81,13 @@ jobs:
                 return pixels.some((value, i) => i % 4 === 3 && value > 0);
               }), 'Canvas must contain rendered pixels');
               await page.locator('#boutiqueSearch').fill('zz_no_matching_product_zz');
+              await page.locator('#petNameInput').fill('Browser Test Pet');
+              await page.locator('#savePetName').click();
+              assert.equal(await page.locator('#petNameInput').inputValue(), 'Browser Test Pet');
               await page.reload();
+              if (await page.locator('#startGame').isVisible()) await page.locator('#startGame').click();
+              await page.waitForFunction(() => document.getElementById('petNameInput').value === 'Browser Test Pet');
+              assert.equal(await page.locator('#petNameInput').inputValue(), 'Browser Test Pet', 'Pet name must survive reload');
               await page.waitForTimeout(500);
               assert.deepEqual(errors, [], 'Uncaught browser errors');
             } finally { await browser.close(); }
