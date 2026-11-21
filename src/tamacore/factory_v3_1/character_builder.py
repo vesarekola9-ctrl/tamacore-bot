@@ -127,9 +127,13 @@ def _find_candidate_frames(generated_dir: Path) -> Dict[str, List[str]]:
     for path in candidates:
         rel = path.relative_to(generated_dir.parent.parent).as_posix()
         name = path.stem.lower()
-        # Classify the animation suffix, not the player identifier.
+        # Match the full animation token. For example, player_playful.png
+        # must not silently become a Play animation, and unrelated assets
+        # must not be added to Idle.
         animation_name = name.removeprefix("player_").removeprefix("pet_").removeprefix("character_")
-        state = next((key for key in ("walk", "sleep", "eat", "play") if animation_name.startswith(key)), "idle")
+        state = next((key for key in out if animation_name == key or animation_name.startswith(key + "_")), None)
+        if state is None:
+            continue
         out[state].append(rel)
 
     if not out["idle"] and out["walk"]:
