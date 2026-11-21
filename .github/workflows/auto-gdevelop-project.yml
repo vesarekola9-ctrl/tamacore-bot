@@ -35,6 +35,9 @@ jobs:
         run: |
           test -s build/gdevelop_game/game.json
           test -s build/gdevelop_game/PLAY_GAME.html
+          test -s build/gdevelop_game/assets/generated/player/player_idle_01.png
+          test -s build/gdevelop_game/assets/generated/player/player_walk_01.png
+          test -s build/gdevelop_game/assets/generated/player/player_sleep_01.png
           python -m json.tool build/gdevelop_game/game.json > /dev/null
       - name: Audit GDevelop scenes, resources and animation frames
         run: |
