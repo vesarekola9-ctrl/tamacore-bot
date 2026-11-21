@@ -1,4 +1,3 @@
-@'
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
@@ -271,4 +270,3 @@ def _act(style: str, instruction: str, params: List[str]) -> Json:
         "parameters": params,
         "subInstructions": [],
     }
-'@ | Set-Content -Encoding UTF8 .\src\tamacore\patches\shop_v321.py
