@@ -88,7 +88,7 @@ $("soundToggle").onclick=()=>{soundEnabled=!soundEnabled;$("soundToggle").textCo
 $("title").textContent=cfg.name;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>a+Math.random()*(b-a);
-const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0,claimedChallenges:{},bossChallengesWon:0,petSleeping:false,sleepStartedAt:0,lastMorningDate:"",petSick:false,petBornAt:Date.now(),petDiscipline:50,petMess:0,careQuality:65,petTrait:"",petPersonality:"",roomOwned:{},roomEquipped:{wall:"default",floor:"default",furniture:"none",toy:"none"},homeSurprise:{kind:"",expires:0,nextAt:Date.now()+90000},dailyCare:{date:"",feed:0,play:0,clean:0,rest:0,claimed:false}};
+const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0,claimedChallenges:{},bossChallengesWon:0,petSleeping:false,sleepStartedAt:0,dreamKind:"",lastMorningDate:"",petSick:false,petBornAt:Date.now(),petDiscipline:50,petMess:0,careQuality:65,petTrait:"",petPersonality:"",roomOwned:{},roomEquipped:{wall:"default",floor:"default",furniture:"none",toy:"none"},homeSurprise:{kind:"",expires:0,nextAt:Date.now()+90000},dailyCare:{date:"",feed:0,play:0,clean:0,rest:0,claimed:false}};
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object"){
 for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions","petSkill","levelsCompleted","starTokens","bossChallengesWon"])if(Number.isFinite(saved[k]))state[k]=saved[k];
 if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
@@ -106,6 +106,7 @@ if(["kind","brave","mischievous"].includes(saved.petTrait))state.petTrait=saved.
 if(Number.isFinite(saved.petBornAt)&&saved.petBornAt>0&&saved.petBornAt<=Date.now())state.petBornAt=saved.petBornAt;
 if(["playful","gentle","curious"].includes(saved.petPersonality))state.petPersonality=saved.petPersonality;
 if(Number.isFinite(saved.sleepStartedAt)&&saved.sleepStartedAt>0&&saved.sleepStartedAt<=Date.now())state.sleepStartedAt=saved.sleepStartedAt;
+if(["happy","adventure","nightmare"].includes(saved.dreamKind))state.dreamKind=saved.dreamKind;
 if(typeof saved.lastMorningDate==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(saved.lastMorningDate))state.lastMorningDate=saved.lastMorningDate;
 if(saved.roomOwned&&typeof saved.roomOwned==="object"&&!Array.isArray(saved.roomOwned))for(const k of ["wall:mint","wall:peach","floor:wood","floor:cloud","furniture:bed","furniture:plant","toy:ball","toy:blocks"])if(saved.roomOwned[k]===true)state.roomOwned[k]=true;
 if(saved.roomEquipped&&typeof saved.roomEquipped==="object")for(const [slot,allowed] of Object.entries({wall:["default","mint","peach"],floor:["default","wood","cloud"],furniture:["none","bed","plant"],toy:["none","ball","blocks"]})){const item=saved.roomEquipped[slot];if(allowed.includes(item)&&(item===allowed[0]||state.roomOwned[slot+":"+item]))state.roomEquipped[slot]=item;}
@@ -172,6 +173,11 @@ function petDayPhase(){const h=new Date().getHours();return h>=6&&h<18?"day":h>=
 function updateDayNight(){const phase=petDayPhase();const label=phase==="day"?"☀️ Daytime":phase==="evening"?"🌇 Evening":"🌙 Nighttime";
 $("dayNightStatus").textContent=label+" • Your pet follows the local day and night cycle.";
 return phase;}
+function choosePetDream(){const r=Math.random();return r<.12?"nightmare":r<.55?"adventure":"happy";}
+function dreamWakeMessage(kind){const p=state.petPersonality;
+if(kind==="nightmare")return p==="gentle"?"😟 A scary dream... can I have a cuddle?":p==="playful"?"😵 Whew, what a wild dream!":"😯 That dream was strange!";
+if(kind==="adventure")return p==="curious"?"🔍 I discovered a whole new world!":p==="playful"?"🚀 That dream was an epic adventure!":"🌟 I dreamed of exploring!";
+return p==="gentle"?"💗 I dreamed of cuddles!":p==="playful"?"🎾 I dreamed of playing!":"🌈 What a lovely dream!";}
 function morningTick(){const now=new Date();if(now.getHours()<6||now.getHours()>=11||state.petSleeping||state.petStage<2)return;
 const day=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
 if(state.lastMorningDate===day)return;state.lastMorningDate=day;
@@ -434,7 +440,7 @@ $("startGame").onclick=()=>{$("welcome").hidden=true;homeMode=true;paused=true;$
 $("pause").textContent="Resume";
 $("pause").onclick=()=>{if(!$("welcome").hidden)return;if(homeMode){homeMode=false;$("homeToggle").textContent="🏠 Pet home";}paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.claimedChallenges={};state.bossChallengesWon=0;state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.petBornAt=Date.now();state.petPersonality=["playful","gentle","curious"][Math.floor(Math.random()*3)];state.dailyCare={date:"",feed:0,play:0,clean:0,rest:0,claimed:false};hatchAnimationUntil=0;state.petSleeping=false;state.sleepStartedAt=0;state.lastMorningDate="";state.petSick=false;state.petMess=0;state.petDiscipline=50;state.roomOwned={};state.roomEquipped={wall:"default",floor:"default",furniture:"none",toy:"none"};state.homeSurprise={kind:"",expires:0,nextAt:Date.now()+90000};state.careQuality=65;state.petTrait="";state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("victory").hidden=true;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.claimedChallenges={};state.bossChallengesWon=0;state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.petBornAt=Date.now();state.petPersonality=["playful","gentle","curious"][Math.floor(Math.random()*3)];state.dailyCare={date:"",feed:0,play:0,clean:0,rest:0,claimed:false};hatchAnimationUntil=0;state.petSleeping=false;state.sleepStartedAt=0;state.dreamKind="";state.lastMorningDate="";state.petSick=false;state.petMess=0;state.petDiscipline=50;state.roomOwned={};state.roomEquipped={wall:"default",floor:"default",furniture:"none",toy:"none"};state.homeSurprise={kind:"",expires:0,nextAt:Date.now()+90000};state.careQuality=65;state.petTrait="";state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("victory").hidden=true;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
 $("trainPet").onclick=()=>{if(paused||won){msg("Resume playing to train your companion.");return;}
 if(trainingCooldown>0){msg("Your companion needs a break before training again.");return;}
 if(state.coins<20){msg("Training costs 20 coins.");return;}
@@ -492,8 +498,12 @@ state.petEnergy=clamp(state.petEnergy+(state.roomEquipped.furniture==="bed"?45:3
 state.petHunger=clamp(state.petHunger-5,0,100);
 petReaction("rest","💤 Nice nap!");recordCare("rest");gainPetXP(5);save();updateStats();msg("Your pet had a nice nap.");};
 $("sleepPet").onclick=()=>{const waking=state.petSleeping;state.petSleeping=!state.petSleeping;
-if(waking){const slept=Math.max(0,Date.now()-(state.sleepStartedAt||Date.now()));if(slept>=60000){state.petMood=clamp(state.petMood+Math.min(12,Math.floor(slept/60000)*2),0,100);petReaction("wake","☀️ What a lovely nap!");}else petReaction("wake","☀️ Good morning!");state.sleepStartedAt=0;}
-else{state.sleepStartedAt=Date.now();petReaction("sleep","🌙 Sweet dreams!");}
+if(waking){const slept=Math.max(0,Date.now()-(state.sleepStartedAt||Date.now()));
+if(slept>=60000){const dream=state.dreamKind||"happy";const moodChange=dream==="nightmare"?-4:dream==="adventure"?7:10;
+state.petMood=clamp(state.petMood+Math.min(12,Math.floor(slept/60000)*2)+moodChange,0,100);
+petReaction("wake",dreamWakeMessage(dream));msg("💭 "+dreamWakeMessage(dream));}
+else petReaction("wake","☀️ Good morning!");state.sleepStartedAt=0;state.dreamKind="";}
+else{state.sleepStartedAt=Date.now();state.dreamKind=choosePetDream();petReaction("sleep","🌙 Sweet dreams!");}
 save();updateStats();msg(state.petSleeping?"🌙 Your pet is sleeping.":"☀️ Your pet woke up!");};
 $("healPet").onclick=()=>{if(!state.petSick){msg("Your pet is healthy!");return;}
 if(state.coins<25){msg("Medicine costs 25 coins.");return;}
@@ -613,7 +623,8 @@ const petMood=state.petSick||state.petMood<25?"sad":state.petSleeping||state.pet
 ctx.font="bold 23px system-ui";ctx.fillStyle="#fff2bd";ctx.fillText(petLifeStages[Math.min(4,Math.max(0,state.petStage-1))]+" • Age "+petAgeLabel(),W/2,186);
 if(state.petStage===1){ctx.save();ctx.translate(W/2,H/2+60);ctx.rotate(Math.sin(visualTime*3)*.045);ctx.fillStyle="#f5e8d4";ctx.beginPath();ctx.ellipse(0,0,52,69,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#f8b7d6";ctx.lineWidth=5;ctx.stroke();ctx.restore();}
 else drawBunny(W/2+(idle==="look"?Math.sin(visualTime*.9)*15:idle==="zigzag"?Math.sin(visualTime*2.8)*28:0),H/2+60+(reacting&&reactionKind==="play"?Math.sin(visualTime*16)*9:idle==="bounce"?Math.abs(Math.sin(visualTime*2.5))*7:idle==="zigzag"?Math.abs(Math.sin(visualTime*4))*4:0),Math.min(3.3,1.6+state.petStage*.35),"#f7f2ec",false,idle==="look"&&Math.sin(visualTime*.9)<-.7?-1:1,petMood);
-if(state.petSleeping&&state.petStage>1){ctx.save();ctx.globalAlpha=.7+.3*Math.sin(visualTime*1.5)**2;ctx.textAlign="center";ctx.font="bold 26px system-ui";ctx.fillStyle="#dbe9ff";ctx.fillText("Z",W/2+92,H/2-70-Math.sin(visualTime*1.2)*10);ctx.font="bold 18px system-ui";ctx.fillText("z",W/2+120,H/2-100-Math.sin(visualTime*1.2)*15);ctx.restore();}
+if(state.petSleeping&&state.petStage>1){ctx.save();ctx.globalAlpha=.7+.3*Math.sin(visualTime*1.5)**2;ctx.textAlign="center";ctx.font="bold 26px system-ui";ctx.fillStyle="#dbe9ff";ctx.fillText("Z",W/2+92,H/2-70-Math.sin(visualTime*1.2)*10);ctx.font="bold 18px system-ui";ctx.fillText("z",W/2+120,H/2-100-Math.sin(visualTime*1.2)*15);
+ctx.font="23px system-ui";ctx.fillText(state.dreamKind==="nightmare"?"☁️":state.dreamKind==="adventure"?"🚀":"💗",W/2+135,H/2-145-Math.sin(visualTime*.8)*8);ctx.restore();}
 if(state.petTrait==="kind"&&!state.petSleeping){ctx.fillStyle="#ffb9d7";ctx.font="bold 20px system-ui";ctx.fillText("♥",W/2+85,H/2-20+Math.sin(visualTime*2)*8);}
 if(state.petTrait==="brave"&&!state.petSleeping){ctx.fillStyle="#ffe08a";ctx.font="bold 22px system-ui";ctx.fillText("★",W/2-92,H/2-10+Math.sin(visualTime*2)*5);}
 if(reacting){ctx.font="bold 25px system-ui";ctx.fillStyle="#fff1c4";ctx.fillText(reactionText,W/2,245);}
