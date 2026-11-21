@@ -1134,7 +1134,7 @@ const panelStyle=document.createElement("style");panelStyle.textContent=".tamapa
 // Collectible boutique: soft currency only. No fake billing or premium entitlements.
 const boutiqueKey="tamacore_boutique_v1";
 function normalizeBoutique(input){
- const result={owned:{},equipped:{},claimed:{},positions:{},displayed:[],layouts:{},wishlist:[],roomTheme:"classic",roomLighting:"auto",roomRug:"none",roomPlant:"none",roomArt:"none",roomWindow:"default",roomClock:false,roomFloor:"default",roomCurtain:"none",roomLamp:"none"};
+ const result={owned:{},equipped:{},claimed:{},positions:{},displayed:[],layouts:{},wishlist:[],roomTheme:"classic",roomLighting:"auto",roomRug:"none",roomPlant:"none",roomArt:"none",roomWindow:"default",roomClock:false,roomFloor:"default",roomCurtain:"none",roomLamp:"none",roomAwards:{}};
  if(!input||typeof input!=="object")return result;
  for(const item of cfg.collectibles||[]){
    if(input.owned&&Object.prototype.hasOwnProperty.call(input.owned,item.id)&&input.owned[item.id]===true)result.owned[item.id]=true;
@@ -1156,6 +1156,7 @@ function normalizeBoutique(input){
  if(["default","oak","tile","marble"].includes(input.roomFloor))result.roomFloor=input.roomFloor;
  if(["none","rose","blue","cream"].includes(input.roomCurtain))result.roomCurtain=input.roomCurtain;
  if(["none","gold","mint","violet"].includes(input.roomLamp))result.roomLamp=input.roomLamp;
+ for(const id of ["firstItem","decorator","collector","stylist","designer"])if(input.roomAwards&&input.roomAwards[id]===true)result.roomAwards[id]=true;
  return result;
 }
 let boutiqueSave=normalizeBoutique(state.boutique);
@@ -1207,6 +1208,16 @@ function boutiqueRender(){
   const presetBar=document.createElement("div");presetBar.append("Quick home designs: ");
   for(const [name,preset] of Object.entries(stylePresets)){const button=document.createElement("button");button.textContent=name[0].toUpperCase()+name.slice(1);button.onclick=()=>{Object.assign(boutiqueSave,preset);save();boutiqueRender();};presetBar.append(button);}
   const resetDecor=document.createElement("button");resetDecor.textContent="Reset decor";resetDecor.onclick=()=>{const defaults=normalizeBoutique(null);for(const key of Object.keys(stylePresets.cozy))boutiqueSave[key]=defaults[key];save();boutiqueRender();};presetBar.append(resetDecor);document.getElementById("boutiqueCount").append(presetBar);
+  const achievements=document.createElement("div");achievements.append("Home milestones: ");
+  const milestones=[
+    ["firstItem","First purchase",collected>=1,25],
+    ["decorator","Three furniture items",allItems.filter(item=>item.category==="furniture"&&boutiqueSave.owned[item.id]).length>=3,75],
+    ["collector","25 collectibles",collected>=25,150],
+    ["stylist","10 outfits",allItems.filter(item=>item.category==="outfit"&&boutiqueSave.owned[item.id]).length>=10,100],
+    ["designer","Three saved room styles",Object.keys(boutiqueSave.layouts).length===3,100]
+  ];
+  for(const [id,name,ready,coins] of milestones){const button=document.createElement("button");const claimed=boutiqueSave.roomAwards[id];button.textContent=name+" · "+(claimed?"✓":coins+" coins");button.disabled=claimed||!ready;button.onclick=()=>{if(!ready||boutiqueSave.roomAwards[id])return;boutiqueSave.roomAwards[id]=true;state.coins+=coins;save();updateStats();boutiqueRender();msg(name+" completed! +"+coins+" coins");};achievements.append(button);}
+  document.getElementById("boutiqueCount").append(achievements);
   const layouts=document.createElement("div");layouts.style.cssText="display:flex;gap:5px;flex-wrap:wrap";layouts.append("Saved room styles: ");
   for(const slot of ["1","2","3"]){
     const store=document.createElement("button"),load=document.createElement("button");
