@@ -9,9 +9,10 @@ class PetAnimationEventTests(unittest.TestCase):
         scene = {"objects": [{"name": "Player", "animations": [{"name": n} for n in names]}], "events": []}
         apply_pet_animation_events(scene)
         self.assertEqual(len(scene["events"]), 5)
-        for event, name in zip(scene["events"], names):
+        for index, (event, name) in enumerate(zip(scene["events"], names)):
             self.assertEqual(event["conditions"][0]["parameters"], ["Pet_State", "=", name])
-            self.assertEqual(event["actions"][0]["parameters"], ["Player", name])
+            self.assertEqual(event["actions"][0]["type"]["value"], "SetAnimation")
+            self.assertEqual(event["actions"][0]["parameters"], ["Player", str(index)])
         apply_pet_animation_events(scene)
         self.assertEqual(len(scene["events"]), 5)
 
