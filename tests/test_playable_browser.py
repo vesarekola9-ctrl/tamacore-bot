@@ -1,6 +1,8 @@
 """Regression checks for the standalone TamaCore browser game export."""
 import json
 import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -45,6 +47,36 @@ class PlayableBrowserTests(unittest.TestCase):
         self.assertIn("ctx.fillText(boutiqueFurniture.emoji", html)
         self.assertIn("ctx.fillText(boutiqueToy.emoji", html)
         self.assertIn("state.coins-=item.coinPrice", html)
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js required for browser logic checks")
+    def test_boutique_save_normalization_and_javascript_syntax(self):
+        html = self.build({"name": "TamaCore"})
+        scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
+        self.assertTrue(scripts)
+        js = "\n".join(scripts)
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / "game.js"
+            script.write_text(js, encoding="utf-8")
+            subprocess.run(["node", "--check", str(script)], check=True, capture_output=True, text=True)
+        start = js.index("function normalizeBoutique(")
+        end = js.index("let boutiqueSave=", start)
+        logic = js[start:end]
+        config = re.search(r'<script id="config" type="application/json">(.*?)</script>', html, re.S)
+        catalog = json.loads(config.group(1))["collectibles"]
+        furniture = [item["id"] for item in catalog if item["category"] == "furniture"][:4]
+        fixture = {"owned": {**dict.fromkeys(furniture, True), "invalid": True},
+                   "equipped": {"furniture": furniture[0], "toy": furniture[0]},
+                   "displayed": furniture + furniture,
+                   "positions": {furniture[0]: {"x": -500, "y": 999}},
+                   "layouts": {"1": {"equipped": {"furniture": furniture[0]}}}}
+        code = "const cfg=" + json.dumps({"collectibles": catalog}) + ";\n" + logic
+        code += "\nconsole.log(JSON.stringify(normalizeBoutique(" + json.dumps(fixture) + ")));"
+        result = json.loads(subprocess.check_output(["node", "-e", code], text=True))
+        self.assertNotIn("invalid", result["owned"])
+        self.assertNotIn("toy", result["equipped"])
+        self.assertEqual(len(result["displayed"]), 3)
+        self.assertEqual(result["positions"][furniture[0]], {"x": 130, "y": 495})
+        self.assertEqual(result["layouts"]["1"]["equipped"]["furniture"], furniture[0])
 
     def test_legacy_food_cost_is_normalized(self):
         html = self.build({"foods": [{"id": "apple", "cost": 7, "energy": 2}]})
