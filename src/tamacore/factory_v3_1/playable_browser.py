@@ -102,6 +102,8 @@ if(typeof saved.petSick==="boolean")state.petSick=saved.petSick;
 if(Number.isFinite(saved.petBornAt)&&saved.petBornAt>0&&saved.petBornAt<=Date.now())state.petBornAt=saved.petBornAt;
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
+let reactionUntil=0,reactionText="",reactionKind="";
+function petReaction(kind,label){reactionKind=kind;reactionText=label;reactionUntil=performance.now()+2600;}
 const petLifeStages=["🥚 Egg","🐣 Baby","🐥 Child","🐰 Teen","🐇 Adult"];
 const growthMinutes=[0,2,15,60,180];let hatchAnimationUntil=0;
 function petAgeMinutes(){return Math.max(0,(Date.now()-state.petBornAt)/60000);}
@@ -393,28 +395,28 @@ if(state.coins<food.price){msg("Not enough coins to feed your pet.");return;}
 state.coins-=food.price;state.petHunger=clamp(state.petHunger+(Number(food.hunger)||0),0,100);
 state.petEnergy=clamp(state.petEnergy+(Number(food.energy)||0),0,100);
 state.petMood=clamp(state.petMood+(Number(food.mood)||0),0,100);
-gainPetXP(8);save();updateStats();msg("Fed pet: "+food.name);}
+gainPetXP(8);petReaction("eat","😋 Yummy!");save();updateStats();msg("Fed pet: "+food.name);}
 for(const [index,food] of cfg.foods.entries()){const option=document.createElement("option");option.value=index;
 option.textContent=food.name+" ("+food.price+" coins)";$("foodChoice").appendChild(option);}
 $("feed").onclick=feedPet;$("feedSelected").onclick=feedPet;
 $("cleanPet").onclick=()=>{if(state.coins<15){msg("Cleaning costs 15 coins.");return;}
 if(state.petCleanliness>=100){msg("Your pet is already clean.");return;}
 state.coins-=15;state.petCleanliness=clamp(state.petCleanliness+35,0,100);
-state.petMood=clamp(state.petMood+5,0,100);gainPetXP(10);save();updateStats();msg("Your pet feels fresh!");};
+state.petMood=clamp(state.petMood+5,0,100);petReaction("clean","🫧 So fresh!");gainPetXP(10);save();updateStats();msg("Your pet feels fresh!");};
 $("playPet").onclick=()=>{if(state.petEnergy<12){msg("Your pet is too tired. Let it rest.");return;}
 state.petEnergy=clamp(state.petEnergy-12,0,100);
 state.petMood=clamp(state.petMood+22,0,100);
 state.petHunger=clamp(state.petHunger-6,0,100);
 state.petCleanliness=clamp(state.petCleanliness-5,0,100);
-gainPetXP(15);save();updateStats();msg("Your pet loved playing!");};
+petReaction("play","🎾 Wheee!");gainPetXP(15);save();updateStats();msg("Your pet loved playing!");};
 $("restPet").onclick=()=>{if(state.petEnergy>=100){msg("Your pet is fully rested.");return;}
 state.petEnergy=clamp(state.petEnergy+30,0,100);
 state.petHunger=clamp(state.petHunger-5,0,100);
-gainPetXP(5);save();updateStats();msg("Your pet had a nice nap.");};
-$("sleepPet").onclick=()=>{state.petSleeping=!state.petSleeping;save();updateStats();msg(state.petSleeping?"🌙 Your pet is sleeping.":"☀️ Your pet woke up!");};
+petReaction("rest","💤 Nice nap!");gainPetXP(5);save();updateStats();msg("Your pet had a nice nap.");};
+$("sleepPet").onclick=()=>{state.petSleeping=!state.petSleeping;petReaction("sleep",state.petSleeping?"🌙 Sweet dreams!":"☀️ Good morning!");save();updateStats();msg(state.petSleeping?"🌙 Your pet is sleeping.":"☀️ Your pet woke up!");};
 $("healPet").onclick=()=>{if(!state.petSick){msg("Your pet is healthy!");return;}
 if(state.coins<25){msg("Medicine costs 25 coins.");return;}
-state.coins-=25;state.petSick=false;state.petMood=clamp(state.petMood+10,0,100);save();updateStats();msg("💊 Your pet feels better!");};
+state.coins-=25;state.petSick=false;state.petMood=clamp(state.petMood+10,0,100);petReaction("heal","❤️ Feeling better!");save();updateStats();msg("💊 Your pet feels better!");};
 $("dash").onclick=()=>{dashRequested=true;};
 addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();
 if(e.key===" "&&!e.repeat)dashRequested=true;keys.add(e.key.toLowerCase());});
@@ -481,13 +483,13 @@ const fur=ctx.createRadialGradient(-8,-8,2,0,2,25);fur.addColorStop(0,"#ffffffbb
 circle(0,1,19,fur);
 ctx.fillStyle="#ffffffaa";ctx.beginPath();ctx.ellipse(-5,10,9,6,0,0,Math.PI*2);ctx.fill();
 ctx.fillStyle="#ffffff55";ctx.beginPath();ctx.ellipse(-11,-10,5,3,-.5,0,Math.PI*2);ctx.fill();
-const blink=Math.sin(visualTime*1.8+x*.03)>.995;
+const blink=expression==="sleepy"||Math.sin(visualTime*1.8+x*.03)>.995;
 ctx.fillStyle="#243040";if(blink){ctx.fillRect(-11,-3,7,2);ctx.fillRect(5,-3,7,2);}else{
 ctx.beginPath();ctx.ellipse(-8,-3,3.4,4.8,0,0,Math.PI*2);ctx.ellipse(8,-3,3.4,4.8,0,0,Math.PI*2);ctx.fill();
 circle(-7,-5,1.3,"#ffffff");circle(9,-5,1.3,"#ffffff");}
 circle(0,5,2.7,"#e88099");
 ctx.strokeStyle="#75445a";ctx.lineWidth=1.6;ctx.beginPath();
-if(expression==="sad"){ctx.arc(0,15,4,Math.PI*1.1,Math.PI*1.9);}else{ctx.arc(0,8,5,.1,Math.PI-.1);}
+if(expression==="sad"){ctx.arc(0,15,4,Math.PI*1.1,Math.PI*1.9);}else if(expression==="excited"){ctx.arc(0,8,7,0,Math.PI); }else{ctx.arc(0,8,5,.1,Math.PI-.1);}
 ctx.stroke();ctx.fillStyle="#ed91a5";circle(-14,6,3,"#ed91a577");circle(14,6,3,"#ed91a577");
 // Fine whiskers and cheek highlights.
 ctx.strokeStyle="#ffffff99";ctx.lineWidth=.9;
@@ -515,10 +517,12 @@ for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.strok
 ctx.restore();if(!reducedEffects)drawScenery();
 if(homeMode){ctx.fillStyle="#10253bbb";ctx.fillRect(65,90,670,425);
 ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ctx.fillText("🐰 YOUR PET HOME",W/2,142);
-const petMood=state.petSick||state.petMood<25?"sad":state.petSleeping||state.petEnergy<20?"sleepy":"happy";
+const reacting=performance.now()<reactionUntil;
+const petMood=state.petSick||state.petMood<25?"sad":state.petSleeping||state.petEnergy<20?"sleepy":reacting&&reactionKind==="play"?"excited":state.petHunger<25?"sad":"happy";
 ctx.font="bold 23px system-ui";ctx.fillStyle="#fff2bd";ctx.fillText(petLifeStages[Math.min(4,Math.max(0,state.petStage-1))]+" • Age "+petAgeLabel(),W/2,186);
 if(state.petStage===1){ctx.save();ctx.translate(W/2,H/2+60);ctx.rotate(Math.sin(visualTime*3)*.045);ctx.fillStyle="#f5e8d4";ctx.beginPath();ctx.ellipse(0,0,52,69,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#f8b7d6";ctx.lineWidth=5;ctx.stroke();ctx.restore();}
-else drawBunny(W/2,H/2+60,Math.min(3.3,1.6+state.petStage*.35),"#f7f2ec",false,1,petMood);
+else drawBunny(W/2,H/2+60+(reacting&&reactionKind==="play"?Math.sin(visualTime*16)*9:0),Math.min(3.3,1.6+state.petStage*.35),"#f7f2ec",false,1,petMood);
+if(reacting){ctx.font="bold 25px system-ui";ctx.fillStyle="#fff1c4";ctx.fillText(reactionText,W/2,245);}
 if(performance.now()<hatchAnimationUntil){ctx.fillStyle="#ffedb5";ctx.font="bold 29px system-ui";ctx.fillText("✨ 🐣 HATCHED! ✨",W/2,260);
 for(let i=0;i<12;i++){const a=i*Math.PI/6+visualTime*.6,r=95+Math.sin(visualTime*5+i)*12;
 ctx.fillStyle=i%2?"#ffe88b":"#ffb5de";ctx.beginPath();ctx.arc(W/2+Math.cos(a)*r,H/2+60+Math.sin(a)*r,5,0,Math.PI*2);ctx.fill();}}
