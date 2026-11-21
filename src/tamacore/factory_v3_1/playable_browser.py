@@ -822,6 +822,8 @@ const boutiqueWall=boutiqueSelected("wallpaper");const boutiqueWallColors={wallp
 ctx.fillStyle=(boutiqueWall&&boutiqueWallColors[boutiqueWall.id])||wallColors[state.roomEquipped.wall]||wallColors.default;ctx.fillRect(65,90,670,325);
 ctx.fillStyle=floorColors[state.roomEquipped.floor]||floorColors.default;ctx.fillRect(65,415,670,100);
 const roomTheme=boutiqueSave.roomTheme;
+if(boutiqueSave.roomRug!=="none"){ctx.save();ctx.fillStyle={round:"#b67b9b",woven:"#bf9963",stars:"#485c96"}[boutiqueSave.roomRug];ctx.beginPath();ctx.ellipse(400,477,155,29,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#ffffff55";ctx.lineWidth=3;ctx.stroke();if(boutiqueSave.roomRug==="stars"){ctx.font="18px system-ui";ctx.fillStyle="#ffe6a1";for(let x=300;x<=500;x+=50)ctx.fillText("✦",x,482);}if(boutiqueSave.roomRug==="woven"){ctx.strokeStyle="#ffffff44";for(let x=280;x<=520;x+=20){ctx.beginPath();ctx.moveTo(x,468);ctx.lineTo(x,486);ctx.stroke();}}ctx.restore();}
+if(boutiqueSave.roomLighting!=="auto"){ctx.fillStyle=boutiqueSave.roomLighting==="warm"?"#ffbd6620":"#89cfff20";ctx.fillRect(65,90,670,425);}
 ctx.save();
 if(roomTheme==="cottage"){ctx.strokeStyle="#936e4b";ctx.lineWidth=12;for(const x of [85,230,570,715]){ctx.beginPath();ctx.moveTo(x,90);ctx.lineTo(x,415);ctx.stroke();}ctx.fillStyle="#936e4b";ctx.fillRect(65,180,670,10);}
 if(roomTheme==="loft"){ctx.strokeStyle="#ffffff25";ctx.lineWidth=2;for(let y=155;y<415;y+=32){ctx.beginPath();ctx.moveTo(65,y);ctx.lineTo(735,y);ctx.stroke();for(let x=65+(y%64);x<735;x+=80){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+32);ctx.stroke();}}}
@@ -1126,7 +1128,7 @@ const panelStyle=document.createElement("style");panelStyle.textContent=".tamapa
 // Collectible boutique: soft currency only. No fake billing or premium entitlements.
 const boutiqueKey="tamacore_boutique_v1";
 function normalizeBoutique(input){
- const result={owned:{},equipped:{},claimed:{},positions:{},displayed:[],layouts:{},wishlist:[],roomTheme:"classic"};
+ const result={owned:{},equipped:{},claimed:{},positions:{},displayed:[],layouts:{},wishlist:[],roomTheme:"classic",roomLighting:"auto",roomRug:"none"};
  if(!input||typeof input!=="object")return result;
  for(const item of cfg.collectibles||[]){
    if(input.owned&&Object.prototype.hasOwnProperty.call(input.owned,item.id)&&input.owned[item.id]===true)result.owned[item.id]=true;
@@ -1136,9 +1138,11 @@ function normalizeBoutique(input){
  if(Array.isArray(input.displayed))result.displayed=[...new Set(input.displayed)].filter(id=>result.owned[id]&&(cfg.collectibles||[]).some(item=>item.id===id&&item.category==="furniture")).slice(0,3);
  for(const id of result.displayed){const pos=input.positions&&input.positions[id];if(pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.y))result.positions[id]={x:Math.max(130,Math.min(670,pos.x)),y:Math.max(355,Math.min(495,pos.y))};}
  for(const theme of ["pastel","royal","winter","garden"])if(input.claimed&&input.claimed[theme]===true)result.claimed[theme]=true;
- for(const slot of ["1","2","3"]){const layout=input.layouts&&input.layouts[slot];if(layout&&typeof layout==="object"){const clean=normalizeBoutique({owned:result.owned,equipped:layout.equipped,positions:layout.positions,displayed:layout.displayed});result.layouts[slot]={equipped:clean.equipped,positions:clean.positions,displayed:clean.displayed};}}
+ for(const slot of ["1","2","3"]){const layout=input.layouts&&input.layouts[slot];if(layout&&typeof layout==="object"){const clean=normalizeBoutique({owned:result.owned,equipped:layout.equipped,positions:layout.positions,displayed:layout.displayed,roomTheme:layout.roomTheme});result.layouts[slot]={equipped:clean.equipped,positions:clean.positions,displayed:clean.displayed,roomTheme:clean.roomTheme};}}
  if(Array.isArray(input.wishlist))result.wishlist=[...new Set(input.wishlist)].filter(id=>(cfg.collectibles||[]).some(item=>item.id===id)&&!result.owned[id]);
  if(["classic","cottage","loft","observatory"].includes(input.roomTheme))result.roomTheme=input.roomTheme;
+ if(["auto","warm","cool"].includes(input.roomLighting))result.roomLighting=input.roomLighting;
+ if(["none","round","woven","stars"].includes(input.roomRug))result.roomRug=input.roomRug;
  return result;
 }
 let boutiqueSave=normalizeBoutique(state.boutique);
@@ -1178,13 +1182,14 @@ function boutiqueRender(){
   const wishItems=(cfg.collectibles||[]).filter(item=>boutiqueSave.wishlist.includes(item.id)&&!boutiqueSave.owned[item.id]);
   if(wishItems.length){const total=wishItems.reduce((sum,item)=>sum+item.coinPrice,0);const summary=document.createElement("p");summary.textContent="Wishlist: "+wishItems.length+" items · "+total+" coins total";const goal=document.createElement("span");goal.dataset.goal=String(total);goal.textContent=state.coins>=total?"Affordable":Math.ceil(total-state.coins)+" more coins needed";summary.append(" · ",goal);document.getElementById("boutiqueCount").appendChild(summary);}
   const roomChoice=document.createElement("select");roomChoice.setAttribute("aria-label","Home architecture");for(const [id,name] of [["classic","Classic home"],["cottage","Wooden cottage"],["loft","City loft"],["observatory","Star observatory"]]){const option=document.createElement("option");option.value=id;option.textContent=name;roomChoice.appendChild(option);}roomChoice.value=boutiqueSave.roomTheme;roomChoice.onchange=()=>{boutiqueSave.roomTheme=roomChoice.value;save();};document.getElementById("boutiqueCount").append("Home style: ",roomChoice);
+  for(const [key,label,options] of [["roomLighting","Lighting",[["auto","Automatic"],["warm","Warm"],["cool","Cool"]]],["roomRug","Rug",[["none","None"],["round","Round"],["woven","Woven"],["stars","Stars"]]]]){const select=document.createElement("select");select.setAttribute("aria-label",label);for(const [id,name] of options){const option=document.createElement("option");option.value=id;option.textContent=name;select.appendChild(option);}select.value=boutiqueSave[key];select.onchange=()=>{boutiqueSave[key]=select.value;save();};document.getElementById("boutiqueCount").append(" "+label+": ",select);}
   const layouts=document.createElement("div");layouts.style.cssText="display:flex;gap:5px;flex-wrap:wrap";layouts.append("Saved room styles: ");
   for(const slot of ["1","2","3"]){
     const store=document.createElement("button"),load=document.createElement("button");
     store.textContent="Save "+slot;load.textContent="Load "+slot;load.disabled=!boutiqueSave.layouts[slot];
-    store.onclick=()=>{if(boutiqueSave.layouts[slot]&&!confirm("Replace saved style "+slot+"?"))return;const copy=JSON.parse(JSON.stringify({equipped:boutiqueSave.equipped,positions:boutiqueSave.positions,displayed:boutiqueSave.displayed}));boutiqueSave.layouts[slot]=copy;save();boutiqueRender();};
-    load.onclick=()=>{const clean=normalizeBoutique({...boutiqueSave.layouts[slot],owned:boutiqueSave.owned});boutiqueSave.equipped=clean.equipped;boutiqueSave.positions=clean.positions;boutiqueSave.displayed=clean.displayed;save();boutiqueRender();};
-    layouts.append(store,load);
+    store.onclick=()=>{if(boutiqueSave.layouts[slot]&&!confirm("Replace saved style "+slot+"?"))return;const copy=JSON.parse(JSON.stringify({equipped:boutiqueSave.equipped,positions:boutiqueSave.positions,displayed:boutiqueSave.displayed,roomTheme:boutiqueSave.roomTheme}));boutiqueSave.layouts[slot]=copy;save();boutiqueRender();};
+    load.onclick=()=>{const clean=normalizeBoutique({...boutiqueSave.layouts[slot],owned:boutiqueSave.owned});boutiqueSave.equipped=clean.equipped;boutiqueSave.positions=clean.positions;boutiqueSave.displayed=clean.displayed;boutiqueSave.roomTheme=clean.roomTheme;save();boutiqueRender();};
+    const remove=document.createElement("button");remove.textContent="Clear "+slot;remove.disabled=!boutiqueSave.layouts[slot];remove.onclick=()=>{if(!confirm("Delete saved style "+slot+"?"))return;delete boutiqueSave.layouts[slot];save();boutiqueRender();};layouts.append(store,load,remove);
   }
   document.getElementById("boutiqueCount").appendChild(layouts);
   const collections=document.createElement("div");collections.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
