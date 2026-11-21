@@ -46,7 +46,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
 <div id="wardrobe"><h2>Wardrobe</h2><div id="cosmetics"></div></div>
-<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button></div><p id="petStatus"></p><p id="petProgress"></p></div>
+<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button></div><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p></div>
 <small>Move: WASD / arrow keys or touch buttons. Collect yellow coins. Avoid red enemies. Progress saves automatically in this browser.</small></div>
 </main><script id="config" type="application/json">__GAME_CONFIG__</script><script>
 "use strict";
@@ -66,7 +66,7 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],collected=0,hit=0,invincible=0,won=false;
-let joystick=null,paused=false,careClock=0;
+let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse")return;
 if(joystick!==null)return;const p=canvasPoint(e);joystick={id:e.pointerId,start:p,now:p};canvas.setPointerCapture(e.pointerId);});
@@ -78,17 +78,23 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(_){}}
 function msg(t){$("message").textContent=t;}
 function point(radius){return{x:rand(radius+15,W-radius-15),y:rand(radius+15,H-radius-15),r:radius};}
 function startLevel(){const lv=cfg.levels[state.level];if(!lv){won=true;msg("Game complete!");return;}
-player.x=W/2;player.y=H/2;collected=0;hit=0;invincible=0;
+player.x=W/2;player.y=H/2;pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
 targets=Array.from({length:Math.min(150,Math.max(0,lv.coinCount||0))},()=>point(10));
 enemies=Array.from({length:Math.min(50,Math.max(0,lv.enemyCount||0))},()=>({...point(16),vx:rand(-90,90),vy:rand(-90,90)}));
 msg("Level "+(state.level+1)+": collect "+targets.length+" coins and avoid enemies.");
 updateStats();}
+function petEmotion(){if(state.petHunger<20)return "🍽️ Hungry";
+if(state.petEnergy<20)return "💤 Sleepy";
+if(state.petCleanliness<20)return "🛁 Needs a bath";
+if(state.petMood<30)return "😢 Sad";
+if(state.petMood>80)return "🥰 Happy";return "🙂 Content";}
 function updateStats(){const lv=cfg.levels[state.level]||{};
 $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Coins: "+state.coins+
 "  •  Collected: "+collected+"/"+Math.min(150,lv.coinCount||0)+"  •  Speed: "+state.speed+
 "  •  Pet hunger: "+Math.round(state.petHunger)+"  •  Pet stage: "+state.petStage;
 $("petStatus").textContent="Hunger "+Math.round(state.petHunger)+"/100 • Energy "+Math.round(state.petEnergy)+"/100 • Mood "+Math.round(state.petMood)+"/100 • Cleanliness "+Math.round(state.petCleanliness)+"/100";
-$("petProgress").textContent="Pet evolution: stage "+state.petStage+" • XP "+state.petXP+"/"+(state.petStage*100);}
+$("petProgress").textContent="Pet evolution: stage "+state.petStage+" • XP "+state.petXP+"/"+(state.petStage*100);
+$("petEmotion").textContent="Pet mood: "+petEmotion();}
 function gainPetXP(amount){state.petXP+=amount;let evolved=false;
 while(state.petStage<5&&state.petXP>=state.petStage*100){state.petXP-=state.petStage*100;state.petStage++;evolved=true;}
 if(evolved)msg("✨ Your pet evolved to stage "+state.petStage+"!");save();updateStats();}
@@ -156,7 +162,13 @@ ctx.clearRect(0,0,W,H);ctx.fillStyle="#17384b";ctx.fillRect(0,0,W,H);
 ctx.strokeStyle="#234b60";ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-if(!won&&!paused){careClock+=dt;
+if(!won&&!paused){petMoodClock+=dt;petWander-=dt;
+if(petWander<=0){petWander=rand(1.5,4);petTarget={x:clamp(player.x+rand(-85,85),30,W-30),y:clamp(player.y+rand(-85,85),30,H-30)};}
+const followDist=Math.hypot(player.x-pet.x,player.y-pet.y);
+if(followDist>125)petTarget={x:player.x+35,y:player.y+35};
+const petDx=petTarget.x-pet.x,petDy=petTarget.y-pet.y,petDist=Math.hypot(petDx,petDy);
+if(petDist>3){const step=Math.min(petDist,(state.petEnergy<20?55:105)*dt);pet.x+=petDx/petDist*step;pet.y+=petDy/petDist*step;}
+careClock+=dt;
 if(careClock>=20){careClock=0;
 state.petHunger=clamp(state.petHunger-1,0,100);
 state.petEnergy=clamp(state.petEnergy-1,0,100);
@@ -180,6 +192,11 @@ hit++;invincible=1.2;state.coins=Math.max(0,state.coins-5);msg("Enemy hit! Lost 
 invincible=Math.max(0,invincible-dt);
 if(!targets.length)finishLevel();}
 for(const c of targets)circle(c.x,c.y,c.r,"#ffd35a");
+// The companion is decorative and never collides with enemies or collectibles.
+circle(pet.x,pet.y,16+state.petStage*2,state.petMood<30?"#a9b3cf":"#ffb6d7");
+ctx.textAlign="center";ctx.font=(20+state.petStage*2)+"px system-ui";
+ctx.fillText(state.petEnergy<20?"💤":state.petMood<30?"😢":state.petMood>80?"🥰":"🐣",pet.x,pet.y+8);
+ctx.textAlign="left";
 if(joystick){circle(joystick.start.x,joystick.start.y,56,"#365b77");
 const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
 const len=Math.max(1,Math.hypot(vx,vy));circle(joystick.start.x+vx/len*Math.min(48,len),joystick.start.y+vy/len*Math.min(48,len),24,"#9acbdc");}
