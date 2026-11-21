@@ -67,6 +67,7 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect";
+let scenery=[],visualTime=0;
 let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse")return;
@@ -91,8 +92,20 @@ function moveAroundObstacles(entity,dx,dy){const nx=clamp(entity.x+dx,entity.r,W
 if(!blocked(nx,entity.y,entity.r))entity.x=nx;
 const ny=clamp(entity.y+dy,entity.r,H-entity.r);
 if(!blocked(entity.x,ny,entity.r))entity.y=ny;}
+function generateScenery(){scenery=[];
+for(let i=0;i<65;i++){const x=((i*127+state.level*59)%W),y=((i*211+state.level*83)%H);
+scenery.push({x,y,size:3+(i%5)*2,kind:i%4,phase:i*.67});}}
+function drawScenery(){const theme=state.level%worlds.length;
+for(const d of scenery){ctx.save();ctx.translate(d.x,d.y);ctx.globalAlpha=.25+(Math.sin(visualTime*1.3+d.phase)+1)*.12;
+if(theme===0){ctx.fillStyle=d.kind%2?"#b0e8a2":"#f6c0e2";
+for(let j=0;j<5;j++){ctx.beginPath();ctx.ellipse(Math.cos(j*1.256)*d.size*.5,Math.sin(j*1.256)*d.size*.5,d.size*.36,d.size*.55,j*1.256,0,Math.PI*2);ctx.fill();}
+circle(0,0,d.size*.22,"#ffdf87");}
+else if(theme===1){ctx.fillStyle=d.kind%2?"#9ad9f8":"#d6a9ff";ctx.beginPath();ctx.moveTo(0,-d.size);ctx.lineTo(d.size*.65,0);ctx.lineTo(0,d.size);ctx.lineTo(-d.size*.65,0);ctx.closePath();ctx.fill();}
+else if(theme===2){ctx.strokeStyle="#efc184";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,d.size,0,Math.PI);ctx.stroke();}
+else{ctx.fillStyle="#d8f6ff";for(let j=0;j<3;j++){ctx.save();ctx.rotate(j*Math.PI/3);ctx.fillRect(-1,-d.size,2,d.size*2);ctx.restore();}}
+ctx.restore();}}
 function startLevel(){const lv=cfg.levels[state.level];if(!lv){won=true;msg("Game complete!");return;}
-player.x=W/2;player.y=H/2;beginQuest();pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
+player.x=W/2;player.y=H/2;generateScenery();beginQuest();pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
 obstacles=[];
 for(let i=0;i<Math.min(14,3+state.level);i++){
 const p=point(rand(20,32));if(Math.hypot(p.x-W/2,p.y-H/2)>115&&!blocked(p.x,p.y,p.r))obstacles.push(p);}
@@ -183,10 +196,12 @@ for(const event of ["pointerup","pointercancel","lostpointercapture"])b.addEvent
 }
 function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
+if(!paused)visualTime+=dt;
 ctx.clearRect(0,0,W,H);ctx.fillStyle=world().floor;ctx.fillRect(0,0,W,H);
 ctx.strokeStyle=world().grid;ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+drawScenery();
 if(!won&&!paused){if(questKind==="survive"){petMoodClock+=dt;
 if(petMoodClock>=1){petMoodClock-=1;advanceQuest(1);}}
 petWander-=dt;
@@ -221,7 +236,9 @@ invincible=Math.max(0,invincible-dt);
 if(!targets.length)finishLevel();}
 for(const o of obstacles){circle(o.x+3,o.y+5,o.r+3,"#172331");circle(o.x,o.y,o.r,world().obstacle);
 circle(o.x-o.r*.2,o.y-o.r*.2,o.r*.32,"#ffffff25");}
-for(const c of targets)circle(c.x,c.y,c.r,"#ffd35a");
+for(const c of targets){const pulse=1+Math.sin(visualTime*5+c.x*.07)*.12;
+circle(c.x,c.y,c.r*pulse+5,"#e5b54844");circle(c.x,c.y,c.r*pulse,"#ffd35a");
+ctx.fillStyle="#fff1aa";ctx.fillRect(c.x-1.5,c.y-5,3,10);}
 // The companion is decorative and never collides with enemies or collectibles.
 circle(pet.x,pet.y,16+state.petStage*2,state.petMood<30?"#a9b3cf":"#ffb6d7");
 ctx.textAlign="center";ctx.font=(20+state.petStage*2)+"px system-ui";
@@ -230,7 +247,9 @@ ctx.textAlign="left";
 if(joystick){circle(joystick.start.x,joystick.start.y,56,"#365b77");
 const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
 const len=Math.max(1,Math.hypot(vx,vy));circle(joystick.start.x+vx/len*Math.min(48,len),joystick.start.y+vy/len*Math.min(48,len),24,"#9acbdc");}
-for(const e of enemies)circle(e.x,e.y,e.r,"#fb6570");
+for(const e of enemies){circle(e.x,e.y,e.r+3,"#9e3447");circle(e.x,e.y,e.r,"#fb6570");
+circle(e.x-5,e.y-3,3,"#fff");circle(e.x+5,e.y-3,3,"#fff");
+circle(e.x-4,e.y-3,1.5,"#222");circle(e.x+6,e.y-3,1.5,"#222");}
 circle(player.x,player.y,player.r,invincible>0?"#ffffff":"#79e0d0");
 ctx.font=(30+state.petStage*3)+"px system-ui";ctx.textAlign="center";
 ctx.fillText(state.petStage>=5?"🐉":state.petStage>=3?"🐱":"🐾",player.x,player.y+10);
