@@ -1219,7 +1219,7 @@ function boutiqueRender(){
     ["stylist","10 outfits",allItems.filter(item=>item.category==="outfit"&&boutiqueSave.owned[item.id]).length>=10,100],
     ["designer","Three saved room styles",Object.keys(boutiqueSave.layouts).length===3,100]
   ];
-  for(const [id,name,ready,coins] of milestones){const button=document.createElement("button");const claimed=boutiqueSave.roomAwards[id];button.textContent=name+" · "+(claimed?"✓":coins+" coins");button.disabled=claimed||!ready;button.onclick=()=>{if(!ready||boutiqueSave.roomAwards[id])return;boutiqueSave.roomAwards[id]=true;state.coins+=coins;save();updateStats();boutiqueRender();msg(name+" completed! +"+coins+" coins");};achievements.append(button);}
+  for(const [id,name,ready,coins] of milestones){const button=document.createElement("button");const claimed=boutiqueSave.roomAwards[id];button.textContent=name+" · "+(claimed?"✓":coins+" coins");button.title=claimed?"Reward already collected":ready?"Claim your reward":"Complete this milestone to unlock the reward";button.setAttribute("aria-label",name+": "+button.title);button.disabled=claimed||!ready;button.onclick=()=>{if(!ready||boutiqueSave.roomAwards[id])return;boutiqueSave.roomAwards[id]=true;state.coins+=coins;save();updateStats();boutiqueRender();msg(name+" completed! +"+coins+" coins");};achievements.append(button);}
   document.getElementById("boutiqueCount").append(achievements);
   const layouts=document.createElement("div");layouts.style.cssText="display:flex;gap:5px;flex-wrap:wrap";layouts.append("Saved room styles: ");
   for(const slot of ["1","2","3"]){
