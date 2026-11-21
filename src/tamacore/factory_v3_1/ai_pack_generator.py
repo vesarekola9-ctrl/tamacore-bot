@@ -53,6 +53,8 @@ def _rand_foods() -> List[Dict[str, Any]]:
                 "id": f"{f}{i}",
                 "name": f.title(),
                 "hunger": random.randint(5, 20),
+                "energy": random.randint(1, 10),
+                "mood": random.randint(1, 10),
                 "price": random.randint(5, 30),
             }
         )
@@ -68,6 +70,7 @@ def _rand_cosmetics() -> List[Dict[str, Any]]:
             {
                 "id": f"{c}{i}",
                 "name": c.title(),
+                "styleBonus": random.randint(1, 5),
                 "price": random.randint(10, 50),
             }
         )
