@@ -143,17 +143,24 @@ def _validate_game(game: Json, errors: List[str], scene_name: str = "Main") -> N
         if name not in instance_names:
             errors.append(f"game.json: missing instance '{name}'")
 
-    markers = set()
-    for event in events:
-        if isinstance(event, dict) and event.get("type") == "BuiltinCommonInstructions::Comment":
-            comment = str(event.get("comment", ""))
-            if comment:
-                markers.add(comment)
-
-    if not any("TAMACORE_AUTOGEN_PACK_SHOP_V3_3" in marker for marker in markers):
-        errors.append("game.json: pack shop events marker missing")
-    if not any("TAMACORE_AUTOGEN_RUNTIME_V3_8" in marker for marker in markers):
-        errors.append("game.json: runtime v3.8 marker missing")
+    # Earlier builds required comment markers for two legacy patches that
+    # the current v3.1 factory does not apply. Verify executable animation
+    # actions instead of accepting marker-only comments as functionality.
+    animation_events = {
+        event.get("name"): event for event in events
+        if isinstance(event, dict) and isinstance(event.get("name"), str)
+    }
+    player = next((obj for obj in objects if isinstance(obj, dict) and obj.get("name") == "Player"), {})
+    animation_names = {
+        animation.get("name") for animation in player.get("animations", [])
+        if isinstance(animation, dict)
+    }
+    for name in ("Idle", "Walk", "Sleep", "Eat", "Play"):
+        if name not in animation_names:
+            errors.append(f"game.json: Player animation '{name}' missing")
+        event = animation_events.get(f"TamaCorePetAnimation_{name}")
+        if not isinstance(event, dict) or not event.get("actions"):
+            errors.append(f"game.json: pet animation event '{name}' missing")
 
     variables = game.get("variables")
     if not isinstance(variables, list):
