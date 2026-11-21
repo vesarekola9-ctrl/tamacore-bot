@@ -46,7 +46,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
 <div id="wardrobe"><h2>Wardrobe</h2><div id="cosmetics"></div></div>
-<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button><button id="petPet">❤️ Pet companion</button><button id="trainPet">🎓 Train (20 coins)</button><button id="skillPet">✨ Upgrade skill (100 coins)</button></div><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p></div><section id="achievements"><h2>🏅 Achievements</h2><div id="achievementList"></div></section><section id="milestones"><h2>🎁 Journey rewards</h2><div id="milestoneList"></div></section>
+<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button><button id="petPet">❤️ Pet companion</button><button id="trainPet">🎓 Train (20 coins)</button><button id="skillPet">✨ Upgrade skill (100 coins)</button></div><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p><p id="eventStatus" aria-live="polite"></p></div><section id="achievements"><h2>🏅 Achievements</h2><div id="achievementList"></div></section><section id="milestones"><h2>🎁 Journey rewards</h2><div id="milestoneList"></div></section>
 <small>Move: WASD / arrow keys or touch buttons. Collect yellow coins. Avoid red enemies. Progress saves automatically in this browser.</small></div>
 </main><script id="config" type="application/json">__GAME_CONFIG__</script><script>
 "use strict";
@@ -68,7 +68,7 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
-let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0,trainingCooldown=0;
+let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0,trainingCooldown=0,eventKind="none",eventTimer=0,eventDone=false,eventProgress=0,eventTarget=0;
 let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0,treasures=[],magnetTime=0,shieldTime=0;
 let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
@@ -127,6 +127,14 @@ particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-25,life:ra
 if(particles.length>220)particles.splice(0,particles.length-220);}
 function drawParticles(){for(const p of particles){ctx.save();ctx.globalAlpha=clamp(p.life/p.maxLife,0,1);
 circle(p.x,p.y,p.r*p.life/p.maxLife,p.color);ctx.restore();}}
+function updateEvent(){const status=$("eventStatus");if(eventKind==="none"){status.textContent="";return;}
+const label=eventKind==="rush"?"⚡ Coin Rush":"💎 Treasure Hunt";
+status.textContent=label+" • "+eventProgress+"/"+eventTarget+" • "+Math.ceil(eventTimer)+"s remaining"+(eventDone?" • ✓ Completed":"");}
+function eventCollect(kind){if(eventKind==="none"||eventDone||eventTimer<=0)return;
+if((eventKind==="rush"&&kind==="coin")||(eventKind==="treasure"&&kind==="gem")){
+eventProgress++;if(eventProgress>=eventTarget){eventDone=true;
+const reward=eventKind==="rush"?120:180;state.coins+=reward;gainPetXP(25);
+save();updateStats();msg("🎉 Event complete! +"+reward+" coins and +25 pet XP.");}updateEvent();}}
 function startLevel(){const lv=cfg.levels[state.level];if(!lv){won=true;msg("Game complete!");return;}
 player.x=W/2;player.y=H/2;levelBanner=2.1;companionCollectCooldown=0;generateScenery();beginQuest();pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
 obstacles=[];
@@ -135,6 +143,11 @@ const p=point(rand(20,32));if(Math.hypot(p.x-W/2,p.y-H/2)>115&&!blocked(p.x,p.y,
 targets=Array.from({length:Math.min(150,Math.max(0,lv.coinCount||0))},()=>safePoint(10));
 treasures=Array.from({length:Math.min(5,1+Math.floor(state.level/3))},(_,i)=>({...safePoint(14),kind:["gem","magnet","shield"][((state.level+i)%3)]}));
 magnetTime=0;shieldTime=0;
+eventKind=state.level>0&&state.level%3===0?"rush":state.level>0&&state.level%5===0?"treasure":"none";
+eventTimer=eventKind==="none"?0:60;eventProgress=0;eventDone=false;
+eventTarget=eventKind==="rush"?Math.min(8,Math.max(3,targets.length)):eventKind==="treasure"?1:0;
+if(eventKind==="treasure"&&!treasures.some(t=>t.kind==="gem"))treasures.push({...safePoint(14),kind:"gem"});
+updateEvent();
 enemies=Array.from({length:Math.min(50,Math.max(0,lv.enemyCount||0))},(_,i)=>{
 const type=(state.level>=4&&i%5===0)?"chaser":(state.level>=2&&i%3===0)?"sprinter":"wanderer";
 const speed=type==="sprinter"?rand(115,155):rand(45,90);
@@ -361,7 +374,9 @@ ctx.save();ctx.globalAlpha=.22;ctx.strokeStyle=world().grid;ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 ctx.restore();drawScenery();
-if(!won&&!paused){if(questKind==="survive"){petMoodClock+=dt;
+if(!won&&!paused){if(eventTimer>0&&!eventDone){eventTimer=Math.max(0,eventTimer-dt);
+if(eventTimer===0)msg("⌛ Special event expired.");updateEvent();}
+if(questKind==="survive"){petMoodClock+=dt;
 if(petMoodClock>=1){petMoodClock-=1;advanceQuest(1);}}
 petWander-=dt;
 if(petWander<=0){petWander=rand(1.5,4);petTarget={x:clamp(player.x+rand(-85,85),30,W-30),y:clamp(player.y+rand(-85,85),30,H-30)};}
@@ -388,20 +403,20 @@ if(state.petStage>=3&&state.petEnergy>=20&&companionCollectCooldown<=0){
 const reach=24+state.petSkill*12;
 const nearby=targets.findIndex(c=>Math.hypot(pet.x-c.x,pet.y-c.y)<reach);
 if(nearby>=0){const c=targets[nearby];burst(c.x,c.y,"#a8f7d0",12);
-targets.splice(nearby,1);collected++;state.totalCoinsCollected++;state.coins+=10;
+targets.splice(nearby,1);collected++;state.totalCoinsCollected++;state.coins+=10;eventCollect("coin");
 state.petEnergy=clamp(state.petEnergy-1,0,100);companionCollectCooldown=Math.max(.65,2-state.petSkill*.4);
 if(questKind==="collect")advanceQuest(1);save();updateStats();msg("🐰 Your companion found a coin!");}}
 for(let i=treasures.length-1;i>=0;i--){const t=treasures[i];
 if(Math.hypot(player.x-t.x,player.y-t.y)<player.r+15){
 burst(t.x,t.y,"#a5f5ff",18);treasures.splice(i,1);
-if(t.kind==="gem"){state.coins+=75;gainPetXP(12);msg("💎 Rare gem! +75 coins and +12 pet XP.");}
+if(t.kind==="gem"){eventCollect("gem");state.coins+=75;gainPetXP(12);msg("💎 Rare gem! +75 coins and +12 pet XP.");}
 else if(t.kind==="magnet"){magnetTime=12;msg("🧲 Coin magnet active for 12 seconds!");}
 else{shieldTime=12;msg("🛡️ Shield active for 12 seconds!");}
 save();updateStats();}}
 if(magnetTime>0)for(const c of targets){const d=Math.hypot(player.x-c.x,player.y-c.y);
 if(d>1&&d<145){const speed=Math.min(d,220*dt);c.x+=(player.x-c.x)/d*speed;c.y+=(player.y-c.y)/d*speed;}}
 for(let i=targets.length-1;i>=0;i--)if(Math.hypot(player.x-targets[i].x,player.y-targets[i].y)<player.r+targets[i].r){
-burst(targets[i].x,targets[i].y,"#ffe57d",10);targets.splice(i,1);collected++;state.totalCoinsCollected++;state.coins+=10;
+burst(targets[i].x,targets[i].y,"#ffe57d",10);targets.splice(i,1);collected++;state.totalCoinsCollected++;state.coins+=10;eventCollect("coin");
 if(questKind==="collect")advanceQuest(1);save();updateStats();}
 for(const e of enemies){
 if(e.type==="chaser"){const vx=player.x-e.x,vy=player.y-e.y,d=Math.hypot(vx,vy);
