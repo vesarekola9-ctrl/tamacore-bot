@@ -14,8 +14,25 @@ def apply_character_animations(project: Dict[str, Any], scene: Dict[str, Any], g
     generated = game_dir / "assets" / "generated"
     frames = _find_candidate_frames(generated)
 
-    if not frames:
+    if not frames["idle"]:
         return
+
+    # GDevelop expects image resources as well as sprite frame paths.
+    resource_table = project.setdefault("resources", {})
+    resources = resource_table.setdefault("resources", [])
+    registered = {item.get("name") for item in resources if isinstance(item, dict)}
+    for image_path in dict.fromkeys(frames["idle"] + frames["walk"]):
+        if image_path not in registered:
+            resources.append({
+                "alwaysLoaded": False,
+                "file": image_path,
+                "kind": "image",
+                "metadata": "",
+                "name": image_path,
+                "smoothed": True,
+                "userAdded": True,
+            })
+            registered.add(image_path)
 
     player["type"] = "Sprite"
     player["animations"] = [
@@ -94,8 +111,6 @@ def _find_candidate_frames(generated_dir: Path) -> Dict[str, List[str]]:
     if not out["idle"] and out["walk"]:
         out["idle"] = out["walk"][:1]
 
-    if not out["walk"] and len(out["idle"]) > 1:
-        out["walk"] = out["idle"][:]
 
     out["idle"] = out["idle"][:8]
     out["walk"] = out["walk"][:8]
