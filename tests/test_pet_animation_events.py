@@ -1,6 +1,6 @@
 """Verify GDevelop event-sheet wiring for pet animations."""
 import unittest
-from tamacore.factory_v3_1.character_builder import apply_pet_animation_events
+from tamacore.factory_v3_1.character_builder import apply_pet_animation_events, apply_pet_keyboard_controls
 
 
 class PetAnimationEventTests(unittest.TestCase):
@@ -26,6 +26,17 @@ class PetAnimationEventTests(unittest.TestCase):
         scene = {"objects": [], "events": []}
         apply_pet_animation_events(scene)
         self.assertEqual(scene["events"], [])
+
+    def test_keyboard_controls_set_pet_state_without_duplicates(self):
+        scene = {"objects": [{"name": "Player", "animations": [{"name": "Idle"}]}], "events": []}
+        apply_pet_keyboard_controls(scene)
+        apply_pet_keyboard_controls(scene)
+        self.assertEqual(len(scene["events"]), 5)
+        for event, (key, state) in zip(scene["events"],
+                                       (("f", "Eat"), ("p", "Play"), ("s", "Sleep"), ("w", "Walk"), ("i", "Idle"))):
+            self.assertEqual(event["conditions"][0]["parameters"], [key])
+            self.assertEqual(event["actions"][0]["parameters"], ["Pet_State", "=", f'"{state}"'])
+
 
 
 if __name__ == "__main__":
