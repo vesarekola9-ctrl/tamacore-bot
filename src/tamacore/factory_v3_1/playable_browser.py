@@ -503,6 +503,7 @@ const choreChallenges=[
 {id:"challenge188",title:"All-Round Home Hero",ready:()=>state.tidyingSkill>=75&&state.gardeningSkill>=75,reward:125},
 {id:"challenge189",title:"Clean Sweep",ready:()=>state.cleaningSkill>=30,reward:30},
 {id:"challenge190",title:"Cleanliness Expert",ready:()=>state.cleaningSkill>=80,reward:80},
+{id:"challenge191",title:"Growing Friendship",ready:()=>state.friendship>=40&&state.choreTotal>=3,reward:20},
 /*CHORE_CHALLENGES*/
 ];
 function renderChoreChallenges(){const root=$("choreChallenges");if(!root)return;root.replaceChildren();for(const c of choreChallenges){const claimed=state.choreRewardsClaimed.includes(c.id),ready=c.ready();const line=document.createElement("div"),button=document.createElement("button");button.textContent=(claimed?"✅ ":ready?"🎁 ":"🔒 ")+c.title+" • "+c.reward+" coins";button.disabled=claimed||!ready;button.onclick=()=>{if(state.choreRewardsClaimed.includes(c.id)||!c.ready())return;state.choreRewardsClaimed.push(c.id);state.coins+=c.reward;state.petMood=clamp(state.petMood+2,0,100);rememberPet("🏆 Challenge: "+c.title);save();updateStats();msg("🏆 "+c.title+"! +"+c.reward+" coins.");};line.appendChild(button);root.appendChild(line);}}
