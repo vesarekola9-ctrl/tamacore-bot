@@ -41,14 +41,14 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 #welcome{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#071323dd;padding:18px;backdrop-filter:blur(10px)}#welcome[hidden]{display:none}#welcomeCard{width:min(100%,480px);background:linear-gradient(150deg,#345579,#15263f);border:2px solid #a6d9f3;border-radius:24px;padding:clamp(20px,5vw,36px);text-align:center;box-shadow:0 24px 80px #0009}#welcomeCard h2{font-size:clamp(26px,5vw,38px);color:#ffe6a8;margin:8px 0}#welcomeCard p{color:#d6e9fa;line-height:1.6}#welcomeCard button{font-size:19px;min-height:54px;width:100%;margin-top:14px;background:linear-gradient(135deg,#49a990,#287d91)}
 #victory{position:fixed;inset:0;z-index:110;display:grid;place-items:center;background:#071323e8;padding:18px;backdrop-filter:blur(10px)}#victory[hidden]{display:none}#victoryCard{width:min(100%,490px);padding:clamp(22px,5vw,38px);text-align:center;border-radius:25px;border:2px solid #ffdd8c;background:linear-gradient(155deg,#42577e,#17243d);box-shadow:0 25px 90px #000b}#victoryCard h2{color:#ffe3a1;font-size:clamp(26px,5vw,39px);margin:10px 0}#victoryCard p{line-height:1.6;color:#dceeff}#victoryCard button{width:100%;font-size:17px;margin-top:12px;min-height:50px}
 </style></head><body><div id="victory" role="dialog" aria-modal="true" aria-labelledby="victoryTitle" hidden><div id="victoryCard"><div style="font-size:64px">🏆🐰🎉</div><h2 id="victoryTitle">Adventure Complete!</h2><p id="victorySummary"></p><button id="victoryClose">✨ View my achievements</button><button id="victoryRestart">🔄 Start a new adventure</button></div></div><div id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle"><div id="welcomeCard"><div style="font-size:58px">🐰✨</div><h2 id="welcomeTitle">Welcome to TamaCore!</h2><p>Collect coins, dodge enemies and explore new worlds with your bunny companion. Feed, train and evolve your pet as you play.</p><p><strong>Move:</strong> WASD, arrow keys or touch controls<br><strong>Dash:</strong> Space or 💨 button<br><strong>Pet:</strong> Tap your bunny companion</p><button id="startGame">▶ Start adventure</button></div></div><main><header><h1 id="title">TamaCore</h1><div>
-<button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="musicToggle" aria-pressed="false">🎵 Music off</button><button id="effectsToggle" aria-pressed="false">✨ Full effects</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="exportSave">💾 Export save</button><button id="importSave">📂 Import save</button><input id="saveFile" type="file" accept=".json,application/json" hidden><button id="reset">New game</button></div></header>
+<button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="musicToggle" aria-pressed="false">🎵 Music off</button><button id="effectsToggle" aria-pressed="false">✨ Full effects</button><button id="homeToggle">🏠 Pet home</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="exportSave">💾 Export save</button><button id="importSave">📂 Import save</button><input id="saveFile" type="file" accept=".json,application/json" hidden><button id="reset">New game</button></div></header>
 <div id="stats" aria-live="polite"></div><div id="quickHud" aria-label="Game status"><span id="hudLevel"></span><span id="hudCoins"></span><span id="hudPet"></span><span id="hudPower"></span></div>
 <canvas id="game" width="800" height="600" aria-label="Playable game field"></canvas>
 <div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button><button id="dash">💨 Dash</button></div>
 <div id="panel"><div id="message">Collect gold coins, avoid red enemies, and finish every level.</div>
 <div id="shop"><h2>Shop</h2><div id="items"></div></div>
 <div id="wardrobe"><h2>Wardrobe</h2><div id="cosmetics"></div></div>
-<div id="foodMenu"><h2>Pet care</h2><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button><button id="petPet">❤️ Pet companion</button><button id="trainPet">🎓 Train (20 coins)</button><button id="skillPet">✨ Upgrade skill (100 coins)</button></div><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p><p id="eventStatus" aria-live="polite"></p></div><section id="achievements"><h2>🏅 Achievements</h2><div id="achievementList"></div></section><section id="milestones"><h2>🎁 Journey rewards</h2><div id="milestoneList"></div></section><section id="challenges"><h2>🏆 Long-term challenges</h2><div id="challengeList"></div></section>
+<div id="foodMenu"><h2>🐰 Tamagotchi pet care</h2><p id="careHint">Your pet needs food, play, sleep and cleaning even between adventures.</p><label for="foodChoice">Food: </label><select id="foodChoice"></select><button id="feedSelected">Feed selected food</button><div id="careActions"><button id="cleanPet">🧼 Clean (15 coins)</button><button id="playPet">🎾 Play</button><button id="restPet">💤 Rest</button><button id="petPet">❤️ Pet companion</button><button id="trainPet">🎓 Train (20 coins)</button><button id="skillPet">✨ Upgrade skill (100 coins)</button></div><p id="petStatus"></p><p id="petProgress"></p><p id="petEmotion" aria-live="polite"></p><p id="questStatus"></p><p id="eventStatus" aria-live="polite"></p></div><section id="achievements"><h2>🏅 Achievements</h2><div id="achievementList"></div></section><section id="milestones"><h2>🎁 Journey rewards</h2><div id="milestoneList"></div></section><section id="challenges"><h2>🏆 Long-term challenges</h2><div id="challengeList"></div></section>
 <small>Move: WASD / arrow keys or touch buttons. Collect yellow coins. Avoid red enemies. Progress saves automatically in this browser.</small></div>
 </main><script id="config" type="application/json">__GAME_CONFIG__</script><script>
 "use strict";
@@ -99,10 +99,23 @@ if(saved.cosmeticsOwned&&typeof saved.cosmeticsOwned==="object")state.cosmeticsO
 if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippedCosmetic;
 }}catch(_){}
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
+const careStampKey="tamacore_last_care_v1";
+try{const now=Date.now(),last=Number(localStorage.getItem(careStampKey))||now;
+const elapsed=Math.min(48*60*60,Math.max(0,now-last)),ticks=Math.floor(elapsed/(20*60*1000));
+if(ticks>0){state.petHunger=clamp(state.petHunger-ticks*2,0,100);
+state.petEnergy=clamp(state.petEnergy-ticks,0,100);
+state.petCleanliness=clamp(state.petCleanliness-ticks,0,100);
+if(state.petHunger<25||state.petCleanliness<25)state.petMood=clamp(state.petMood-Math.min(ticks,30),0,100);}
+localStorage.setItem(careStampKey,String(now));}catch(_){}
+function careTick(dt){careClock+=dt;if(careClock<20)return;careClock=0;
+state.petHunger=clamp(state.petHunger-1,0,100);state.petEnergy=clamp(state.petEnergy-1,0,100);
+state.petCleanliness=clamp(state.petCleanliness-1,0,100);
+if(state.petHunger<20||state.petCleanliness<20)state.petMood=clamp(state.petMood-1,0,100);
+try{localStorage.setItem(careStampKey,String(Date.now()));}catch(_){}save();updateStats();}
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0,trainingCooldown=0,eventKind="none",eventTimer=0,eventDone=false,eventProgress=0,eventTarget=0;
 let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0,treasures=[],hazards=[],hazardCooldown=0,magnetTime=0,shieldTime=0,boostTime=0;
-let dashCooldown=0,dashRequested=false;let joystick=null,paused=true,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
+let dashCooldown=0,dashRequested=false,homeMode=true;let joystick=null,paused=true,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{const tap=canvasPoint(e);
 if(Math.hypot(tap.x-pet.x,tap.y-pet.y)<38){e.preventDefault();petCompanion();return;}
@@ -334,9 +347,10 @@ state.equippedCosmetic=item.id;save();renderWardrobe();updateStats();msg("Equipp
 $("shopToggle").onclick=()=>{$("shop").classList.toggle("open");renderShop();};
 $("victoryClose").onclick=()=>{$("victory").hidden=true;document.getElementById("achievements").scrollIntoView({behavior:"smooth",block:"start"});};
 $("victoryRestart").onclick=()=>{$("victory").hidden=true;$("reset").click();};
-$("startGame").onclick=()=>{$("welcome").hidden=true;paused=false;$("pause").textContent="Pause";msg("Adventure started! Collect coins and protect your bunny.");};
+$("homeToggle").onclick=()=>{homeMode=!homeMode;paused=homeMode;$( "homeToggle").textContent=homeMode?"🎮 Adventure":"🏠 Pet home";$("pause").textContent=paused?"Resume":"Pause";msg(homeMode?"Welcome home! Take care of your bunny.":"Adventure resumed!");};
+$("startGame").onclick=()=>{$("welcome").hidden=true;homeMode=true;paused=true;$( "homeToggle").textContent="🎮 Adventure";$("pause").textContent="Pause";msg("Adventure started! Collect coins and protect your bunny.");};
 $("pause").textContent="Resume";
-$("pause").onclick=()=>{if(!$("welcome").hidden)return;paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
+$("pause").onclick=()=>{if(!$("welcome").hidden)return;if(homeMode){homeMode=false;$("homeToggle").textContent="🏠 Pet home";}paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
 state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.claimedChallenges={};state.bossChallengesWon=0;state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("victory").hidden=true;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
 $("trainPet").onclick=()=>{if(paused||won){msg("Resume playing to train your companion.");return;}
@@ -465,7 +479,8 @@ ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
 if(document.hidden){requestAnimationFrame(frame);return;}
 musicTick(dt);
-if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
+if(homeMode)careTick(dt);
+if(!paused&&!homeMode){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
 levelBanner=Math.max(0,levelBanner-dt);hitFlash=Math.max(0,hitFlash-dt);
 trainingCooldown=Math.max(0,trainingCooldown-dt);dashCooldown=Math.max(0,dashCooldown-dt);
 $("dash").disabled=paused||won||dashCooldown>0;$("dash").textContent=dashCooldown>0?"💨 Dash "+Math.ceil(dashCooldown)+"s":"💨 Dash";
@@ -480,6 +495,13 @@ ctx.save();ctx.globalAlpha=.22;ctx.strokeStyle=world().grid;ctx.lineWidth=1;
 for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 ctx.restore();if(!reducedEffects)drawScenery();
+if(homeMode){ctx.fillStyle="#10253bbb";ctx.fillRect(65,90,670,425);
+ctx.fillStyle="#ffe9b2";ctx.font="bold 34px system-ui";ctx.textAlign="center";ctx.fillText("🐰 YOUR PET HOME",W/2,142);
+const petMood=state.petMood<25?"sad":state.petEnergy<20?"sleepy":"happy";
+drawBunny(W/2,H/2+60,3.3,"#f7f2ec",false,1,petMood);
+ctx.fillStyle="#e8f5ff";ctx.font="bold 20px system-ui";
+ctx.fillText(state.petHunger<25?"🍽️ I'm hungry!":state.petEnergy<25?"💤 I'm sleepy!":state.petCleanliness<25?"🧼 I need a bath!":state.petMood<25?"🎾 Play with me!":"❤️ I'm happy!",W/2,510);
+ctx.textAlign="left";requestAnimationFrame(frame);return;}
 if(!won&&!paused){hazardCooldown=Math.max(0,hazardCooldown-dt);
 for(const h of hazards){if(hazardCooldown<=0&&invincible<=0&&shieldTime<=0&&Math.hypot(player.x-h.x,player.y-h.y)<player.r+17){
 hazardCooldown=2;invincible=1.2;hit++;hitFlash=.35;state.coins=Math.max(0,state.coins-8);
@@ -495,13 +517,7 @@ const followDist=Math.hypot(player.x-pet.x,player.y-pet.y);
 if(followDist>125)petTarget={x:player.x+35,y:player.y+35};
 const petDx=petTarget.x-pet.x,petDy=petTarget.y-pet.y,petDist=Math.hypot(petDx,petDy);
 if(petDist>3){const step=Math.min(petDist,(state.petEnergy<20?55:105)*dt);pet.x+=petDx/petDist*step;pet.y+=petDy/petDist*step;}
-careClock+=dt;
-if(careClock>=20){careClock=0;
-state.petHunger=clamp(state.petHunger-1,0,100);
-state.petEnergy=clamp(state.petEnergy-1,0,100);
-state.petCleanliness=clamp(state.petCleanliness-1,0,100);
-if(state.petHunger<20||state.petCleanliness<20)state.petMood=clamp(state.petMood-1,0,100);
-save();updateStats();}
+careTick(dt);
 let dx=Number(keys.has("d")||keys.has("arrowright"))-Number(keys.has("a")||keys.has("arrowleft"));
 let dy=Number(keys.has("s")||keys.has("arrowdown"))-Number(keys.has("w")||keys.has("arrowup"));
 if(joystick){const vx=joystick.now.x-joystick.start.x,vy=joystick.now.y-joystick.start.y;
