@@ -158,6 +158,13 @@ def run_factory_v3_1(
     if not isinstance(project, dict):
         raise ValueError("Master generator returned an invalid project")
 
+    # Wire pet state transitions to actual GDevelop event-sheet animation
+    # actions after all gameplay modules have been applied.
+    from .character_builder import apply_pet_animation_events
+    for generated_scene in project.get("layouts", []):
+        if isinstance(generated_scene, dict) and generated_scene.get("name") == cfg.scene:
+            apply_pet_animation_events(generated_scene)
+
     # Legacy runtime modules use "globalVariables", while GDevelop
     # stores project-wide variables in "variables". Merge without
     # overwriting variables already defined by the project.
