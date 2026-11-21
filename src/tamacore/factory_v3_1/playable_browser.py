@@ -41,7 +41,7 @@ button:hover{background:#4967a0}#stats{margin:8px 0;color:#bfe6ff}canvas{display
 #welcome{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#071323dd;padding:18px;backdrop-filter:blur(10px)}#welcome[hidden]{display:none}#welcomeCard{width:min(100%,480px);background:linear-gradient(150deg,#345579,#15263f);border:2px solid #a6d9f3;border-radius:24px;padding:clamp(20px,5vw,36px);text-align:center;box-shadow:0 24px 80px #0009}#welcomeCard h2{font-size:clamp(26px,5vw,38px);color:#ffe6a8;margin:8px 0}#welcomeCard p{color:#d6e9fa;line-height:1.6}#welcomeCard button{font-size:19px;min-height:54px;width:100%;margin-top:14px;background:linear-gradient(135deg,#49a990,#287d91)}
 #victory{position:fixed;inset:0;z-index:110;display:grid;place-items:center;background:#071323e8;padding:18px;backdrop-filter:blur(10px)}#victory[hidden]{display:none}#victoryCard{width:min(100%,490px);padding:clamp(22px,5vw,38px);text-align:center;border-radius:25px;border:2px solid #ffdd8c;background:linear-gradient(155deg,#42577e,#17243d);box-shadow:0 25px 90px #000b}#victoryCard h2{color:#ffe3a1;font-size:clamp(26px,5vw,39px);margin:10px 0}#victoryCard p{line-height:1.6;color:#dceeff}#victoryCard button{width:100%;font-size:17px;margin-top:12px;min-height:50px}
 </style></head><body><div id="victory" role="dialog" aria-modal="true" aria-labelledby="victoryTitle" hidden><div id="victoryCard"><div style="font-size:64px">🏆🐰🎉</div><h2 id="victoryTitle">Adventure Complete!</h2><p id="victorySummary"></p><button id="victoryClose">✨ View my achievements</button><button id="victoryRestart">🔄 Start a new adventure</button></div></div><div id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle"><div id="welcomeCard"><div style="font-size:58px">🐰✨</div><h2 id="welcomeTitle">Welcome to TamaCore!</h2><p>Collect coins, dodge enemies and explore new worlds with your bunny companion. Feed, train and evolve your pet as you play.</p><p><strong>Move:</strong> WASD, arrow keys or touch controls<br><strong>Dash:</strong> Space or 💨 button<br><strong>Pet:</strong> Tap your bunny companion</p><button id="startGame">▶ Start adventure</button></div></div><main><header><h1 id="title">TamaCore</h1><div>
-<button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="reset">New game</button></div></header>
+<button id="soundToggle" aria-pressed="false">🔇 Sound off</button><button id="musicToggle" aria-pressed="false">🎵 Music off</button><button id="shopToggle">Shop</button><button id="pause">Pause</button><button id="reset">New game</button></div></header>
 <div id="stats" aria-live="polite"></div><div id="quickHud" aria-label="Game status"><span id="hudLevel"></span><span id="hudCoins"></span><span id="hudPet"></span><span id="hudPower"></span></div>
 <canvas id="game" width="800" height="600" aria-label="Playable game field"></canvas>
 <div id="touch"><div><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><button id="feed">Feed pet</button><button id="dash">💨 Dash</button></div>
@@ -56,7 +56,21 @@ const cfg=JSON.parse(document.getElementById("config").textContent);
 const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height,KEY="tamacore_browser_save_v1";
 const $=id=>document.getElementById(id);
-let soundEnabled=false,audioCtx=null;
+let soundEnabled=false,musicEnabled=false,audioCtx=null,musicClock=0,musicStep=0;
+const melodies=[[392,440,523,440,349,392,440,330],[330,392,494,392,294,330,392,262],[440,523,587,523,392,440,523,349],[349,392,466,392,330,349,392,294]];
+function musicTick(dt){if(!musicEnabled||paused||won)return;
+musicClock-=dt;if(musicClock>0)return;musicClock=.42;
+try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+if(!audioCtx)audioCtx=new AC();if(audioCtx.state!=="running")return;
+const theme=melodies[Math.floor(state.level/5)%melodies.length];const frequency=theme[musicStep%theme.length];
+const now=audioCtx.currentTime,osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+osc.type="sine";osc.frequency.setValueAtTime(frequency,now);
+gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.018,now+.04);
+gain.gain.exponentialRampToValueAtTime(.0001,now+.36);
+osc.connect(gain);gain.connect(audioCtx.destination);osc.start(now);osc.stop(now+.38);
+musicStep++;}catch(_){}}
+$("musicToggle").onclick=()=>{musicEnabled=!musicEnabled;$("musicToggle").textContent=musicEnabled?"🎵 Music on":"🎵 Music off";$("musicToggle").setAttribute("aria-pressed",String(musicEnabled));musicClock=0;
+if(musicEnabled){try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){if(!audioCtx)audioCtx=new AC();audioCtx.resume();}}catch(_){}}};
 function sound(kind){if(!soundEnabled)return;
 try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
 if(!audioCtx)audioCtx=new AC();if(audioCtx.state==="suspended")audioCtx.resume();
@@ -426,6 +440,7 @@ for(const side of [-1,1])for(const angle of [-.24,.14]){ctx.beginPath();ctx.move
 ctx.lineTo(side*26,7+angle*20);ctx.stroke();}
 ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
+musicTick(dt);
 if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
 levelBanner=Math.max(0,levelBanner-dt);hitFlash=Math.max(0,hitFlash-dt);
 trainingCooldown=Math.max(0,trainingCooldown-dt);dashCooldown=Math.max(0,dashCooldown-dt);
