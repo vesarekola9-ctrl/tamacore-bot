@@ -68,17 +68,38 @@ class PlayableBrowserTests(unittest.TestCase):
                    "equipped": {"furniture": furniture[0], "toy": furniture[0]},
                    "displayed": furniture + furniture,
                    "positions": {furniture[0]: {"x": -500, "y": 999}},
-                   "layouts": {"1": {"equipped": {"furniture": furniture[0]}}},
-                   "wishlist": [furniture[0], "invalid", "wallpaper_sky", "wallpaper_sky"]}
+                   "layouts": {"1": {"equipped": {"furniture": furniture[0]}, "roomTheme": "loft", "roomRug": "woven", "roomClock": True}},
+                   "wishlist": [furniture[0], "invalid", "wallpaper_sky", "wallpaper_sky"],
+                   "roomTheme": "observatory", "roomLighting": "invalid",
+                   "roomRug": "stars", "roomPlant": "fern", "roomArt": "moon",
+                   "roomWindow": "round", "roomClock": True,
+                   "roomFloor": "oak", "roomCurtain": "blue", "roomLamp": "gold",
+                   "extraOutfits": [furniture[0], "invalid"],
+                   "roomAwards": {"firstItem": True, "invalid": True}}
         code = "const cfg=" + json.dumps({"collectibles": catalog}) + ";\n" + logic
         code += "\nconsole.log(JSON.stringify(normalizeBoutique(" + json.dumps(fixture) + ")));"
         result = json.loads(subprocess.check_output(["node", "-e", code], text=True))
         self.assertEqual(result["wishlist"], ["wallpaper_sky"])
+        self.assertEqual(result["roomTheme"], "observatory")
+        self.assertEqual(result["roomLighting"], "auto")
+        self.assertEqual(result["roomRug"], "stars")
+        self.assertEqual(result["roomPlant"], "fern")
+        self.assertEqual(result["roomArt"], "moon")
+        self.assertEqual(result["roomWindow"], "round")
+        self.assertTrue(result["roomClock"])
+        self.assertEqual(result["roomFloor"], "oak")
+        self.assertEqual(result["roomCurtain"], "blue")
+        self.assertEqual(result["roomLamp"], "gold")
+        self.assertEqual(result["extraOutfits"], [])
+        self.assertEqual(result["roomAwards"], {"firstItem": True})
         self.assertNotIn("invalid", result["owned"])
         self.assertNotIn("toy", result["equipped"])
         self.assertEqual(len(result["displayed"]), 3)
         self.assertEqual(result["positions"][furniture[0]], {"x": 130, "y": 495})
         self.assertEqual(result["layouts"]["1"]["equipped"]["furniture"], furniture[0])
+        self.assertEqual(result["layouts"]["1"]["roomTheme"], "loft")
+        self.assertEqual(result["layouts"]["1"]["roomRug"], "woven")
+        self.assertTrue(result["layouts"]["1"]["roomClock"])
 
     def test_boutique_discovery_controls(self):
         html = self.build({"name": "TamaCore"})
