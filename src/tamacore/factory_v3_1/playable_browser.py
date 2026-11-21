@@ -1092,6 +1092,20 @@ for(const [label,kind] of [["🍎 Give a healthy bite","feed"],["🧸 Play toget
 $("rhythmClaim").onclick=()=>{rhythmSync();const w=extra.rhythm.weekly;if(w.days.length<3||w.claimed)return;w.claimed=true;state.coins+=60;state.petMood=clamp(state.petMood+12,0,100);extra.inventory.push("🎀 Friendship ribbon "+w.week);rememberPet("🎀 Weekly friendship gift");extraSave();save();updateStats();rhythmRender();townRender();msg("🎀 A lovely week together! +60 coins.");};
 rhythmSync();if(extra.rhythm.lastVisit&&Date.now()-extra.rhythm.lastVisit>86400000){extra.rhythm.welcomes++;state.petMood=clamp(state.petMood+3,0,100);$("rhythmGreeting").textContent="💞 Welcome back! "+state.petName+" is happy to see you. No missed-day penalty.";}extra.rhythm.lastVisit=Date.now();extraSave();rhythmRender();
 
+
+/* Keep the pet visible and advanced systems discoverable without a wall of buttons. */
+const optionalPanels=[
+["petWellness","🍳 Kitchen & wellness"],
+["petGarden","🌱 Little garden"],
+["extraPlay","🎮 Playroom & mini-games"],
+["townExpansion","🏡 Rooms, town & friends"],
+["longTermGoals","🏆 Achievements & mastery"],
+["extraSettings","⚙️ Comfort & backups"],
+["rhythmExpansion","🌞 Daily care routine"]
+];
+for(const [id,title] of optionalPanels){const panel=$(id);if(!panel)continue;const details=document.createElement("details");details.className="tamapanel";const summary=document.createElement("summary");summary.textContent=title;details.appendChild(summary);panel.before(details);details.appendChild(panel);const heading=panel.querySelector("h3");if(heading)heading.hidden=true;}
+const panelStyle=document.createElement("style");panelStyle.textContent=".tamapanel{margin:8px 0;border:1px solid #ffffff45;border-radius:14px;overflow:hidden}.tamapanel>summary{cursor:pointer;padding:13px 16px;background:#203858;color:#fff4d3;font-weight:700;list-style-position:inside;touch-action:manipulation}.tamapanel[open]>summary{background:#315279}.tamapanel>section{margin:0!important;border-radius:0!important;box-shadow:none!important}";document.head.appendChild(panelStyle);
+
 updatePetGrowth();startLevel();renderShop();renderWardrobe();updateStats();requestAnimationFrame(frame);
 </script></body></html>
 '''
