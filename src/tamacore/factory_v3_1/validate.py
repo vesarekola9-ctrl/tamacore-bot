@@ -74,6 +74,13 @@ def validate_build_output(game_dir: Path) -> List[str]:
                     owned_var = f"Owned_{upgrade.get('id', '')}"
                 if owned_var not in names:
                     errors.append(f"game.json: missing shop ownership variable '{owned_var}'")
+                else:
+                    matching = [var for var in project_vars
+                                if isinstance(var, dict) and var.get("name") == owned_var]
+                    if len(matching) != 1:
+                        errors.append(f"game.json: duplicate shop ownership variable '{owned_var}'")
+                    elif matching[0].get("type") != "number":
+                        errors.append(f"game.json: shop ownership variable '{owned_var}' must be numeric")
     if isinstance(save_data, dict):
         _validate_save(save_data, shop if isinstance(shop, dict) else {}, errors)
     if isinstance(pet_runtime, dict):
