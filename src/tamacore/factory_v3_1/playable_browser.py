@@ -67,7 +67,7 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect";
-let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0;
+let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0;
 let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{const tap=canvasPoint(e);
@@ -120,8 +120,13 @@ else if(theme===1){ctx.fillStyle=d.kind%2?"#9ad9f8":"#d6a9ff";ctx.beginPath();ct
 else if(theme===2){ctx.strokeStyle="#efc184";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,d.size,0,Math.PI);ctx.stroke();}
 else{ctx.fillStyle="#d8f6ff";for(let j=0;j<3;j++){ctx.save();ctx.rotate(j*Math.PI/3);ctx.fillRect(-1,-d.size,2,d.size*2);ctx.restore();}}
 ctx.restore();}}
+function burst(x,y,color,count=12){for(let i=0;i<count;i++){const angle=i*Math.PI*2/count+rand(-.15,.15),speed=rand(45,145);
+particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-25,life:rand(.35,.85),maxLife:.85,r:rand(2,5),color});}
+if(particles.length>220)particles.splice(0,particles.length-220);}
+function drawParticles(){for(const p of particles){ctx.save();ctx.globalAlpha=clamp(p.life/p.maxLife,0,1);
+circle(p.x,p.y,p.r*p.life/p.maxLife,p.color);ctx.restore();}}
 function startLevel(){const lv=cfg.levels[state.level];if(!lv){won=true;msg("Game complete!");return;}
-player.x=W/2;player.y=H/2;generateScenery();beginQuest();pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
+player.x=W/2;player.y=H/2;levelBanner=2.1;generateScenery();beginQuest();pet.x=player.x+65;pet.y=player.y+35;petTarget={x:pet.x,y:pet.y};collected=0;hit=0;invincible=0;
 obstacles=[];
 for(let i=0;i<Math.min(14,3+state.level);i++){
 const p=point(rand(20,32));if(Math.hypot(p.x-W/2,p.y-H/2)>115&&!blocked(p.x,p.y,p.r))obstacles.push(p);}
@@ -152,7 +157,7 @@ $("petEmotion").textContent="Pet mood: "+petEmotion()+" • Quests completed: "+
 function gainPetXP(amount){state.petXP+=amount;let evolved=false;
 while(state.petStage<5&&state.petXP>=state.petStage*100){state.petXP-=state.petStage*100;state.petStage++;evolved=true;}
 if(evolved)msg("✨ Your pet evolved to stage "+state.petStage+"!");save();updateStats();}
-function finishLevel(){const reward=50+state.level*25;gainPetXP(35);state.coins+=reward;
+function finishLevel(){burst(player.x,player.y,"#ffe88b",35);const reward=50+state.level*25;gainPetXP(35);state.coins+=reward;
 if(state.level+1>=cfg.levels.length){won=true;msg("🏆 All levels completed! Final reward: "+reward+" coins.");updateStats();}
 else{state.level++;save();startLevel();msg("Level complete! Bonus: "+reward+" coins. Next: level "+(state.level+1));}save();}
 function renderShop(){const box=$("items");box.replaceChildren();
@@ -273,6 +278,9 @@ ctx.lineTo(side*26,7+angle*20);ctx.stroke();}
 ctx.restore();}
 function frame(t){const dt=Math.min(.05,(t-(frame.last||t))/1000);frame.last=t;
 if(!paused){visualTime+=dt;petCooldown=Math.max(0,petCooldown-dt);
+levelBanner=Math.max(0,levelBanner-dt);hitFlash=Math.max(0,hitFlash-dt);
+for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=90*dt;p.life-=dt;}
+particles=particles.filter(p=>p.life>0);
 for(const h of hearts){h.x+=h.vx*dt;h.y+=h.vy*dt;h.life-=dt;}
 hearts=hearts.filter(h=>h.life>0);}
 ctx.clearRect(0,0,W,H);drawWorldBackdrop();
@@ -303,7 +311,7 @@ const len=Math.max(1,Math.hypot(dx,dy));playerMoving=Math.hypot(dx,dy)>.1;
 if(Math.abs(dx)>.1)playerFacing=dx>0?1:-1;
 moveAroundObstacles(player,dx/len*state.speed*dt,dy/len*state.speed*dt);
 for(let i=targets.length-1;i>=0;i--)if(Math.hypot(player.x-targets[i].x,player.y-targets[i].y)<player.r+targets[i].r){
-targets.splice(i,1);collected++;state.coins+=10;
+burst(targets[i].x,targets[i].y,"#ffe57d",10);targets.splice(i,1);collected++;state.coins+=10;
 if(questKind==="collect")advanceQuest(1);save();updateStats();}
 for(const e of enemies){e.x+=e.vx*dt;e.y+=e.vy*dt;
 if(e.x<e.r||e.x>W-e.r)e.vx*=-1;
@@ -311,11 +319,12 @@ if(e.y<e.r||e.y>H-e.r)e.vy*=-1;
 e.x=clamp(e.x,e.r,W-e.r);e.y=clamp(e.y,e.r,H-e.r);
 if(invincible<=0&&Math.hypot(player.x-e.x,player.y-e.y)<player.r+e.r){
 if(questKind==="survive"){questProgress=0;petMoodClock=0;updateQuest();}
-hit++;invincible=1.2;state.coins=Math.max(0,state.coins-5);msg("Enemy hit! Lost 5 coins.");updateStats();}}
+hit++;invincible=1.2;hitFlash=.3;burst(player.x,player.y,"#ff7c96",20);state.coins=Math.max(0,state.coins-5);msg("Enemy hit! Lost 5 coins.");updateStats();}}
 invincible=Math.max(0,invincible-dt);
 if(!targets.length)finishLevel();}
 for(const o of obstacles)drawObstacle(o);
 for(const c of targets)drawCoin(c);
+drawParticles();
 // Companion is decorative and never collides with enemies or collectibles.
 drawBunny(pet.x,pet.y,.72+state.petStage*.09,state.petMood<30?"#a9b3cf":"#ffb6d7",!paused&&petDist>3,1,state.petMood<30?"sad":"happy");
 if(state.petEnergy<20){ctx.font="18px system-ui";ctx.fillText("Zzz",pet.x+16,pet.y-30);}
@@ -328,6 +337,12 @@ drawBunny(player.x,player.y,.9,invincible>0?"#ffffff":"#79e0d0",!paused&&playerM
 if(state.equippedCosmetic){ctx.font="23px system-ui";ctx.fillText("✦",player.x+17,player.y-13);}
 ctx.textAlign="left";
 ctx.fillStyle="#ffffff";ctx.font="bold 18px system-ui";ctx.fillText(world().name+"  •  Coins left: "+targets.length,16,30);
+if(hitFlash>0){ctx.fillStyle="rgba(255,45,85,"+(hitFlash*.3)+")";ctx.fillRect(0,0,W,H);}
+if(levelBanner>0&&!won){ctx.save();ctx.globalAlpha=Math.min(1,levelBanner,2.1-levelBanner);
+ctx.fillStyle="#14263ddd";ctx.fillRect(W/2-195,H/2-53,390,106);
+ctx.strokeStyle="#ffe5a2";ctx.lineWidth=2;ctx.strokeRect(W/2-195,H/2-53,390,106);
+ctx.fillStyle="#ffe5a2";ctx.font="bold 30px system-ui";ctx.textAlign="center";ctx.fillText("LEVEL "+(state.level+1),W/2,H/2-7);
+ctx.fillStyle="#fff";ctx.font="18px system-ui";ctx.fillText(world().name,W/2,H/2+27);ctx.restore();}
 if(paused){ctx.fillStyle="#ffffff";ctx.font="bold 48px system-ui";ctx.textAlign="center";ctx.fillText("PAUSED",W/2,H/2);ctx.textAlign="left";}
 if(won){ctx.fillStyle="#ffe58d";ctx.font="bold 44px system-ui";ctx.textAlign="center";
 ctx.fillText("YOU WIN!",W/2,H/2);ctx.textAlign="left";}
