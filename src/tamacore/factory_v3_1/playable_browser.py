@@ -69,7 +69,7 @@ if(typeof saved.equippedCosmetic==="string")state.equippedCosmetic=saved.equippe
 state.level=clamp(Math.floor(state.level),0,Math.max(0,cfg.levels.length-1));
 let player={x:W/2,y:H/2,r:17},targets=[],enemies=[],obstacles=[],collected=0,hit=0,invincible=0,won=false;
 let questProgress=0,questTarget=5,questKind="collect",questDone=false,companionCollectCooldown=0,trainingCooldown=0,eventKind="none",eventTimer=0,eventDone=false,eventProgress=0,eventTarget=0;
-let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0,treasures=[],hazards=[],hazardCooldown=0,magnetTime=0,shieldTime=0;
+let scenery=[],visualTime=0,playerMoving=false,playerFacing=1,hearts=[],petCooldown=0,particles=[],levelBanner=0,hitFlash=0,treasures=[],hazards=[],hazardCooldown=0,magnetTime=0,shieldTime=0,boostTime=0;
 let dashCooldown=0,dashRequested=false;let joystick=null,paused=false,careClock=0,pet={x:W/2+65,y:H/2+35},petMoodClock=0,petWander=0,petTarget={x:W/2+65,y:H/2+35};
 function canvasPoint(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};}
 canvas.addEventListener("pointerdown",e=>{const tap=canvasPoint(e);
@@ -141,8 +141,8 @@ obstacles=[];
 for(let i=0;i<Math.min(14,3+state.level);i++){
 const p=point(rand(20,32));if(Math.hypot(p.x-W/2,p.y-H/2)>115&&!blocked(p.x,p.y,p.r))obstacles.push(p);}
 targets=Array.from({length:Math.min(150,Math.max(0,lv.coinCount||0))},()=>safePoint(10));
-treasures=Array.from({length:Math.min(5,1+Math.floor(state.level/3))},(_,i)=>({...safePoint(14),kind:["gem","magnet","shield"][((state.level+i)%3)]}));
-magnetTime=0;shieldTime=0;hazardCooldown=0;
+treasures=Array.from({length:Math.min(5,1+Math.floor(state.level/3))},(_,i)=>({...safePoint(14),kind:["gem","magnet","shield","boost"][((state.level+i)%4)]}));
+magnetTime=0;shieldTime=0;boostTime=0;hazardCooldown=0;
 hazards=state.level>=5?Array.from({length:Math.min(6,1+Math.floor(state.level/4))},()=>({...safePoint(24),phase:rand(0,Math.PI*2)})):[];
 eventKind=state.level>0&&state.level%3===0?"rush":state.level>0&&state.level%5===0?"treasure":"none";
 eventTimer=eventKind==="none"?0:60;eventProgress=0;eventDone=false;
@@ -206,7 +206,10 @@ $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Co
 "  •  Pet hunger: "+Math.round(state.petHunger)+"  •  Pet stage: "+state.petStage+
 "  •  Medals: 🥇"+state.goldMedals+" 🥈"+state.silverMedals+" 🥉"+state.bronzeMedals+
 "  •  Difficulty: "+(state.level>=7?"Hard":state.level>=3?"Medium":"Easy")+
-"  •  Hazards: "+hazards.length;
+"  •  Hazards: "+hazards.length+
+(boostTime>0?"  •  ⚡ Speed boost: "+Math.ceil(boostTime)+"s":"")+
+(shieldTime>0?"  •  🛡️ Shield: "+Math.ceil(shieldTime)+"s":"")+
+(magnetTime>0?"  •  🧲 Magnet: "+Math.ceil(magnetTime)+"s":"");
 $("petStatus").textContent="Hunger "+Math.round(state.petHunger)+"/100 • Energy "+Math.round(state.petEnergy)+"/100 • Mood "+Math.round(state.petMood)+"/100 • Cleanliness "+Math.round(state.petCleanliness)+"/100";
 $("petProgress").textContent="Pet evolution: stage "+state.petStage+" • XP "+state.petXP+"/"+(state.petStage*100)+
 (state.petStage>=3?" • 🪙 Companion coin helper":" • Coin helper unlocks at stage 3")+
@@ -318,10 +321,10 @@ ctx.fillStyle="#e4fbff";ctx.beginPath();ctx.moveTo(-o.r*.55,-o.r*.6);ctx.lineTo(
 ctx.restore();}
 function drawTreasure(t){const bob=Math.sin(visualTime*3+t.x*.1)*3;
 ctx.save();ctx.translate(t.x,t.y+bob);circle(0,0,20,"#fff8ad22");
-const color=t.kind==="gem"?"#7de7ff":t.kind==="magnet"?"#f6c46a":"#9ef7b8";
+const color=t.kind==="gem"?"#7de7ff":t.kind==="magnet"?"#f6c46a":t.kind==="boost"?"#e9b0ff":"#9ef7b8";
 ctx.fillStyle=color;ctx.strokeStyle="#ffffff";ctx.lineWidth=2;
 ctx.beginPath();ctx.moveTo(0,-13);ctx.lineTo(12,-3);ctx.lineTo(8,10);ctx.lineTo(-8,10);ctx.lineTo(-12,-3);ctx.closePath();ctx.fill();ctx.stroke();
-ctx.fillStyle="#24354d";ctx.font="bold 16px system-ui";ctx.textAlign="center";ctx.fillText(t.kind==="gem"?"★":t.kind==="magnet"?"M":"✚",0,5);ctx.restore();}
+ctx.fillStyle="#24354d";ctx.font="bold 16px system-ui";ctx.textAlign="center";ctx.fillText(t.kind==="gem"?"★":t.kind==="magnet"?"M":t.kind==="boost"?"⚡":"✚",0,5);ctx.restore();}
 function drawCoin(c){const pulse=1+Math.sin(visualTime*5+c.x*.07)*.1;
 const r=c.r*pulse;circle(c.x,c.y,r+6,"#ffd55b33");
 const shine=ctx.createRadialGradient(c.x-r*.35,c.y-r*.4,1,c.x,c.y,r);
@@ -371,7 +374,7 @@ levelBanner=Math.max(0,levelBanner-dt);hitFlash=Math.max(0,hitFlash-dt);
 trainingCooldown=Math.max(0,trainingCooldown-dt);dashCooldown=Math.max(0,dashCooldown-dt);
 $("dash").disabled=paused||won||dashCooldown>0;$("dash").textContent=dashCooldown>0?"💨 Dash "+Math.ceil(dashCooldown)+"s":"💨 Dash";
 companionCollectCooldown=Math.max(0,companionCollectCooldown-dt);
-magnetTime=Math.max(0,magnetTime-dt);shieldTime=Math.max(0,shieldTime-dt);
+magnetTime=Math.max(0,magnetTime-dt);shieldTime=Math.max(0,shieldTime-dt);boostTime=Math.max(0,boostTime-dt);
 for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=90*dt;p.life-=dt;}
 particles=particles.filter(p=>p.life>0);
 for(const h of hearts){h.x+=h.vx*dt;h.y+=h.vy*dt;h.life-=dt;}
@@ -414,7 +417,7 @@ if(dashCooldown<=0&&playerMoving){moveAroundObstacles(player,dx/len*115,dy/len*1
 invincible=Math.max(invincible,.35);dashCooldown=8;burst(player.x,player.y,"#9deeff",14);
 msg("💨 Dash! Briefly dodge attacks.");}
 else if(dashCooldown<=0)msg("Move in a direction to dash.");}
-const happyBoost=state.petStage>=5&&state.petMood>=70?1.12:1;
+const happyBoost=(state.petStage>=5&&state.petMood>=70?1.12:1)*(boostTime>0?1.4:1);
 moveAroundObstacles(player,dx/len*state.speed*happyBoost*dt,dy/len*state.speed*happyBoost*dt);
 if(state.petStage>=3&&state.petEnergy>=20&&companionCollectCooldown<=0){
 const reach=24+state.petSkill*12;
@@ -428,7 +431,8 @@ if(Math.hypot(player.x-t.x,player.y-t.y)<player.r+15){
 burst(t.x,t.y,"#a5f5ff",18);treasures.splice(i,1);
 if(t.kind==="gem"){eventCollect("gem");state.coins+=75;gainPetXP(12);msg("💎 Rare gem! +75 coins and +12 pet XP.");}
 else if(t.kind==="magnet"){magnetTime=12;msg("🧲 Coin magnet active for 12 seconds!");}
-else{shieldTime=12;msg("🛡️ Shield active for 12 seconds!");}
+else if(t.kind==="shield"){shieldTime=12;msg("🛡️ Shield active for 12 seconds!");}
+else if(t.kind==="boost"){boostTime=10;msg("⚡ Speed boost active for 10 seconds!");}
 save();updateStats();}}
 if(magnetTime>0)for(const c of targets){const d=Math.hypot(player.x-c.x,player.y-c.y);
 if(d>1&&d<145){const speed=Math.min(d,220*dt);c.x+=(player.x-c.x)/d*speed;c.y+=(player.y-c.y)/d*speed;}}
