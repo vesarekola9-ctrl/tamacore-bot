@@ -512,6 +512,7 @@ const choreChallenges=[
 {id:"challenge197",title:"Golden Streak",ready:()=>state.bestChoreStreak>=50,reward:200},
 {id:"challenge198",title:"Two Hundred Chores",ready:()=>state.choreTotal>=200,reward:250},
 {id:"challenge199",title:"Ultimate Caretaker",ready:()=>state.choreTotal>=100&&state.friendship>=90&&state.tidyingSkill>=80&&state.gardeningSkill>=80,reward:300},
+{id:"challenge200",title:"TamaCore Home Legend",ready:()=>state.choreTotal>=250&&state.bestChoreStreak>=30&&state.tidyingSkill>=95&&state.gardeningSkill>=95,reward:500},
 /*CHORE_CHALLENGES*/
 ];
 function renderChoreChallenges(){const root=$("choreChallenges");if(!root)return;root.replaceChildren();for(const c of choreChallenges){const claimed=state.choreRewardsClaimed.includes(c.id),ready=c.ready();const line=document.createElement("div"),button=document.createElement("button");button.textContent=(claimed?"✅ ":ready?"🎁 ":"🔒 ")+c.title+" • "+c.reward+" coins";button.disabled=claimed||!ready;button.onclick=()=>{if(state.choreRewardsClaimed.includes(c.id)||!c.ready())return;state.choreRewardsClaimed.push(c.id);state.coins+=c.reward;state.petMood=clamp(state.petMood+2,0,100);rememberPet("🏆 Challenge: "+c.title);save();updateStats();msg("🏆 "+c.title+"! +"+c.reward+" coins.");};line.appendChild(button);root.appendChild(line);}}
