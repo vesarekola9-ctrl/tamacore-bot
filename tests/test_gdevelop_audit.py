@@ -33,6 +33,16 @@ class GDevelopAuditTests(unittest.TestCase):
             }), encoding="utf-8")
             self.assertIn("Missing animation frame: assets/pet_idle.png", audit_project(project))
 
+    def test_rejects_resource_path_traversal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / "game.json"
+            project.write_text(json.dumps({
+                "resources": {"resources": [{"name": "unsafe", "file": "../secret.png"}]},
+                "layouts": [{"name": "Home", "objects": [{"name": "Pet"}],
+                             "events": [{"type": "BuiltinCommonInstructions::Standard"}]}],
+            }), encoding="utf-8")
+            self.assertIn("Unsafe resource path: ../secret.png", audit_project(project))
+
     def test_accepts_basic_nonempty_structure(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
