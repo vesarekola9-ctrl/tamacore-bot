@@ -817,7 +817,7 @@ for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.strok
 for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 ctx.restore();if(!reducedEffects)drawScenery();
 if(homeMode){const phase=petDayPhase();const wallColors={default:"#10253b",mint:"#245b54",peach:"#71445c"},floorColors={default:"#38404e",wood:"#80583c",cloud:"#6e829f"};
-const boutiqueWall=boutiqueSelected("wallpaper");const boutiqueWallColors={wallpaper_sky:"#8acbe9",wallpaper_forest:"#497e5d",wallpaper_space:"#302459",wallpaper_candy:"#d890bf"};
+const boutiqueWall=boutiqueSelected("wallpaper");const boutiqueWallColors={wallpaper_sky:"#8acbe9",wallpaper_forest:"#497e5d",wallpaper_space:"#302459",wallpaper_candy:"#d890bf",wallpaper_ocean:"#287c9c",wallpaper_snow:"#a8c5d8",wallpaper_sunset:"#b76b49",wallpaper_garden:"#548d63"};
 ctx.fillStyle=(boutiqueWall&&boutiqueWallColors[boutiqueWall.id])||wallColors[state.roomEquipped.wall]||wallColors.default;ctx.fillRect(65,90,670,325);
 ctx.fillStyle=floorColors[state.roomEquipped.floor]||floorColors.default;ctx.fillRect(65,415,670,100);
 ctx.fillStyle=phase==="night"?"#07152b99":phase==="evening"?"#b95c4050":"#fff3bd15";ctx.fillRect(65,90,670,425);
@@ -1154,7 +1154,7 @@ function boutiqueRender(){
   document.getElementById("boutiquePreviewFurniture").textContent=furniture?furniture.emoji:"🏠";
   document.getElementById("boutiquePreviewToy").textContent=toy?toy.emoji:"";
   const wall=document.getElementById("boutiquePreviewWallpaper");
-  const backgrounds={wallpaper_sky:"linear-gradient(#b5e6ff,#fefefe)",wallpaper_forest:"linear-gradient(#70b992,#d5f6aa)",wallpaper_space:"linear-gradient(#252550,#784ea1)",wallpaper_candy:"linear-gradient(#ffaacc,#b6e9ff)"};
+  const backgrounds={wallpaper_sky:"linear-gradient(#b5e6ff,#fefefe)",wallpaper_forest:"linear-gradient(#70b992,#d5f6aa)",wallpaper_space:"linear-gradient(#252550,#784ea1)",wallpaper_candy:"linear-gradient(#ffaacc,#b6e9ff)",wallpaper_ocean:"linear-gradient(#53badb,#176a9c)",wallpaper_snow:"linear-gradient(#c8e6ff,#ffffff)",wallpaper_sunset:"linear-gradient(#ffb86a,#c56b92)",wallpaper_garden:"linear-gradient(#a9de91,#f9c1d8)"};
   wall.style.background=wallpaper?backgrounds[wallpaper.id]||"transparent":"transparent";
 
 }
