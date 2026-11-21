@@ -57,9 +57,9 @@ const $=id=>document.getElementById(id);
 $("title").textContent=cfg.name;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>a+Math.random()*(b-a);
-const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0,claimedChallenges:{}};
+const state={coins:250,speed:200,level:0,owned:{},petHunger:75,petEnergy:75,petMood:75,petCleanliness:75,cosmeticsOwned:{},equippedCosmetic:"",petXP:0,petStage:1,questsCompleted:0,goldMedals:0,silverMedals:0,bronzeMedals:0,totalCoinsCollected:0,achievements:{},trainingSessions:0,petSkill:0,levelsCompleted:0,claimedMilestones:{},starTokens:0,claimedChallenges:{},bossChallengesWon:0};
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object"){
-for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions","petSkill","levelsCompleted","starTokens"])if(Number.isFinite(saved[k]))state[k]=saved[k];
+for(const k of ["coins","speed","level","petHunger","petEnergy","petMood","petCleanliness","petXP","petStage","questsCompleted","goldMedals","silverMedals","bronzeMedals","totalCoinsCollected","trainingSessions","petSkill","levelsCompleted","starTokens","bossChallengesWon"])if(Number.isFinite(saved[k]))state[k]=saved[k];
 if(saved.owned&&typeof saved.owned==="object")state.owned=saved.owned;
 if(saved.achievements&&typeof saved.achievements==="object")state.achievements=saved.achievements;
 if(saved.claimedMilestones&&typeof saved.claimedMilestones==="object")state.claimedMilestones=saved.claimedMilestones;
@@ -151,10 +151,10 @@ eventTarget=eventKind==="rush"?Math.min(8,Math.max(3,targets.length)):eventKind=
 if(eventKind==="treasure"&&!treasures.some(t=>t.kind==="gem"))treasures.push({...safePoint(14),kind:"gem"});
 updateEvent();
 enemies=Array.from({length:Math.min(50,Math.max(0,lv.enemyCount||0))},(_,i)=>{
-const type=state.level>=7&&i%7===0?"guardian":(state.level>=4&&i%5===0)?"chaser":(state.level>=2&&i%3===0)?"sprinter":"wanderer";
+const type=(state.level+1)%5===0&&i===0?"boss":state.level>=7&&i%7===0?"guardian":(state.level>=4&&i%5===0)?"chaser":(state.level>=2&&i%3===0)?"sprinter":"wanderer";
 const difficulty=Math.min(1.65,1+state.level*.025);
-const speed=(type==="guardian"?rand(35,55):type==="sprinter"?rand(115,155):rand(45,90))*difficulty;
-const angle=rand(0,Math.PI*2);return {...safePoint(16),vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,type,speed};});
+const speed=(type==="boss"?rand(75,95):type==="guardian"?rand(35,55):type==="sprinter"?rand(115,155):rand(45,90))*difficulty;
+const angle=rand(0,Math.PI*2);return {...safePoint(type==="boss"?25:16),vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,type,speed};});
 msg(world().name+" • Level "+(state.level+1)+": collect "+targets.length+" coins and avoid enemies.");
 updateStats();}
 function beginQuest(){questKind=state.level%2===0?"collect":"survive";questProgress=0;questDone=false;
@@ -207,7 +207,8 @@ const challengeDefs=[
 {id:"quests_25",name:"🎯 Quest Veteran",stat:"questsCompleted",target:25,coins:450,xp:90},
 {id:"stars_10",name:"🌟 Star Explorer",stat:"starTokens",target:10,coins:500,xp:100},
 {id:"training_20",name:"🎓 Training Champion",stat:"trainingSessions",target:20,coins:400,xp:120},
-{id:"gold_10",name:"🥇 Golden Legend",stat:"goldMedals",target:10,coins:750,xp:150}];
+{id:"gold_10",name:"🥇 Golden Legend",stat:"goldMedals",target:10,coins:750,xp:150},
+{id:"boss_3",name:"👹 Boss Challenger",stat:"bossChallengesWon",target:3,coins:900,xp:180}];
 function renderChallenges(){const box=$("challengeList");box.replaceChildren();
 for(const challenge of challengeDefs){const progress=Math.max(0,Math.floor(state[challenge.stat]||0));
 const unlocked=progress>=challenge.target,claimed=!!state.claimedChallenges[challenge.id];
@@ -225,7 +226,7 @@ $("stats").textContent="Level "+(state.level+1)+"/"+cfg.levels.length+"  •  Co
 "  •  Pet hunger: "+Math.round(state.petHunger)+"  •  Pet stage: "+state.petStage+
 "  •  Medals: 🥇"+state.goldMedals+" 🥈"+state.silverMedals+" 🥉"+state.bronzeMedals+
 "  •  Difficulty: "+(state.level>=7?"Hard":state.level>=3?"Medium":"Easy")+
-"  •  Hazards: "+hazards.length+"  •  🌟 Stars: "+state.starTokens+
+"  •  Boss wins: "+state.bossChallengesWon+"  •  Hazards: "+hazards.length+"  •  🌟 Stars: "+state.starTokens+
 (boostTime>0?"  •  ⚡ Speed boost: "+Math.ceil(boostTime)+"s":"")+
 (shieldTime>0?"  •  🛡️ Shield: "+Math.ceil(shieldTime)+"s":"")+
 (magnetTime>0?"  •  🧲 Magnet: "+Math.ceil(magnetTime)+"s":"");
@@ -243,7 +244,10 @@ function finishLevel(){burst(player.x,player.y,"#ffe88b",35);
 const medal=hit===0&&questDone?"gold":hit<=2&&questDone?"silver":"bronze";
 const medalBonus=medal==="gold"?100:medal==="silver"?50:20;
 state[medal+"Medals"]++;state.levelsCompleted=Math.max(state.levelsCompleted,state.level+1);
-const reward=50+state.level*25+medalBonus;
+const bossChallenge=(state.level+1)%5===0;
+const bossBonus=bossChallenge&&hit<=2?250:0;
+if(bossBonus)state.bossChallengesWon++;
+const reward=50+state.level*25+medalBonus+bossBonus;
 gainPetXP(35);state.coins+=reward;
 if(state.level+1>=cfg.levels.length){won=true;msg("🏆 All levels completed! "+medal.toUpperCase()+" medal, final reward: "+reward+" coins.");updateStats();}
 else{state.level++;save();startLevel();msg("Level complete! "+medal.toUpperCase()+" medal • +"+reward+" coins. Next: level "+(state.level+1));}save();}
@@ -270,7 +274,7 @@ state.equippedCosmetic=item.id;save();renderWardrobe();updateStats();msg("Equipp
 $("shopToggle").onclick=()=>{$("shop").classList.toggle("open");renderShop();};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"Resume":"Pause";msg(paused?"Game paused.":"Game resumed.");};
 $("reset").onclick=()=>{if(!confirm("Erase saved progress and restart?"))return;
-state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.claimedChallenges={};state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
+state.coins=250;state.speed=200;state.level=0;state.owned={};state.petHunger=75;state.petEnergy=75;state.petMood=75;state.petCleanliness=75;hearts=[];petCooldown=0;dashCooldown=0;dashRequested=false;state.questsCompleted=0;state.trainingSessions=0;state.petSkill=0;state.levelsCompleted=0;state.claimedMilestones={};state.claimedChallenges={};state.bossChallengesWon=0;state.starTokens=0;trainingCooldown=0;state.goldMedals=0;state.silverMedals=0;state.bronzeMedals=0;state.totalCoinsCollected=0;state.achievements={};state.petXP=0;state.petStage=1;state.cosmeticsOwned={};state.equippedCosmetic="";won=false;paused=false;$("pause").textContent="Pause";save();startLevel();renderShop();renderWardrobe();};
 $("trainPet").onclick=()=>{if(paused||won){msg("Resume playing to train your companion.");return;}
 if(trainingCooldown>0){msg("Your companion needs a break before training again.");return;}
 if(state.coins<20){msg("Training costs 20 coins.");return;}
@@ -461,8 +465,8 @@ for(let i=targets.length-1;i>=0;i--)if(Math.hypot(player.x-targets[i].x,player.y
 burst(targets[i].x,targets[i].y,"#ffe57d",10);targets.splice(i,1);collected++;state.totalCoinsCollected++;state.coins+=10;eventCollect("coin");
 if(questKind==="collect")advanceQuest(1);save();updateStats();}
 for(const e of enemies){
-if(e.type==="chaser"||e.type==="guardian"){const vx=player.x-e.x,vy=player.y-e.y,d=Math.hypot(vx,vy);
-if(d>1&&d<(e.type==="guardian"?290:210)){const desiredX=vx/d*e.speed,desiredY=vy/d*e.speed;
+if(e.type==="chaser"||e.type==="guardian"||e.type==="boss"){const vx=player.x-e.x,vy=player.y-e.y,d=Math.hypot(vx,vy);
+if(d>1&&d<(e.type==="boss"?360:e.type==="guardian"?290:210)){const desiredX=vx/d*e.speed,desiredY=vy/d*e.speed;
 e.vx+=(desiredX-e.vx)*Math.min(1,dt*1.5);e.vy+=(desiredY-e.vy)*Math.min(1,dt*1.5);}}
 e.x+=e.vx*dt;e.y+=e.vy*dt;
 if(e.x<e.r||e.x>W-e.r)e.vx*=-1;
@@ -471,9 +475,9 @@ e.x=clamp(e.x,e.r,W-e.r);e.y=clamp(e.y,e.r,H-e.r);
 if(invincible<=0&&shieldTime<=0&&Math.hypot(player.x-e.x,player.y-e.y)<player.r+e.r){
 if(questKind==="survive"&&!questDone){questProgress=0;petMoodClock=0;updateQuest();}
 hit++;invincible=1.2;hitFlash=.3;burst(player.x,player.y,"#ff7c96",20);
-const penalty=e.type==="guardian"?15:5;state.coins=Math.max(0,state.coins-penalty);
-if(e.type==="guardian"){state.petMood=clamp(state.petMood-5,0,100);}
-msg(e.type==="guardian"?"Guardian hit! Lost 15 coins and 5 pet mood.":"Enemy hit! Lost 5 coins.");save();updateStats();}}
+const penalty=e.type==="boss"?20:e.type==="guardian"?15:5;state.coins=Math.max(0,state.coins-penalty);
+if(e.type==="guardian"||e.type==="boss"){state.petMood=clamp(state.petMood-5,0,100);}
+msg(e.type==="boss"?"Boss hit! Lost 20 coins and 5 pet mood.":e.type==="guardian"?"Guardian hit! Lost 15 coins and 5 pet mood.":"Enemy hit! Lost 5 coins.");save();updateStats();}}
 invincible=Math.max(0,invincible-dt);
 if(!targets.length)finishLevel();}
 for(const h of hazards){const pulse=.5+.5*Math.sin(visualTime*3+h.phase);
