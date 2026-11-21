@@ -1136,7 +1136,9 @@ function boutiqueRender(){
   document.getElementById("boutiqueCount").textContent=results.length+" items • "+(cfg.collectibles||[]).filter(item=>boutiqueSave.owned[item.id]).length+" collected";
   results.forEach(item=>{
     const card=document.createElement("div");card.style.cssText="padding:10px;background:#223b5a;border:1px solid #5b7d9e;border-radius:12px";
-    const title=document.createElement("strong");title.textContent=item.emoji+" "+item.name;card.appendChild(title);
+    const themeColors={pastel:"#efb9df",royal:"#e8ca77",winter:"#a9dfef",garden:"#a4d5a3"};
+    const art=document.createElement("div");art.textContent=item.emoji;art.style.cssText="font-size:48px;text-align:center;padding:12px;border-radius:9px;margin-bottom:8px;background:linear-gradient(145deg,"+(themeColors[item.theme]||"#8199bc")+",#233b5b);";card.appendChild(art);
+    const title=document.createElement("strong");title.textContent=item.name;card.appendChild(title);
     const detail=document.createElement("p");detail.textContent=boutiqueSave.owned[item.id]?"Owned forever":"🪙 "+item.coinPrice+" coins";card.appendChild(detail);
     const btn=document.createElement("button");const owned=Boolean(boutiqueSave.owned[item.id]);btn.textContent=owned?(boutiqueSave.equipped[item.category]===item.id?"✓ Equipped":"Equip"):"Buy with coins";
     if(!owned)btn.dataset.price=String(item.coinPrice);
@@ -1159,6 +1161,10 @@ function boutiqueRender(){
   document.getElementById("boutiquePreviewOutfit").textContent=outfit?outfit.emoji:"";
   document.getElementById("boutiquePreviewFurniture").textContent=furniture?furniture.emoji:"🏠";
   document.getElementById("boutiquePreviewToy").textContent=toy?toy.emoji:"";
+  const palette={pastel:"#efb9df",royal:"#e8ca77",winter:"#a9dfef",garden:"#a4d5a3"};
+  for(const [id,item] of [["boutiquePreviewOutfit",outfit],["boutiquePreviewFurniture",furniture],["boutiquePreviewToy",toy]]){
+    const element=document.getElementById(id);element.style.filter=item&&item.theme?"drop-shadow(0 0 9px "+palette[item.theme]+")":"none";
+  }
   const wall=document.getElementById("boutiquePreviewWallpaper");
   const backgrounds={wallpaper_sky:"linear-gradient(#b5e6ff,#fefefe)",wallpaper_forest:"linear-gradient(#70b992,#d5f6aa)",wallpaper_space:"linear-gradient(#252550,#784ea1)",wallpaper_candy:"linear-gradient(#ffaacc,#b6e9ff)",wallpaper_ocean:"linear-gradient(#53badb,#176a9c)",wallpaper_snow:"linear-gradient(#c8e6ff,#ffffff)",wallpaper_sunset:"linear-gradient(#ffb86a,#c56b92)",wallpaper_garden:"linear-gradient(#a9de91,#f9c1d8)"};
   wall.style.background=wallpaper?backgrounds[wallpaper.id]||"transparent":"transparent";
