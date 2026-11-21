@@ -1,22 +1,23 @@
-import sys
-import os
-sys.path.insert(0, os.path.abspath("src"))
+"""Master factory smoke test compatible with unittest and pytest."""
+import unittest
 
-import pytest
 from tamacore.factory_v3_1.generator import build_game_json
 
-@pytest.fixture
-def base_data():
-    return {
-        "properties": {"name": "Test Game"},
-        "layouts": [{"name": "MainScene", "objects": [], "instances": [], "events": []}],
-        "globalVariables": [],
-        "resources": {"resources": []}
-    }
 
-def test_build_game_json(base_data):
-    res = build_game_json(base_data)
-    assert "globalVariables" in res
-    var_names = {v["name"] for v in res["globalVariables"]}
-    assert "Pet_CurrentEmote" in var_names
-    assert "Seasonal_ActiveEvent" in var_names
+class FactoryTests(unittest.TestCase):
+    def test_build_game_json(self):
+        base_data = {
+            "properties": {"name": "Test Game"},
+            "layouts": [{"name": "MainScene", "objects": [], "instances": [], "events": []}],
+            "globalVariables": [],
+            "resources": {"resources": []},
+        }
+        result = build_game_json(base_data)
+        self.assertIn("globalVariables", result)
+        names = {variable["name"] for variable in result["globalVariables"]}
+        self.assertIn("Pet_CurrentEmote", names)
+        self.assertIn("Seasonal_ActiveEvent", names)
+
+
+if __name__ == "__main__":
+    unittest.main()
